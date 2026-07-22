@@ -1,5 +1,3 @@
-import { DevelopmentMap } from "@/components/development-map/development-map";
-
 export default function Home() {
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#f7f9fc] text-slate-950">
@@ -58,8 +56,6 @@ export default function Home() {
           </div>
         </div>
       </section>
-
-      <DevelopmentMap />
     </main>
   );
 }
