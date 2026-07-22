@@ -2,19 +2,25 @@
 
 ## Goal
 
-Add a large, immediately readable workflow section to the CommentHawk home page. The section shows the product's six major implementation stages in order and lets a user maintain detailed plans for each stage without requiring a backend.
+Add a large, immediately readable workflow section to the CommentHawk home page. The section shows the seven major development stages required to build CommentHawk and lets a user maintain detailed plans for each stage without requiring a backend.
 
 ## Approved layout
 
-The workflow is a single horizontal pipeline on desktop:
+The workflow is a single horizontal development roadmap on desktop:
 
 ```text
-YouTube 연결 → 영상 선택 → 댓글 수집 → AI 분류 → Inbox 검토 → 사용자 조치
+기반 준비
+→ Front-end 기반
+→ 사용자 웹 페이지
+→ 대시보드
+→ YouTube·데이터
+→ AI·댓글 운영
+→ QA·배포
 ```
 
-Each stage is a large selectable card. Selecting a card updates one editor panel directly below the pipeline. This keeps the complete product flow visible while giving the selected stage enough space for detailed planning.
+Each stage is a large selectable card. Selecting a card updates one editor panel directly below the roadmap. This keeps the complete development sequence visible while giving the selected stage enough space for detailed planning.
 
-On small screens, the same pipeline remains horizontal and uses scroll snapping instead of compressing all six cards. The editor panel stays below it.
+On small screens, the same pipeline remains horizontal and uses scroll snapping instead of compressing all seven cards. The editor panel stays below it.
 
 ## Interaction
 
@@ -26,16 +32,17 @@ On small screens, the same pipeline remains horizontal and uses scroll snapping 
 - Empty stages show a clear empty state and an add action.
 - Empty or whitespace-only plan names are rejected.
 
-## Initial plan content
+## Development stages and initial plan content
 
-The planner starts with practical examples derived from the approved product context:
+The planner starts with practical implementation plans derived from the approved product context:
 
-1. YouTube 연결: Google Cloud project, OAuth consent and minimum scopes.
-2. 영상 선택: fetch the connected channel's videos and keep one selected video.
-3. 댓글 수집: import 20–50 comments and handle pagination and duplicate prevention.
-4. AI 분류: define the first categories and structured output contract.
-5. Inbox 검토: display real comments, filters, and hidden harmful source text.
-6. 사용자 조치: preserve source evidence, request confirmation, and record the result.
+1. 기반 준비: maintain the product context, repository, environment contract, Next.js foundation, and core data boundaries.
+2. Front-end 기반: define reusable colors, typography, buttons, forms, cards, responsive layout, and loading, error, and empty-state patterns.
+3. 사용자 웹 페이지: build the public introduction page, sign-in and onboarding entry, YouTube connection entry, and clear disconnected or permission-denied states.
+4. 대시보드: build the application shell, overview, video selection, Comment Inbox, filters, detailed comment review, and clear real-data status indicators.
+5. YouTube·데이터: implement Google OAuth, channel and Brand Account selection, video and 20–50 comment import, pagination, duplicate prevention, and raw database storage.
+6. AI·댓글 운영: implement structured classification, sanitized feedback, manual correction, user-approved moderation, evidence capture, and action logs.
+7. QA·배포: verify accessibility, security boundaries, AI quality, API failures, responsive behavior, production build, Vercel deployment, and the first creator pilot.
 
 These examples are editable and deletable. They are planning content, not claims that the integrations already work.
 
@@ -52,7 +59,7 @@ type PlanItem = {
 type PlansByStage = Record<string, PlanItem[]>;
 ```
 
-Only plan items are persisted. Stage identifiers, titles, descriptions, sequence, and visual theme remain defined in application code so the product workflow cannot be accidentally reordered through local browser data.
+Only plan items are persisted. Stage identifiers, titles, descriptions, sequence, and visual theme remain defined in application code so the development roadmap cannot be accidentally reordered through local browser data.
 
 On the first visit, the application seeds the approved example plans. If stored JSON is invalid or does not match the expected shape, the planner falls back to the example plans without crashing. A future Supabase implementation can replace the persistence adapter while keeping the same UI model.
 
@@ -67,7 +74,7 @@ On the first visit, the application seeds the approved example plans. If stored 
 
 ## Accessibility
 
-- Stage cards are buttons with an explicit selected state.
+- Stage cards are buttons with an explicit selected state and step number.
 - The selected editor heading is connected to the stage selection context.
 - Add and edit forms use visible labels and submit with Enter.
 - Cancel actions return the interface to a stable non-editing state.
@@ -90,6 +97,6 @@ On the first visit, the application seeds the approved example plans. If stored 
 ## Out of scope
 
 - Supabase synchronization and multi-user collaboration.
-- Drag-and-drop reordering of stages or plan items.
+- Drag-and-drop reordering of roadmap stages or plan items.
 - Due dates, assignees, comments, attachments, and completion analytics.
 - OAuth, YouTube API, AI classification, and moderation actions themselves.
