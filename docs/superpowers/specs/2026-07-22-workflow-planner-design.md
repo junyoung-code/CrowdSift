@@ -1,102 +1,144 @@
-# CommentHawk Workflow Planner Design
+# CommentHawk Four-Part Development Map Design
 
 ## Goal
 
-Add a large, immediately readable workflow section to the CommentHawk home page. The section shows the seven major development stages required to build CommentHawk and lets a user maintain detailed plans for each stage without requiring a backend.
+Add one large Mermaid-style flowchart that answers a practical question at a glance: "CommentHawk를 만들기 위해 우리가 무엇을 해야 하는가?"
 
-## Approved layout
+The map separates the work into four implementation parts—Frontend, Backend, AI, and Security—then shows the concrete tasks that belong to each part. Users can add, rename, and delete detailed tasks, and the flowchart redraws immediately without requiring a backend.
 
-The workflow is a single horizontal development roadmap on desktop:
+## Approved visual direction
+
+The chart follows the supplied reference image rather than the earlier horizontal card pipeline:
+
+- one large, light canvas with generous whitespace;
+- thin connector lines and compact rectangular nodes;
+- a top root node that branches into four implementation parts;
+- each part branches into its detailed work items;
+- all four parts converge on one integrated MVP goal;
+- a full-screen control and a Mermaid-source copy control in the canvas corner;
+- horizontal and vertical canvas scrolling when the graph is larger than the viewport.
+
+The diagram uses `flowchart TD`. Each implementation part is rendered as a visually distinct subgraph with a restrained color accent, while detail nodes remain light and readable.
+
+## Fixed four-part structure
+
+The four top-level parts are fixed in application code so local edits cannot erase the overall project structure.
+
+### 1. Frontend
+
+- Front-end foundation: color, typography, shared controls, forms, cards, and responsive layout.
+- User web page: product introduction, sign-in and onboarding entry, YouTube connection entry, and permission states.
+- Dashboard: application shell, overview, video selection, Comment Inbox, filters, and detailed review.
+- Product states: loading, empty, disconnected, permission-denied, quota, and partial-failure states.
+- Accessibility: keyboard use, visible focus, reduced motion, and harmful-source-text hiding.
+
+### 2. Backend
+
+- Supabase schema: users, channels, videos, comments, imports, analyses, evidence, actions, and logs.
+- Authentication boundary: application session separated from Google and YouTube authorization.
+- Google OAuth: consent, minimum scopes, refresh, revocation, and Brand Account selection.
+- YouTube import: channel videos, 20–50 comments, replies, pagination, deduplication, and resume.
+- Data services: raw-data preservation, derived-data separation, retries, idempotency, and audit logging.
+
+### 3. AI
+
+- Classification contract: first comment categories, confidence, uncertainty, and action recommendation.
+- Structured output: versioned prompt, model, schema, runtime validation, and retry behavior.
+- Safe presentation: sanitized feedback that preserves meaning without inventing content.
+- Insight features: repeated-question clustering, Q&A Radar, and Signal Digest.
+- Quality operations: Korean evaluation data, human correction, class metrics, latency, and cost limits.
+
+### 4. Security
+
+- Secret handling: server-only keys, encrypted refresh tokens, and rotation boundaries.
+- Access control: tenant isolation, Supabase RLS, least privilege, and minimum OAuth scopes.
+- Moderation safety: preserve source evidence, require confirmation, then apply reversible actions where possible.
+- Evidence policy: timestamps, hashes, retention, export, deletion requests, and careful legal wording.
+- Operational safety: audit logs without unnecessary harmful content, rate limits, and failure recovery.
+
+All four part-completion nodes converge on `통합 MVP`, defined as:
 
 ```text
-기반 준비
-→ Front-end 기반
-→ 사용자 웹 페이지
-→ 대시보드
-→ YouTube·데이터
-→ AI·댓글 운영
-→ QA·배포
+YouTube 연결 → 영상 선택 → 댓글 20–50개 수집
+→ AI 분류 → DB 저장 → Inbox 검토 → 사용자 승인 조치
 ```
 
-Each stage is a large selectable card. Selecting a card updates one editor panel directly below the roadmap. This keeps the complete development sequence visible while giving the selected stage enough space for detailed planning.
+## Interaction model
 
-On small screens, the same pipeline remains horizontal and uses scroll snapping instead of compressing all seven cards. The editor panel stays below it.
-
-## Interaction
-
-- The first stage is selected initially.
-- Selecting a stage changes the editor heading and plan list without navigation.
-- `계획 추가` opens an inline text field for the selected stage.
-- Every plan can be renamed through an inline edit action.
-- Every plan can be deleted after a lightweight browser confirmation.
-- Empty stages show a clear empty state and an add action.
-- Empty or whitespace-only plan names are rejected.
-
-## Development stages and initial plan content
-
-The planner starts with practical implementation plans derived from the approved product context:
-
-1. 기반 준비: maintain the product context, repository, environment contract, Next.js foundation, and core data boundaries.
-2. Front-end 기반: define reusable colors, typography, buttons, forms, cards, responsive layout, and loading, error, and empty-state patterns.
-3. 사용자 웹 페이지: build the public introduction page, sign-in and onboarding entry, YouTube connection entry, and clear disconnected or permission-denied states.
-4. 대시보드: build the application shell, overview, video selection, Comment Inbox, filters, detailed comment review, and clear real-data status indicators.
-5. YouTube·데이터: implement Google OAuth, channel and Brand Account selection, video and 20–50 comment import, pagination, duplicate prevention, and raw database storage.
-6. AI·댓글 운영: implement structured classification, sanitized feedback, manual correction, user-approved moderation, evidence capture, and action logs.
-7. QA·배포: verify accessibility, security boundaries, AI quality, API failures, responsive behavior, production build, Vercel deployment, and the first creator pilot.
-
-These examples are editable and deletable. They are planning content, not claims that the integrations already work.
+- The chart itself is the primary overview and remains visible while editing.
+- Four part tabs below the chart select the part whose details are being edited.
+- `계획 추가` creates a new task node in the selected part.
+- Every user-created or seeded task can be renamed inline.
+- Every task can be deleted after a lightweight browser confirmation.
+- Empty or whitespace-only task names are rejected.
+- Every successful edit regenerates the Mermaid source and rerenders the SVG.
+- The chart provides full-screen and `Mermaid 복사` controls similar to the reference.
 
 ## Persistence and data model
 
-The browser stores plans under the versioned key `commenthawk.workflow-plans.v1`.
+Plans are stored under the versioned browser key `commenthawk.development-map.v1`.
 
 ```ts
+type DevelopmentPartId = "frontend" | "backend" | "ai" | "security";
+
 type PlanItem = {
   id: string;
   title: string;
 };
 
-type PlansByStage = Record<string, PlanItem[]>;
+type PlansByPart = Record<DevelopmentPartId, PlanItem[]>;
 ```
 
-Only plan items are persisted. Stage identifiers, titles, descriptions, sequence, and visual theme remain defined in application code so the development roadmap cannot be accidentally reordered through local browser data.
+Only plan items are persisted. Part identifiers, labels, colors, ordering, root node, and integrated MVP goal remain immutable application metadata. On first visit, the chart uses the approved seeded tasks above. Invalid stored JSON falls back to the seeded tasks without crashing.
 
-On the first visit, the application seeds the approved example plans. If stored JSON is invalid or does not match the expected shape, the planner falls back to the example plans without crashing. A future Supabase implementation can replace the persistence adapter while keeping the same UI model.
+## Mermaid rendering and input safety
+
+- The application uses the Mermaid browser package and renders the generated definition into an SVG.
+- Mermaid runs with `securityLevel: "strict"` and HTML labels disabled.
+- Node IDs are generated internally and never derived from user text.
+- User task labels are normalized to a single line and escaped before being inserted into Mermaid source.
+- The renderer clears stale SVG output before applying a new successful render.
+- If Mermaid rendering fails, the last valid chart remains visible and a concise error appears near the editor.
 
 ## Component structure
 
-- `src/components/workflow-planner/workflow-planner.tsx`: client component that owns selection, add, edit, delete, and persistence behavior.
-- `src/components/workflow-planner/workflow-stage-card.tsx`: accessible selectable stage card.
-- `src/components/workflow-planner/plan-editor.tsx`: selected-stage plan list and inline forms.
-- `src/components/workflow-planner/workflow-data.ts`: immutable stage metadata and default plan content.
-- `src/components/workflow-planner/workflow-storage.ts`: validated localStorage read/write boundary.
-- `src/app/page.tsx`: renders the planner as the second major section below the existing hero.
+- `src/components/development-map/development-map.tsx`: client component coordinating plans, selected part, persistence, and render state.
+- `src/components/development-map/mermaid-canvas.tsx`: Mermaid initialization, SVG rendering, copy, full-screen, loading, and render failure UI.
+- `src/components/development-map/plan-editor.tsx`: four part tabs and add, rename, and delete interactions.
+- `src/components/development-map/development-data.ts`: immutable part metadata, colors, descriptions, and seeded plan items.
+- `src/components/development-map/build-mermaid-source.ts`: pure, escaped Mermaid definition builder.
+- `src/components/development-map/development-storage.ts`: validated localStorage read and write boundary.
+- `src/app/page.tsx`: renders the development map below the existing hero.
+
+## Responsive behavior
+
+- The page section fills the available width rather than constraining the chart to article width.
+- The diagram canvas has a large minimum width so labels do not collapse on small screens.
+- Mobile users pan through the canvas with normal two-axis scrolling.
+- The editor becomes a single-column panel beneath the canvas.
+- Full-screen mode provides the preferred way to inspect the complete graph on smaller displays.
 
 ## Accessibility
 
-- Stage cards are buttons with an explicit selected state and step number.
-- The selected editor heading is connected to the stage selection context.
-- Add and edit forms use visible labels and submit with Enter.
-- Cancel actions return the interface to a stable non-editing state.
-- Focus indicators remain visible, and color is not the only selected-state signal.
-- Reduced-motion preferences are respected.
-
-## Failure behavior
-
-- Storage access failures do not block editing in the current session.
-- Invalid persisted data is ignored in favor of defaults.
-- A plan add or edit never accepts an empty title.
-- The UI does not imply that any YouTube, AI, database, or moderation integration is complete.
+- Full-screen and copy controls have visible text or accessible names.
+- Part selection uses real buttons with an explicit selected state.
+- Add and rename forms have visible labels and submit with Enter.
+- Cancel actions return to a stable non-editing state.
+- Focus indicators remain visible, and part colors are never the only identifying signal.
+- Reduced-motion preferences disable nonessential transitions.
 
 ## Verification
 
-- Unit and interaction tests cover default loading, stage selection, add, edit, delete, persistence, and corrupt storage fallback.
-- ESLint and the production Next.js build must pass.
-- Browser verification covers desktop readability, 390 px mobile overflow behavior, keyboard-visible controls, and the absence of console errors.
+- Pure unit tests cover Mermaid label escaping and the generated four-part graph structure.
+- Storage tests cover seeded defaults, successful persistence, invalid data, and unavailable storage.
+- Interaction tests cover part selection, add, rename, delete, copy feedback, and error messaging.
+- ESLint and a production Next.js build must pass.
+- Browser verification covers the full graph, desktop and 390 px mobile scrolling, full-screen controls, user edits surviving refresh, and the absence of console errors.
 
 ## Out of scope
 
-- Supabase synchronization and multi-user collaboration.
-- Drag-and-drop reordering of roadmap stages or plan items.
-- Due dates, assignees, comments, attachments, and completion analytics.
-- OAuth, YouTube API, AI classification, and moderation actions themselves.
+- Supabase synchronization and multi-user editing.
+- Drag-and-drop positioning or reordering of Mermaid nodes.
+- Editing or deleting the four top-level parts.
+- Due dates, assignees, attachments, and completion analytics.
+- The actual OAuth, YouTube API, AI, evidence, and moderation implementations represented by the planning nodes.
