@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 
 import {
   DEVELOPMENT_PARTS,
@@ -52,14 +52,15 @@ export function PlanEditor({
   const [editError, setEditError] = useState("");
   const selectedPart = DEVELOPMENT_PARTS.find((part) => part.id === selectedPartId)!;
 
-  useEffect(() => {
+  function selectPart(partId: DevelopmentPartId) {
     setIsAdding(false);
     setNewTitle("");
     setAddError("");
     setEditingId(null);
     setEditingTitle("");
     setEditError("");
-  }, [selectedPartId]);
+    onSelectPart(partId);
+  }
 
   function openAddForm() {
     setIsAdding(true);
@@ -131,7 +132,7 @@ export function PlanEditor({
               key={part.id}
               type="button"
               aria-pressed={selected}
-              onClick={() => onSelectPart(part.id)}
+              onClick={() => selectPart(part.id)}
               className={`flex min-h-24 items-start gap-3 rounded-2xl border p-4 text-left transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 ${
                 selected
                   ? styles.selected

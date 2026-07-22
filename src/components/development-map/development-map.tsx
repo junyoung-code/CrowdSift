@@ -1,14 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState, useSyncExternalStore } from "react";
 
 import { buildMermaidSource } from "./build-mermaid-source";
 import {
-  cloneDefaultPlans,
   type DevelopmentPartId,
   type PlansByPart,
 } from "./development-data";
 import {
+  DEVELOPMENT_MAP_STORAGE_KEY,
   readDevelopmentPlans,
   writeDevelopmentPlans,
 } from "./development-storage";
@@ -22,35 +22,64 @@ function createPlanId(): string {
   return `plan-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
+function subscribeToStoredPlans(onStoreChange: () => void) {
+  if (typeof window === "undefined") {
+    return () => undefined;
+  }
+
+  function handleStorage(event: StorageEvent) {
+    if (event.key === DEVELOPMENT_MAP_STORAGE_KEY) {
+      onStoreChange();
+    }
+  }
+
+  window.addEventListener("storage", handleStorage);
+  return () => window.removeEventListener("storage", handleStorage);
+}
+
+function getStoredPlansSnapshot(): string | null {
+  try {
+    return window.localStorage.getItem(DEVELOPMENT_MAP_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function getServerPlansSnapshot(): null {
+  return null;
+}
+
 export function DevelopmentMap() {
   const [selectedPartId, setSelectedPartId] = useState<DevelopmentPartId>("frontend");
-  const [plans, setPlans] = useState<PlansByPart>(() => cloneDefaultPlans());
-  const [hydrated, setHydrated] = useState(false);
+  const storedSnapshot = useSyncExternalStore(
+    subscribeToStoredPlans,
+    getStoredPlansSnapshot,
+    getServerPlansSnapshot,
+  );
+  const storedPlans = useMemo(
+    () =>
+      readDevelopmentPlans({
+        getItem: () => storedSnapshot,
+      }),
+    [storedSnapshot],
+  );
+  const [editedPlans, setEditedPlans] = useState<PlansByPart | null>(null);
   const [storageWarning, setStorageWarning] = useState("");
+  const plans = editedPlans ?? storedPlans;
   const mermaidSource = useMemo(() => buildMermaidSource(plans), [plans]);
-
-  useEffect(() => {
-    setPlans(readDevelopmentPlans());
-    setHydrated(true);
-  }, []);
-
-  useEffect(() => {
-    if (!hydrated) {
-      return;
-    }
-
-    const stored = writeDevelopmentPlans(plans);
-    setStorageWarning(stored ? "" : "변경 내용은 현재 화면에만 유지됩니다.");
-  }, [hydrated, plans]);
 
   function updatePart(
     partId: DevelopmentPartId,
     updater: (items: PlansByPart[DevelopmentPartId]) => PlansByPart[DevelopmentPartId],
   ) {
-    setPlans((current) => ({
-      ...current,
-      [partId]: updater(current[partId]),
-    }));
+    const nextPlans = {
+      ...plans,
+      [partId]: updater(plans[partId]),
+    };
+
+    setEditedPlans(nextPlans);
+    const stored = writeDevelopmentPlans(nextPlans);
+    setStorageWarning(stored ? "" : "변경 내용은 현재 화면에만 유지됩니다.");
   }
 
   function addPlan(title: string) {
@@ -71,7 +100,11 @@ export function DevelopmentMap() {
   }
 
   return (
-    <section id="development-map" className="relative border-t border-slate-200 bg-white py-24 sm:py-28">
+    <section
+      id="development-map"
+      aria-label="CommentHawk 개발 지도"
+      className="relative border-t border-slate-200 bg-white py-24 sm:py-28"
+    >
       <div className="mx-auto w-full max-w-[1600px] px-4 sm:px-8 lg:px-12">
         <div className="mx-auto mb-10 max-w-3xl text-center">
           <p className="text-xs font-bold tracking-[0.22em] text-blue-700 sm:text-sm">COMMENTHAWK DEVELOPMENT MAP</p>

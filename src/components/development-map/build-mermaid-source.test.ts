@@ -18,6 +18,9 @@ describe("buildMermaidSource", () => {
     expect(source).toContain(
       "FRONTEND_DONE & BACKEND_DONE & AI_DONE & SECURITY_DONE --> MVP",
     );
+    expect(source).toContain("classDef roadmapRoot");
+    expect(source).toContain("class ROOT roadmapRoot;");
+    expect(source).not.toContain("classDef root ");
   });
 
   it("creates node IDs from part keys and indexes rather than labels", () => {
@@ -28,6 +31,23 @@ describe("buildMermaidSource", () => {
 
     expect(source).toContain('FRONTEND_ITEM_0["사용자 입력 제목"]');
     expect(source).not.toContain("raw-user-id[");
+  });
+
+  it("lays each part out as a readable top-to-bottom plan sequence", () => {
+    const plans = cloneDefaultPlans();
+    plans.frontend = [
+      { id: "one", title: "첫 계획" },
+      { id: "two", title: "두 번째 계획" },
+      { id: "three", title: "세 번째 계획" },
+    ];
+
+    const source = buildMermaidSource(plans);
+
+    expect(source).toContain("FRONTEND_ROOT --> FRONTEND_ITEM_0");
+    expect(source).toContain("FRONTEND_ITEM_0 --> FRONTEND_ITEM_1");
+    expect(source).toContain("FRONTEND_ITEM_1 --> FRONTEND_ITEM_2");
+    expect(source).toContain("FRONTEND_ITEM_2 --> FRONTEND_DONE");
+    expect(source).not.toContain("FRONTEND_ROOT --> FRONTEND_ITEM_1");
   });
 
   it("normalizes line breaks and removes Mermaid control characters from labels", () => {

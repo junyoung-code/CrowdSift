@@ -49,12 +49,16 @@ export function buildMermaidSource(plans: PlansByPart): string {
     if (items.length === 0) {
       lines.push(`    ${key}_ROOT --> ${key}_DONE`);
     } else {
+      let previousNodeId = `${key}_ROOT`;
+
       items.forEach((item, index) => {
         const itemId = `${key}_ITEM_${index}`;
         lines.push(`    ${itemId}["${escapeMermaidLabel(item.title)}"]`);
-        lines.push(`    ${key}_ROOT --> ${itemId}`);
-        lines.push(`    ${itemId} --> ${key}_DONE`);
+        lines.push(`    ${previousNodeId} --> ${itemId}`);
+        previousNodeId = itemId;
       });
+
+      lines.push(`    ${previousNodeId} --> ${key}_DONE`);
     }
 
     lines.push("  end");
@@ -65,14 +69,14 @@ export function buildMermaidSource(plans: PlansByPart): string {
   lines.push(
     "  FRONTEND_DONE & BACKEND_DONE & AI_DONE & SECURITY_DONE --> MVP",
     "",
-    "  classDef root fill:#0f172a,color:#ffffff,stroke:#0f172a,stroke-width:2px;",
+    "  classDef roadmapRoot fill:#0f172a,color:#ffffff,stroke:#0f172a,stroke-width:2px;",
     "  classDef detail fill:#ffffff,color:#334155,stroke:#cbd5e1,stroke-width:1px;",
     "  classDef frontend fill:#dbeafe,color:#1e3a8a,stroke:#60a5fa,stroke-width:1.5px;",
     "  classDef backend fill:#e0e7ff,color:#312e81,stroke:#818cf8,stroke-width:1.5px;",
     "  classDef ai fill:#ede9fe,color:#581c87,stroke:#a78bfa,stroke-width:1.5px;",
     "  classDef security fill:#ffedd5,color:#7c2d12,stroke:#fb923c,stroke-width:1.5px;",
     "  classDef goal fill:#dcfce7,color:#14532d,stroke:#4ade80,stroke-width:2px;",
-    "  class ROOT root;",
+    "  class ROOT roadmapRoot;",
     "  class MVP goal;",
   );
 
