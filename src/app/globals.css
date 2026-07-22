@@ -30,14 +30,6 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-::backdrop {
-  background: rgb(15 23 42 / 70%);
-}
-
-:fullscreen {
-  background: #f8fafc;
-}
-
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
