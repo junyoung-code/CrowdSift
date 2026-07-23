@@ -1840,7 +1840,7 @@ applyReviewFloor(
 
 - Consumes: versioned policies/phrase rules.
 
-- [ ] **Step 1: 한국어 변형과 정책 충돌 실패 테스트를 작성한다**
+- [x] **Step 1: 한국어 변형과 정책 충돌 실패 테스트를 작성한다**
 
 ```ts
 it.each([
@@ -1872,23 +1872,23 @@ it("does not allow a model to downgrade a phishing rule to safe", () => {
 });
 ```
 
-- [ ] **Step 2: 실패를 확인한다**
+- [x] **Step 2: 실패를 확인한다**
 
 Run: `npm test -- src/features/rules`
 
 Expected: FAIL because rule modules do not exist.
 
-- [ ] **Step 3: 정규화·신호·초기 routing을 구현한다**
+- [x] **Step 3: 정규화·신호·초기 routing을 구현한다**
 
 정규화는 표시용 원문을 절대 변경하지 않고 matching용 문자열만 생성한다. 순서는 `NFKC → lowercase → URL canonical marker → 한글/영문 반복 3회 초과를 2회로 축약 → matching copy에서만 공백 제거`다. exact URL, 반복 광고, credential 요청/단축 URL 조합은 신호로 저장한다.
 
 blocked phrase만으로 `risk`를 확정하지 않는다. phishing pattern은 `risk`, blocked phrase는 `caution`, allowed/context exception은 최소 `caution` Stage 2 경로로 보낸다. `applyReviewFloor`는 `safe=0, caution=1, risk=2` 순위를 사용해 model level과 deterministic floor 중 높은 값을 반환한다. Stage 1과 Stage 2 저장 직전에 모두 이 함수를 적용한다.
 
-- [ ] **Step 4: versioned 정책 편집 UI를 구현한다**
+- [x] **Step 4: versioned 정책 편집 UI를 구현한다**
 
 정책 저장 시 기존 row update가 아니라 `max(version)+1`의 새 `creator_policies`와 해당 버전의 phrase rules를 transaction으로 생성한다. form은 `blocked`, `allowed`, `context_exception`, 민감도, 추천 조치를 분리하고 “금지어 일치만으로 자동 삭제하지 않음”을 명시한다.
 
-- [ ] **Step 5: 테스트와 커밋을 수행한다**
+- [x] **Step 5: 테스트와 커밋을 수행한다**
 
 Run:
 

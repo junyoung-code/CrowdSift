@@ -1505,6 +1505,19 @@ export type Database = {
       }
     }
     Functions: {
+      create_creator_policy_version: {
+        Args: {
+          target_category_sensitivity: Json
+          target_harmful_text_hidden: boolean
+          target_phrase_rules: Json
+          target_preferred_actions: Json
+          target_workspace_id: string
+        }
+        Returns: {
+          policy_id: string
+          policy_version: number
+        }[]
+      }
       disconnect_youtube_channel: {
         Args: { target_workspace_id: string }
         Returns: undefined

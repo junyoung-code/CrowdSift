@@ -18,7 +18,11 @@ const navigationItems = [
     label: "YouTube 연결",
     icon: YoutubeLogo,
   },
-  { href: "/app/policy", label: "운영 기준", icon: SlidersHorizontal },
+  {
+    href: "/app/settings/moderation",
+    label: "운영 기준",
+    icon: SlidersHorizontal,
+  },
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
