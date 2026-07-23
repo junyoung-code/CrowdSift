@@ -1696,7 +1696,7 @@ interface CommentImportService {
 
 - Consumes: selected channel/token, `comment_import_jobs`, immutable source tables.
 
-- [ ] **Step 1: mapping·pagination·중복·부분 실패 테스트를 작성한다**
+- [x] **Step 1: mapping·pagination·중복·부분 실패 테스트를 작성한다**
 
 테스트 fixture는 top-level 2개, 첫 댓글 inline reply 1개, `totalReplyCount=3`, 중복 comment ID 1개, 저장 실패 1개를 포함한다. 기대값은 top-level limit을 reply가 소비하지 않고, 누락 reply를 `comments.list(parentId)`로 추가 조회하며, 한 item 실패가 성공 item을 rollback하지 않는 것이다.
 
@@ -1713,17 +1713,17 @@ expect(repository.upsertSource).toHaveBeenCalledWith(
 );
 ```
 
-- [ ] **Step 2: 실패를 확인한다**
+- [x] **Step 2: 실패를 확인한다**
 
 Run: `npm test -- src/features/ingestion`
 
 Expected: FAIL because import modules do not exist.
 
-- [ ] **Step 3: 영상 목록과 import job 생성을 구현한다**
+- [x] **Step 3: 영상 목록과 import job 생성을 구현한다**
 
 최신 영상은 uploads playlist를 조회해 `youtube_videos`에 upsert한다. form schema는 video ID 하나와 `z.coerce.number().int().min(20).max(50)`만 허용한다. action은 membership과 selected channel ownership을 다시 확인한 뒤 `pending` job 하나를 생성한다.
 
-- [ ] **Step 4: YouTube 수집 adapter를 구현한다**
+- [x] **Step 4: YouTube 수집 adapter를 구현한다**
 
 top-level은:
 
@@ -1752,17 +1752,17 @@ youtube.comments.list({
 
 을 page token이 끝날 때까지 호출한다. `textOriginal`이 provider response에 없으면 `null`로 저장하고 `textDisplay`를 원문이라고 거짓 표기하지 않는다.
 
-- [ ] **Step 5: item별 transaction과 idempotency를 구현한다**
+- [x] **Step 5: item별 transaction과 idempotency를 구현한다**
 
 각 comment는 `(workspace_id, youtube_comment_id)`에 `insert ... on conflict do nothing`을 사용해 기존 source column을 덮어쓰지 않는다. 신규이면 payload를 함께 insert하고 성공 item을 기록한다. 기존이면 duplicate item을 기록한다. 실패하면 해당 item만 `failed`로 기록하고 다음 item을 계속한다. job 최종 상태는 `failed_count=0 → succeeded`, 성공과 실패가 함께 있으면 `partially_succeeded`, 성공 0이면 `failed`다.
 
 import가 terminal 상태가 되면 이 job에서 성공·중복으로 확인된 모든 raw comment 중 현재 `policy/prompt/model/schema` idempotency key의 분석이 없는 comment를 대상으로 `analysis_jobs` 하나와 `analysis_job_items`를 생성한다. `configuration_key`는 현재 policy/prompt/model/schema 조합의 SHA-256이다. 같은 import job을 다시 처리해도 `(import_job_id, configuration_key)`, `(analysis_job_id, raw_comment_id)`, model-run idempotency constraint 때문에 중복 job/item/run이 생기지 않는다.
 
-- [ ] **Step 6: progress UI와 retry 상태를 구현한다**
+- [x] **Step 6: progress UI와 retry 상태를 구현한다**
 
 영상 화면은 requested/fetched/stored/duplicate/failed를 분리해 표시한다. `commentsDisabled`, `quotaExceeded`, revoked permission을 서로 다른 한국어 상태로 보여준다. route handler는 membership과 job workspace를 확인하고 이미 `succeeded`면 같은 summary를 반환한다.
 
-- [ ] **Step 7: tests를 실행한다**
+- [x] **Step 7: tests를 실행한다**
 
 Run:
 
@@ -1773,7 +1773,7 @@ npm run lint
 
 Expected: pagination, replies, idempotency, partial failure tests PASS.
 
-- [ ] **Step 8: 커밋한다**
+- [x] **Step 8: 커밋한다**
 
 ```bash
 git add src/features/ingestion src/features/youtube/video-service.ts "src/app/(product)/app/videos" src/app/api/import-jobs

@@ -1578,6 +1578,29 @@ export type Database = {
         Args: { target_channel_id: string; target_workspace_id: string }
         Returns: undefined
       }
+      store_import_comment_item: {
+        Args: {
+          target_author_avatar_url: string
+          target_author_channel_id: string
+          target_author_display_name: string
+          target_import_job_id: string
+          target_like_count: number
+          target_parent_youtube_comment_id: string
+          target_payload: Json
+          target_published_at: string
+          target_source_moderation_status: string
+          target_text_display: string
+          target_text_original: string
+          target_updated_at: string
+          target_workspace_id: string
+          target_youtube_comment_id: string
+          target_youtube_video_id: string
+        }
+        Returns: {
+          disposition: string
+          raw_comment_id: string
+        }[]
+      }
     }
     Enums: {
       action_state:
