@@ -1550,6 +1550,8 @@ export type Database = {
       }
       get_inbox_page: {
         Args: {
+          action_state_filter?: Database["public"]["Enums"]["action_state"]
+          analysis_state_filter?: string
           category_filter?: Database["public"]["Enums"]["comment_category"]
           max_confidence?: number
           min_confidence?: number
@@ -1561,7 +1563,9 @@ export type Database = {
           video_id?: string
         }
         Returns: {
+          action_state: Database["public"]["Enums"]["action_state"]
           analysis_id: string
+          analysis_state: string
           author_avatar_url: string
           author_display_name: string
           category: Database["public"]["Enums"]["comment_category"]

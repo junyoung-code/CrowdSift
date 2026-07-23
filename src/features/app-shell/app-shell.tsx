@@ -11,7 +11,7 @@ import type { ReactNode } from "react";
 
 const navigationItems = [
   { href: "/app", label: "개요", icon: House },
-  { href: "/app/comments", label: "댓글 Inbox", icon: ChatCircleDots },
+  { href: "/app/inbox", label: "댓글 Inbox", icon: ChatCircleDots },
   { href: "/app/videos", label: "영상", icon: Video },
   {
     href: "/app/connect/youtube",

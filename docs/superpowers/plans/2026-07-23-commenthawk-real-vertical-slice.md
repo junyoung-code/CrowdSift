@@ -2276,7 +2276,7 @@ Expected: all trigger, top-5, threshold, tenant isolation, Stage 1 preservation 
 - Produces: `getInboxPage(filters)`, `saveCreatorCorrection(input)`, protected source endpoint.
 - Consumes: final analysis, sanitized feedback, raw source, embedding provider.
 
-- [ ] **Step 1: default filter·hidden source·append-only correction 실패 테스트를 작성한다**
+- [x] **Step 1: default filter·hidden source·append-only correction 실패 테스트를 작성한다**
 
 ```ts
 it("defaults to caution and risk", async () => {
@@ -2300,25 +2300,25 @@ it("inserts feedback without changing historical analysis", async () => {
 });
 ```
 
-- [ ] **Step 2: 실패를 확인한다**
+- [x] **Step 2: 실패를 확인한다**
 
 Run: `npm test -- src/features/inbox src/features/feedback`
 
 Expected: FAIL because inbox/feedback modules do not exist.
 
-- [ ] **Step 3: URL 기반 Inbox query와 화면을 구현한다**
+- [x] **Step 3: URL 기반 Inbox query와 화면을 구현한다**
 
 허용 filter는 review level, category, video, analysis state, action state, confidence range, search다. `current_comment_analyses` view를 사용해 Stage 2가 있으면 Stage 2, 없으면 최신 Stage 1을 comment의 현재 결과로 사용한다. search param 누락 시 levels는 `caution,risk`. list row에는 sanitized feedback, level text+icon, category, confidence, recommendation을 표시하고 source text는 HTML에 포함하지 않는다.
 
-- [ ] **Step 4: 경고 후 source를 요청하는 endpoint를 구현한다**
+- [x] **Step 4: 경고 후 source를 요청하는 endpoint를 구현한다**
 
 `POST /api/comments/[commentId]/source`만 제공한다. route는 `requireViewer`, comment workspace, `acknowledged=true` body를 검증하고 `{ textDisplay, textOriginal, capturedAt }`를 반환한다. client는 경고 dialog에서 “유해한 표현이 포함될 수 있습니다”를 보여주고 사용자가 확인한 뒤에만 POST한다.
 
-- [ ] **Step 5: correction·personalization을 구현한다**
+- [x] **Step 5: correction·personalization을 구현한다**
 
 correction form은 category, review level, recommended action, sanitized feedback, `use_for_personalization`, `use_for_training`을 분리한다. feedback row insert 후 personalization=true인 경우에만 `source comment text + creator decision + corrected category/level + edited sanitized feedback`으로 retrieval document를 만들고 embedding해 `feedback_embeddings`에 저장한다. 이 document는 OpenAI request 외의 log에 남기지 않고 DB에는 vector와 model ID만 저장한다. training=true는 표시만 저장하고 어떤 training API도 호출하지 않는다.
 
-- [ ] **Step 6: tests, accessibility query, commit을 수행한다**
+- [x] **Step 6: tests, accessibility query, commit을 수행한다**
 
 Run:
 
