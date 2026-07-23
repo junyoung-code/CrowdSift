@@ -2081,7 +2081,7 @@ Expected: schema/key tests PASS.
 - Produces: `processAnalysisChunk(jobId: string, maxItems = 5): Promise<AnalysisJobProgress>`.
 - Consumes: `AnalysisProvider`, raw source, rule evaluation, current policy, job tables.
 
-- [ ] **Step 1: structured response·retry·run preservation 실패 테스트를 작성한다**
+- [x] **Step 1: structured response·retry·run preservation 실패 테스트를 작성한다**
 
 ```ts
 it("persists the model run and stage-one analysis separately", async () => {
@@ -2106,13 +2106,13 @@ it("retries one schema failure then records a per-item failure", async () => {
 });
 ```
 
-- [ ] **Step 2: 실패를 확인한다**
+- [x] **Step 2: 실패를 확인한다**
 
 Run: `npm test -- src/features/analysis/openai-analysis-provider.test.ts src/features/analysis/analysis-service.test.ts`
 
 Expected: FAIL because provider/service do not exist.
 
-- [ ] **Step 3: OpenAI Structured Outputs adapter를 구현한다**
+- [x] **Step 3: OpenAI Structured Outputs adapter를 구현한다**
 
 공식 SDK 형태를 그대로 사용한다.
 
@@ -2136,11 +2136,11 @@ if (!response.output_parsed) {
 
 raw comment를 logger에 포함하지 않는다. `response.id`, model, usage, latency, refusal/schema error만 model run에 기록한다.
 
-- [ ] **Step 4: chunk orchestration과 상태 전이를 구현한다**
+- [x] **Step 4: chunk orchestration과 상태 전이를 구현한다**
 
 한 요청에서 pending item 최대 5개를 claim한다. 각 item은 source 보존 확인 → 규칙 평가 저장 → current policy 조회 → Stage 1 실행 → `applyReviewFloor` 적용 → model run 저장 → analysis 저장 순서다. Stage 1의 `manual_review`는 `needsSecondPass`, `evidence_review`는 final review level이 `risk`인지로 저장한다. schema failure는 정확히 1회 다시 호출하고, 429/5xx는 Task 1 `withRetry`로 전체 최대 3회다. item들이 일부 성공하면 job은 `partially_succeeded`, pending이 남으면 `running`, 전부 성공하면 `succeeded`다.
 
-- [ ] **Step 5: route authorization과 polling response를 구현한다**
+- [x] **Step 5: route authorization과 polling response를 구현한다**
 
 `POST /api/analysis-jobs/[jobId]/process`는 `requireViewer()`와 job workspace 일치를 검사한다. 반환값:
 
@@ -2154,7 +2154,7 @@ type AnalysisJobProgress = {
 };
 ```
 
-- [ ] **Step 6: tests와 커밋을 수행한다**
+- [x] **Step 6: tests와 커밋을 수행한다**
 
 Run:
 

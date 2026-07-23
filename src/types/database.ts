@@ -1505,6 +1505,14 @@ export type Database = {
       }
     }
     Functions: {
+      claim_analysis_job_items: {
+        Args: { target_analysis_job_id: string; target_max_items: number }
+        Returns: {
+          item_id: string
+          raw_comment_id: string
+          workspace_id: string
+        }[]
+      }
       create_creator_policy_version: {
         Args: {
           target_category_sensitivity: Json
