@@ -1,6 +1,9 @@
 export const STAGE_1_PROMPT_VERSION = "commenthawk-stage1-v1";
 export const STAGE_2_PROMPT_VERSION = "commenthawk-stage2-v1";
 export const COMMENT_ANALYSIS_SCHEMA_VERSION = "comment-analysis-v1";
+export const DASHBOARD_SUMMARY_PROMPT_VERSION =
+  "commenthawk-dashboard-summary-v1";
+export const DASHBOARD_SUMMARY_SCHEMA_VERSION = "dashboard-summary-v1";
 
 export const STAGE_1_SYSTEM_PROMPT = `
 You classify a YouTube comment for CommentHawk.

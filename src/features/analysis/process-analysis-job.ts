@@ -3,6 +3,8 @@ import "server-only";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { getServerEnv } from "@/lib/env";
 import type { Json } from "@/types/database";
+import { createDashboardSummaryForCompletedJob } from "@/features/dashboard/process-dashboard-summary";
+import { triggerDashboardSummaryWhenComplete } from "@/features/dashboard/dashboard-summary-trigger";
 
 import {
   createAnalysisService,
@@ -453,11 +455,20 @@ export const processAnalysisChunk = async (
     },
   };
 
-  return createAnalysisService({
+  const progress = await createAnalysisService({
     provider,
     repository,
     modelVersion: environment.OPENAI_ANALYSIS_MODEL,
     retrieveCreatorExamples: (input) =>
       ragService.retrieveCreatorExamples(input),
   }).processAnalysisChunk(jobId, maxItems);
+
+  return triggerDashboardSummaryWhenComplete({
+    jobId,
+    progress,
+    createSummary: createDashboardSummaryForCompletedJob,
+    onError(error) {
+      console.error("Dashboard summary creation failed", { error, jobId });
+    },
+  });
 };

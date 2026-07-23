@@ -2373,7 +2373,7 @@ type DashboardData =
 
 - Consumes: persisted Supabase data only.
 
-- [ ] **Step 1: fake metric 방지 실패 테스트를 작성한다**
+- [x] **Step 1: fake metric 방지 실패 테스트를 작성한다**
 
 ```tsx
 it("shows no metrics when disconnected", () => {
@@ -2414,27 +2414,27 @@ it("stores a model-backed summary from real derived signals", async () => {
 });
 ```
 
-- [ ] **Step 2: 실패를 확인한다**
+- [x] **Step 2: 실패를 확인한다**
 
 Run: `npm test -- src/features/dashboard`
 
 Expected: FAIL because dashboard modules do not exist.
 
-- [ ] **Step 3: 실제 derived data만 사용하는 AI summary를 구현한다**
+- [x] **Step 3: 실제 derived data만 사용하는 AI summary를 구현한다**
 
 analysis job이 terminal 상태가 된 뒤 final analysis가 10개 이상이고 해당 job summary가 없을 때만 `summarizeDashboard`를 호출한다. 입력은 `safe/caution/risk` count와 `sanitized_feedback.neutral_text` 최대 20개이며 raw harmful source는 보내지 않는다. Structured Output은 `DashboardSummaryOutputSchema`, prompt version은 `commenthawk-dashboard-summary-v1`이다. provider/model/response/prompt/schema/usage를 `workspace_analysis_summaries`에 함께 저장한다.
 
 final analysis가 10개 미만이면 provider 호출 없이 `null`을 반환한다. 같은 `analysis_job_id` 재호출은 unique constraint로 기존 summary를 반환한다.
 
-- [ ] **Step 4: 한 RPC read model과 dashboard states를 구현한다**
+- [x] **Step 4: 한 RPC read model과 dashboard states를 구현한다**
 
 `get_dashboard_summary(workspace_id)`는 RLS membership을 확인하고 `current_comment_analyses` 기준 imported/analyzed/caution/risk, latest jobs, selected channel/video를 같은 persisted snapshot에서 반환한다. AI summary는 final analyses가 10개 이상일 때만 생성·저장된 summary를 사용하며 즉석에서 임의 문장을 만들지 않는다. 10개 미만이면 `null`과 “분석이 더 쌓이면 요약이 표시됩니다”를 렌더한다.
 
-- [ ] **Step 5: BrandBastion 느낌의 실제 dashboard를 구현한다**
+- [x] **Step 5: BrandBastion 느낌의 실제 dashboard를 구현한다**
 
 브라우저형 landing preview와 달리 app dashboard는 조밀한 4개 metric card, channel health, selected video, import/analysis progress, 안전·주의·위험 분포, priority comments, recent corrections/actions, Inbox CTA를 렌더한다. 모든 card에는 실제 query result만 전달한다.
 
-- [ ] **Step 6: tests와 커밋을 수행한다**
+- [x] **Step 6: tests와 커밋을 수행한다**
 
 Run:
 

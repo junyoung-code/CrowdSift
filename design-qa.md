@@ -1,117 +1,69 @@
-# CommentHawk Landing Design QA
+# CommentHawk 대시보드 Design QA
 
-## Comparison Target
+이전 랜딩 페이지 QA 기록은 `design-qa-landing.md`에 보존했다.
 
-- Source visual truth:
-  - `references/brandbastion/01-hero-desktop.png`
-  - `references/brandbastion/02-problem-section.png`
-  - `references/brandbastion/03-solutions-overview.png`
-  - `references/brandbastion/06-ai-processing.png`
-  - `references/brandbastion/07-integrations.png`
-  - `references/brandbastion/09-dashboard-hero-detail.png`
-- Implementation URL: `http://127.0.0.1:3000/`
-- Browser-rendered implementation:
-  - `docs/qa/landing-1440x900.png`
-  - `docs/qa/landing-1280x800.png`
-  - `docs/qa/landing-sections-1.png`
-  - `docs/qa/landing-sections-2.png`
-  - `docs/qa/landing-ai-dark.png`
-- Combined comparison evidence:
-  - `docs/qa/landing-reference-comparison.png`
-- State: public, unauthenticated landing page with clearly labeled example product data.
+## 비교 대상
 
-## Normalization
-
-- Primary source image: 3456 × 1918 px.
-- Primary implementation image: 1440 × 900 px at a 1440 × 900 CSS viewport.
-- Secondary implementation image: 1280 × 800 px at a 1280 × 800 CSS viewport.
-- Browser device scale factor: 1.
-- Combined comparison: both primary images were proportionally fit into separate 720 × 450 px regions on one 1460 × 450 px canvas. The source is an inspiration target rather than a pixel-identical clone, so comparison focuses on hierarchy, rhythm, density, and finish.
-- Browser measurements:
-  - 1440 viewport: document width 1440 px, document scroll width 1440 px.
-  - 1280 viewport: document width 1280 px, document scroll width 1280 px.
-
-## Required Fidelity Surfaces
-
-### Fonts and typography
-
-- The implementation preserves the source hierarchy: compact uppercase eyebrow, oversized high-weight hero, quieter body copy, and dense small product-UI labels.
-- Korean display copy uses the project’s Pretendard/SUIT/system fallback stack with intentional negative tracking and word-safe wrapping.
-- At 1440 px and 1280 px the hero wraps without colliding with the product preview. Small dashboard labels remain readable.
-
-### Spacing and layout rhythm
-
-- The source’s header → split hero → principle strip → centered problem cards → solution cards → dark AI section → integration → CTA rhythm is preserved.
-- The hero remains a two-column composition at both required desktop widths.
-- Card padding, section gaps, rounded surfaces, borders, and elevation form a consistent hierarchy.
-- No horizontal overflow was detected at either required viewport.
-
-### Colors and visual tokens
-
-- The pale blue canvas, navy display type, vivid blue action color, white surfaces, and dark navy AI section match the reference direction without copying BrandBastion branding.
-- `안전 / 주의 / 위험` use separate semantic colors and always include text and explanatory copy, so color is not the only signal.
-- Focus styling and reduced-motion rules are defined globally.
-
-### Image quality and asset fidelity
-
-- The source’s hero visual is a product interface, so the implementation uses real React interface components rather than a raster screenshot.
-- All visible interface icons use one consistent Phosphor icon family; no emoji, inline handcrafted SVG, or placeholder illustration is used.
-- BrandBastion logos, customer logos, customer claims, and promotional metrics were intentionally omitted because the approved specification requires original CommentHawk assets and copy.
-
-### Copy and content
-
-- Every section explains CommentHawk’s approved behavior: YouTube first, 20–50 top-level threads, two-stage analysis, creator policy and feedback retrieval, source preservation, and confirmation before moderation.
-- Example metrics are visibly labeled `제품 예시 화면` and are isolated inside the landing feature.
-- Unsupported platforms are not presented as available.
-
-## Full-view Comparison Evidence
-
-- `docs/qa/landing-reference-comparison.png` shows the source and implementation in one image.
-- The implementation preserves the source’s above-the-fold balance: large left-side promise, right-side product preview, calm pale canvas, compact navigation, and a slim trust/principle strip.
-- Differences in logo, copy, metrics, customer logos, and exact geometry are intentional product constraints, not fidelity regressions.
-
-## Focused Region Evidence
-
-- `docs/qa/landing-1440x900.png`: hero typography, product-preview density, label visibility, CTAs, and principle strip.
-- `docs/qa/landing-sections-1.png`: problem cards, icon alignment, card rhythm, and section boundary.
-- `docs/qa/landing-sections-2.png`: solution cards and four-step analysis flow.
-- `docs/qa/landing-ai-dark.png`: AI facts, YouTube integration, final CTA, and footer.
-- The focused captures are readable at native resolution, so no additional crop was required.
+- source visual truth: `artifacts/dashboard-task12-reference.png`
+- implementation screenshot: `artifacts/dashboard-task12-viewport-1440x900.png`
+- full-view comparison: `artifacts/dashboard-task12-comparison.png`
+- focused comparison: `artifacts/dashboard-task12-focused-comparison.png`
+- route: `http://localhost:3000/app`
+- viewport: CSS `1440 × 900`, device pixel ratio `1`
+- source pixels: `1430 × 1076`
+- implementation pixels: `1440 × 900`
+- density normalization: 두 이미지를 각각 700px 너비로 비율 유지 축소해 나란히 비교했다. 실제 구현 판단에는 원본 1440 × 900 브라우저 캡처도 함께 사용했다.
+- state: 로그인 완료, 로컬 Supabase에 저장된 QA 전용 채널·영상·20개 댓글·20개 분석 결과가 있는 상태. 모든 QA 데이터는 화면에서 `[로컬 QA]` 또는 `[로컬 QA 데이터]`로 명시했다.
 
 ## Findings
 
-- No actionable P0, P1, or P2 visual findings remain.
-- [P3] The exact Korean glyph shape can vary when Pretendard or SUIT is not installed.
-  - Location: global font stack in `src/app/globals.css`.
-  - Evidence: the browser used a locally available Korean sans-serif fallback.
-  - Impact: small optical differences may appear across operating systems, without changing layout or usability.
-  - Follow-up: self-host a licensed Korean variable font when a final brand font is selected.
+- P0/P1/P2 문제 없음.
+- BrandBastion 레퍼런스의 밝은 청색 캔버스, 흰색 지표 카드, 상태별 색상, 채널 영역, AI Insight 카드의 시각적 계층을 유지하면서 CommentHawk의 실제 정보 구조로 전환했다.
+- 레퍼런스의 겹쳐진 홍보용 카드 구성 대신 운영 화면에 필요한 고정 사이드바와 읽기 쉬운 그리드를 사용한 것은 의도된 제품 차이다. 위쪽 첫 화면에서 핵심 지표, 채널, AI 요약, 최근 작업 상태가 모두 확인된다.
 
-## Interaction and Accessibility Checks
+## 필수 Fidelity 점검
 
-- Primary section navigation was tested by selecting `문제`; the URL changed to `#problems` and the intended section was reached.
-- Header, preview, sections, cards, lists, and footer expose semantic landmarks and headings.
-- Product example data has an accessible region name.
-- Required landing links point to the planned `/auth/sign-in` route.
-- Browser console errors and warnings checked: none.
-- Automated landing tests and ESLint passed.
+- Fonts and typography: 한글과 영문 모두 동일한 산세리프 계열로 일관되며, 제목·지표·보조 문구의 크기와 굵기 차이가 명확하다. 잘림이나 겹침이 없다.
+- Spacing and layout rhythm: 4열 지표, 2열 채널/AI 카드, 2열 작업 카드가 같은 간격·라운드·테두리 체계를 사용한다. 1440px 첫 화면에서 주요 영역이 과밀하지 않다.
+- Colors and visual tokens: 레퍼런스의 연한 청색 바탕과 파란 강조색을 유지하고, 안전은 녹색, 주의는 황색, 위험은 적색으로 의미를 분리했다. 텍스트 대비는 충분하다.
+- Image quality and asset fidelity: 이 화면의 대상은 실제 제품 대시보드이므로 홍보용 합성 이미지를 재사용하지 않았다. 아이콘은 동일한 선형 아이콘 계열을 사용하며 흐릿한 래스터 대체물이 없다.
+- Copy and content: `안전 / 주의 / 위험`, `가져온 댓글`, `분석 완료`, `먼저 확인할 댓글`처럼 사용자가 바로 이해할 수 있는 한국어를 사용한다. 실제 연결 데이터만 표시한다는 안내와 순화 데이터 사용 원칙을 함께 보여준다.
+- Accessibility: `main`, `banner`, `navigation`, `region`, 제목 계층과 접근 가능한 링크 이름이 브라우저 DOM에서 확인됐다. 의미를 색상만으로 전달하지 않고 텍스트 라벨과 숫자를 병기했다.
 
-## Comparison History
+## Full-view 비교 증거
 
-### Pass 1
+- `artifacts/dashboard-task12-comparison.png`
+- 전체 구성, 정보 밀도, 밝은 표면, 카드 계층, AI Insight 강조가 레퍼런스의 디자인 의도와 일치한다.
 
-- Evidence: `docs/qa/landing-reference-comparison.png` plus focused section screenshots.
-- Earlier P0/P1/P2 findings: none.
-- Fixes made after comparison: none required.
-- Post-fix evidence: not applicable; the first comparison passed.
+## Focused region 비교 증거
+
+- `artifacts/dashboard-task12-focused-comparison.png`
+- 상단 지표 카드와 채널/AI Insight 영역을 확대 비교했다. 숫자 위계, 상태 아이콘, 카드 라운드와 내부 여백, AI 카드의 보라색 강조가 일관된다.
+
+## 주요 상호작용 및 런타임 검증
+
+- 이메일 매직 링크 요청 → 인증 콜백 → `/app` 로그인 완료
+- 대시보드의 `Inbox 열기` → `/app/inbox` 이동 확인
+- 저장된 댓글 20개, 분석 20개, 주의 5개, 위험 3개 및 우선 댓글 5개 표시 확인
+- 브라우저 콘솔 warning/error: 없음
+- 모바일 화면은 사용자의 승인된 범위에 따라 후속 단계로 남겨 두고 이번 QA 대상에서 제외했다.
+
+## Comparison history
+
+- Pass 1: 레퍼런스와 1440 × 900 구현을 전체 화면 및 집중 영역으로 비교했다. 조치가 필요한 P0/P1/P2 시각 차이가 없어서 추가 시각 수정 없이 통과했다.
+
+## Follow-up Polish
+
+- P3: 실제 채널 썸네일이 제공되는 경우 채널 카드에 작은 원형 썸네일을 추가하면 시각적 인지가 더 빨라질 수 있다. 현재는 데이터가 없는 경우 임의 이미지를 보여 주지 않는 원칙을 우선했다.
 
 ## Implementation Checklist
 
-- [x] Preserve BrandBastion-inspired information rhythm without copying brand assets.
-- [x] Mark all landing metrics as example product data.
-- [x] Keep YouTube as the only supported integration in current copy.
-- [x] Display `안전 / 주의 / 위험` with text, icons, and explanations.
-- [x] Verify 1440 × 900 and 1280 × 800 without horizontal overflow.
-- [x] Check a primary navigation interaction and browser console.
+- [x] 실제 저장 지표 표시
+- [x] 안전 / 주의 / 위험 분포 표시
+- [x] 연결 채널과 최근 영상 표시
+- [x] 집계·순화 데이터만 사용하는 AI 요약 표시
+- [x] Comment Inbox 이동 확인
+- [x] 1440 × 900 레퍼런스 비교
+- [x] 브라우저 콘솔 오류 확인
 
 final result: passed

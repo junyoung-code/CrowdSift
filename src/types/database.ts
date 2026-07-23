@@ -1543,9 +1543,24 @@ export type Database = {
           latest_summary_source_count: number
           latest_video: Json
           pending_review_count: number
+          priority_comments: Json
+          recent_actions: Json
+          recent_corrections: Json
           risk_count: number
           safe_count: number
           selected_channel: Json
+        }[]
+      }
+      get_dashboard_summary_inputs: {
+        Args: { target_analysis_job_id: string }
+        Returns: {
+          analysis_count: number
+          caution_count: number
+          job_status: Database["public"]["Enums"]["job_status"]
+          risk_count: number
+          safe_count: number
+          sanitized_signals: Json
+          workspace_id: string
         }[]
       }
       get_inbox_page: {
