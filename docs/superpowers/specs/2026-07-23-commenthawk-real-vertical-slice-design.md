@@ -1,8 +1,9 @@
 # CommentHawk Real Vertical Slice Design
 
-**Status:** Approved design  
-**Date:** 2026-07-23  
-**Primary target:** Desktop web
+- **Status:** Approved design
+- **Date:** 2026-07-23
+- **Primary target:** Desktop web
+- **Korean version:** [2026-07-23-commenthawk-real-vertical-slice-design.ko.md](./2026-07-23-commenthawk-real-vertical-slice-design.ko.md)
 
 ## 1. Goal
 
