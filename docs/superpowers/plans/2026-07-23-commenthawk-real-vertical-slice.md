@@ -1918,7 +1918,7 @@ Expected: rules/policy tests PASS, commit succeeds.
 - Produces: `Stage1Output`, `Stage2Output`, `AnalysisProvider`, `buildAnalysisIdempotencyKey`.
 - Consumes: Task 7 `RuleEvaluation`.
 
-- [ ] **Step 1: schema와 key 실패 테스트를 작성한다**
+- [x] **Step 1: schema와 key 실패 테스트를 작성한다**
 
 ```ts
 it("rejects a confidence outside 0..1", () => {
@@ -1944,13 +1944,13 @@ it("changes the key when policy version changes", () => {
 });
 ```
 
-- [ ] **Step 2: 실패를 확인한다**
+- [x] **Step 2: 실패를 확인한다**
 
 Run: `npm test -- src/features/analysis/schemas.test.ts src/features/analysis/idempotency.test.ts`
 
 Expected: FAIL because analysis contracts do not exist.
 
-- [ ] **Step 3: exact category·level·output schema를 구현한다**
+- [x] **Step 3: exact category·level·output schema를 구현한다**
 
 ```ts
 export const CommentCategorySchema = z.enum([
@@ -1992,7 +1992,7 @@ export const DashboardSummaryOutputSchema = z.object({
 });
 ```
 
-- [ ] **Step 4: provider와 idempotency 계약을 구현한다**
+- [x] **Step 4: provider와 idempotency 계약을 구현한다**
 
 ```ts
 export type Stage1Input = {
@@ -2054,7 +2054,7 @@ export function buildAnalysisIdempotencyKey(input: {
 
 prompt 파일은 영어로 작성하고 다음 불변식을 명시한다: 원문을 고치지 않음, 욕설만 있고 유용한 신호가 없으면 sanitized feedback을 만들지 않음, `safe`를 법적 안전으로 표현하지 않음, category enum 밖의 값을 생성하지 않음. prompt version은 Stage 1 `commenthawk-stage1-v1`, Stage 2 `commenthawk-stage2-v1`로 분리한다.
 
-- [ ] **Step 5: 테스트와 커밋을 수행한다**
+- [x] **Step 5: 테스트와 커밋을 수행한다**
 
 Run:
 
