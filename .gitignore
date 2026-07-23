@@ -39,6 +39,7 @@ yarn-error.log*
 
 # local Superpowers visual brainstorming sessions
 .superpowers/
+.worktrees/
 
 # typescript
 *.tsbuildinfo
