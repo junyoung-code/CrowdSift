@@ -2201,7 +2201,7 @@ retrieveCreatorExamples(input: {
 
 - Consumes: pgvector RPC, `AnalysisProvider.embed`, Stage 1 result.
 
-- [ ] **Step 1: 여섯 trigger와 tenant isolation 테스트를 작성한다**
+- [x] **Step 1: 여섯 trigger와 tenant isolation 테스트를 작성한다**
 
 각 조건을 독립 test case로 만든다: `caution/risk`, confidence `0.849`, phrase signal, similarity `0.78`, `toxic_but_actionable`, context-sensitive pattern. `safe`, confidence `0.95`, signal 없음, similarity `0.77`은 false여야 한다.
 
@@ -2218,13 +2218,13 @@ expect(
 
 RAG mock repository가 다른 workspace row를 반환하면 service가 방어적으로 reject하도록 테스트한다.
 
-- [ ] **Step 2: 실패를 확인한다**
+- [x] **Step 2: 실패를 확인한다**
 
 Run: `npm test -- src/features/analysis/second-pass.test.ts src/features/analysis/rag-service.test.ts`
 
 Expected: FAIL because modules do not exist.
 
-- [ ] **Step 3: embedding과 retrieval을 구현한다**
+- [x] **Step 3: embedding과 retrieval을 구현한다**
 
 ```ts
 const { OPENAI_EMBEDDING_MODEL } = getServerEnv();
@@ -2237,13 +2237,13 @@ const embedding = await client.embeddings.create({
 
 vector 길이가 1536이 아니면 저장하지 않고 명시적 schema error를 반환한다. RPC에는 authenticated workspace ID, threshold `0.78`, limit `5`를 전달한다. 반환 예시마다 feedback ID와 similarity를 Stage 2 provenance에 저장한다.
 
-- [ ] **Step 4: Stage 2 Structured Output과 최종 결과 저장을 구현한다**
+- [x] **Step 4: Stage 2 Structured Output과 최종 결과 저장을 구현한다**
 
 Stage 2 input은 source, thread/video context, Stage 1, rule signals, policy version, 최대 5개 retrieved examples만 포함한다. provider는 `Stage2OutputSchema`와 `zodTextFormat(..., "comment_stage_2")`를 사용한다. 응답 review level에는 다시 `applyReviewFloor`를 적용한다. Stage 1 row를 update하지 않고 새 stage-2 `model_runs`, `comment_analyses`, `sanitized_feedback` row를 만든다.
 
 pure abuse가 `abusive_no_signal`이면 `sanitizedFeedback=null`; 유용한 의미가 확인된 경우만 neutral text를 저장한다.
 
-- [ ] **Step 5: tests와 커밋을 수행한다**
+- [x] **Step 5: tests와 커밋을 수행한다**
 
 Run:
 

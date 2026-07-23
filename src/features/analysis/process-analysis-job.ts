@@ -9,8 +9,14 @@ import {
   type AnalysisJobProgress,
   type AnalysisRepository,
 } from "./analysis-service";
+import {
+  toSanitizedFeedbackRow,
+  toStageTwoAnalysisRow,
+} from "./analysis-storage";
 import { buildAnalysisWorkItems } from "./analysis-work-item";
 import { createOpenAIAnalysisProvider } from "./openai-analysis-provider";
+import { createRagService } from "./rag-service";
+import { createSupabaseRagRepository } from "./supabase-rag-repository";
 
 const isUniqueViolation = (error: { code?: string } | null) =>
   error?.code === "23505";
@@ -21,6 +27,13 @@ export const processAnalysisChunk = async (
 ): Promise<AnalysisJobProgress> => {
   const admin = createAdminSupabaseClient();
   const environment = getServerEnv();
+  const provider = createOpenAIAnalysisProvider();
+  const ragService = createRagService({
+    embeddingProvider: provider,
+    repository: createSupabaseRagRepository({
+      rpc: (name, input) => admin.rpc(name, input),
+    }),
+  });
   const repository: AnalysisRepository = {
     async claimPendingItems(targetJobId, targetMaxItems) {
       const { data: job, error: jobError } = await admin
@@ -343,6 +356,37 @@ export const processAnalysisChunk = async (
       if (existingError) throw existingError;
       return existing.id;
     },
+    async insertStageTwoAnalysis(input) {
+      const { data, error } = await admin
+        .from("comment_analyses")
+        .insert(toStageTwoAnalysisRow(input))
+        .select("id")
+        .single();
+
+      if (!error && data) {
+        return data.id;
+      }
+      if (!isUniqueViolation(error)) {
+        throw error ?? new Error("Stage-two analysis was not stored");
+      }
+
+      const { data: existing, error: existingError } = await admin
+        .from("comment_analyses")
+        .select("id")
+        .eq("model_run_id", input.modelRunId)
+        .single();
+      if (existingError) throw existingError;
+      return existing.id;
+    },
+    async insertSanitizedFeedback(input) {
+      const { error } = await admin
+        .from("sanitized_feedback")
+        .insert(toSanitizedFeedbackRow(input));
+
+      if (error && !isUniqueViolation(error)) {
+        throw error;
+      }
+    },
     async completeItem(itemId) {
       const { error } = await admin
         .from("analysis_job_items")
@@ -410,8 +454,10 @@ export const processAnalysisChunk = async (
   };
 
   return createAnalysisService({
-    provider: createOpenAIAnalysisProvider(),
+    provider,
     repository,
     modelVersion: environment.OPENAI_ANALYSIS_MODEL,
+    retrieveCreatorExamples: (input) =>
+      ragService.retrieveCreatorExamples(input),
   }).processAnalysisChunk(jobId, maxItems);
 };
