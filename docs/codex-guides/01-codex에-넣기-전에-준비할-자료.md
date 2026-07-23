@@ -26,17 +26,21 @@ YouTube 연결
 
 ## 시각 참고자료 준비
 
-URL만 전달하기보다 주요 화면을 직접 캡처해 저장한다.
+시각 레퍼런스 URL은 [BrandBastion](https://www.brandbastion.com/)이다. URL만 전달하기보다 아래 주요 화면을 직접 캡처해 저장하고, 구현 시에는 첨부된 스크린샷을 1차 시각 기준으로 사용한다.
 
 ```text
 references/
 └── brandbastion/
     ├── 01-hero-desktop.png
     ├── 02-problem-section.png
-    ├── 03-solutions-section.png
-    ├── 04-ai-processing.png
-    ├── 05-integrations-cases.png
-    └── 06-mobile.png
+    ├── 03-solutions-overview.png
+    ├── 04-comment-moderation.png
+    ├── 05-brand-benefits.png
+    ├── 06-ai-processing.png
+    ├── 07-integrations.png
+    ├── 08-customer-results.png
+    ├── 09-dashboard-hero-detail.png
+    └── README.md
 ```
 
 최소 캡처 범위는 다음과 같다.
@@ -46,7 +50,12 @@ references/
 3. 문제를 설명하는 카드 섹션
 4. 솔루션과 기능 섹션
 5. AI가 댓글을 처리하는 표현 방식
-6. 모바일 화면
+6. AI 분석과 수치 표현
+7. 외부 플랫폼 연동 표현
+8. 고객 사례 카드와 가로 탐색 방식
+9. Hero에 사용하는 브라우저형 대시보드와 플로팅 카드의 세부 구성
+
+현재 첨부 자료는 데스크톱 화면만 포함한다. 모바일 구현은 이 레퍼런스의 시각 언어를 유지하되 CommentHawk의 실제 콘텐츠와 접근성 기준에 맞춰 별도로 설계하고 검증한다.
 
 스크린샷은 분위기, 정보 밀도, 여백과 타이포그래피를 판단하는 1차 자료로 사용한다. BrandBastion의 자산, 로고, 문구, 고객 주장, 소스 코드나 정확한 화면 구조를 복사하지 않는다.
 
