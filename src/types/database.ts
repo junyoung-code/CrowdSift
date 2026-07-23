@@ -1505,6 +1505,10 @@ export type Database = {
       }
     }
     Functions: {
+      disconnect_youtube_channel: {
+        Args: { target_workspace_id: string }
+        Returns: undefined
+      }
       ensure_owner_workspace: { Args: never; Returns: string }
       get_dashboard_summary: {
         Args: { target_workspace_id: string }
@@ -1569,6 +1573,10 @@ export type Database = {
           feedback_id: string
           similarity: number
         }[]
+      }
+      select_youtube_channel: {
+        Args: { target_channel_id: string; target_workspace_id: string }
+        Returns: undefined
       }
     }
     Enums: {

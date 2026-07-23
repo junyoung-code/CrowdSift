@@ -9,6 +9,8 @@ import {
   type WorkspaceDeletionDependencies,
 } from "@/features/auth/workspace-deletion-service";
 import { requireViewer } from "@/features/auth/require-viewer";
+import { createYouTubeProvider } from "@/features/youtube/provider-factory";
+import { decryptToken } from "@/features/youtube/token-crypto";
 import { getServerEnv } from "@/lib/env";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 
@@ -21,7 +23,9 @@ export type DeleteWorkspaceState =
 
 const createDeletionDependencies = (): WorkspaceDeletionDependencies => {
   const admin = createAdminSupabaseClient();
-  const { DELETION_AUDIT_PEPPER } = getServerEnv();
+  const { DELETION_AUDIT_PEPPER, YOUTUBE_TOKEN_ENCRYPTION_KEY } =
+    getServerEnv();
+  const encryptionKey = Buffer.from(YOUTUBE_TOKEN_ENCRYPTION_KEY, "base64");
 
   return {
     async verifyOwner({ userId, workspaceId }) {
@@ -49,8 +53,13 @@ const createDeletionDependencies = (): WorkspaceDeletionDependencies => {
         throw new Error("Google credentials could not be loaded");
       }
 
-      if (data?.encrypted_access_token || data?.encrypted_refresh_token) {
-        throw new Error("Encrypted Google token revocation is not available yet");
+      const sealedToken =
+        data?.encrypted_refresh_token ?? data?.encrypted_access_token;
+
+      if (sealedToken) {
+        await createYouTubeProvider().revokeToken(
+          decryptToken(sealedToken, encryptionKey),
+        );
       }
     },
     async clearEncryptedTokens(workspaceId) {
