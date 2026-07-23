@@ -1,0 +1,1795 @@
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
+
+export type Database = {
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+  public: {
+    Tables: {
+      analysis_job_items: {
+        Row: {
+          analysis_job_id: string
+          attempt_count: number
+          created_at: string
+          error_code: string | null
+          finished_at: string | null
+          id: string
+          raw_comment_id: string
+          started_at: string | null
+          status: Database["public"]["Enums"]["item_status"]
+          workspace_id: string
+        }
+        Insert: {
+          analysis_job_id: string
+          attempt_count?: number
+          created_at?: string
+          error_code?: string | null
+          finished_at?: string | null
+          id?: string
+          raw_comment_id: string
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["item_status"]
+          workspace_id: string
+        }
+        Update: {
+          analysis_job_id?: string
+          attempt_count?: number
+          created_at?: string
+          error_code?: string | null
+          finished_at?: string | null
+          id?: string
+          raw_comment_id?: string
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["item_status"]
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analysis_job_items_analysis_job_id_fkey"
+            columns: ["analysis_job_id"]
+            isOneToOne: false
+            referencedRelation: "analysis_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "analysis_job_items_raw_comment_id_fkey"
+            columns: ["raw_comment_id"]
+            isOneToOne: false
+            referencedRelation: "raw_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "analysis_job_items_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      analysis_jobs: {
+        Row: {
+          completed_count: number
+          configuration_key: string
+          created_at: string
+          failed_count: number
+          finished_at: string | null
+          id: string
+          import_job_id: string | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["job_status"]
+          total_count: number
+          workspace_id: string
+        }
+        Insert: {
+          completed_count?: number
+          configuration_key: string
+          created_at?: string
+          failed_count?: number
+          finished_at?: string | null
+          id?: string
+          import_job_id?: string | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["job_status"]
+          total_count?: number
+          workspace_id: string
+        }
+        Update: {
+          completed_count?: number
+          configuration_key?: string
+          created_at?: string
+          failed_count?: number
+          finished_at?: string | null
+          id?: string
+          import_job_id?: string | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["job_status"]
+          total_count?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analysis_jobs_import_job_id_fkey"
+            columns: ["import_job_id"]
+            isOneToOne: false
+            referencedRelation: "comment_import_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "analysis_jobs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      audit_logs: {
+        Row: {
+          actor_user_id: string | null
+          created_at: string
+          event_type: string
+          id: string
+          metadata: Json
+          target_id: string
+          target_type: string
+          workspace_id: string
+        }
+        Insert: {
+          actor_user_id?: string | null
+          created_at?: string
+          event_type: string
+          id?: string
+          metadata?: Json
+          target_id: string
+          target_type: string
+          workspace_id: string
+        }
+        Update: {
+          actor_user_id?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          metadata?: Json
+          target_id?: string
+          target_type?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      comment_analyses: {
+        Row: {
+          actionable_feedback: boolean
+          analysis_job_item_id: string | null
+          category: Database["public"]["Enums"]["comment_category"]
+          confidence: number
+          created_at: string
+          evidence_review: boolean
+          explanation: string
+          id: string
+          manual_review: boolean
+          model_run_id: string
+          phishing: number
+          policy_version: number
+          provenance: Json
+          raw_comment_id: string
+          recommended_action: Database["public"]["Enums"]["recommended_action"]
+          retrieved_feedback: Json
+          review_level: Database["public"]["Enums"]["review_level"]
+          rule_evaluation_id: string | null
+          spam: number
+          stage: number
+          stage_one_analysis_id: string | null
+          toxicity: number
+          workspace_id: string
+        }
+        Insert: {
+          actionable_feedback: boolean
+          analysis_job_item_id?: string | null
+          category: Database["public"]["Enums"]["comment_category"]
+          confidence: number
+          created_at?: string
+          evidence_review: boolean
+          explanation: string
+          id?: string
+          manual_review: boolean
+          model_run_id: string
+          phishing: number
+          policy_version: number
+          provenance: Json
+          raw_comment_id: string
+          recommended_action: Database["public"]["Enums"]["recommended_action"]
+          retrieved_feedback?: Json
+          review_level: Database["public"]["Enums"]["review_level"]
+          rule_evaluation_id?: string | null
+          spam: number
+          stage: number
+          stage_one_analysis_id?: string | null
+          toxicity: number
+          workspace_id: string
+        }
+        Update: {
+          actionable_feedback?: boolean
+          analysis_job_item_id?: string | null
+          category?: Database["public"]["Enums"]["comment_category"]
+          confidence?: number
+          created_at?: string
+          evidence_review?: boolean
+          explanation?: string
+          id?: string
+          manual_review?: boolean
+          model_run_id?: string
+          phishing?: number
+          policy_version?: number
+          provenance?: Json
+          raw_comment_id?: string
+          recommended_action?: Database["public"]["Enums"]["recommended_action"]
+          retrieved_feedback?: Json
+          review_level?: Database["public"]["Enums"]["review_level"]
+          rule_evaluation_id?: string | null
+          spam?: number
+          stage?: number
+          stage_one_analysis_id?: string | null
+          toxicity?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comment_analyses_analysis_job_item_id_fkey"
+            columns: ["analysis_job_item_id"]
+            isOneToOne: false
+            referencedRelation: "analysis_job_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comment_analyses_model_run_id_fkey"
+            columns: ["model_run_id"]
+            isOneToOne: true
+            referencedRelation: "model_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comment_analyses_raw_comment_id_fkey"
+            columns: ["raw_comment_id"]
+            isOneToOne: false
+            referencedRelation: "raw_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comment_analyses_rule_evaluation_id_fkey"
+            columns: ["rule_evaluation_id"]
+            isOneToOne: false
+            referencedRelation: "rule_evaluations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comment_analyses_stage_one_analysis_id_fkey"
+            columns: ["stage_one_analysis_id"]
+            isOneToOne: false
+            referencedRelation: "comment_analyses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comment_analyses_stage_one_analysis_id_fkey"
+            columns: ["stage_one_analysis_id"]
+            isOneToOne: false
+            referencedRelation: "current_comment_analyses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comment_analyses_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      comment_import_items: {
+        Row: {
+          created_at: string
+          error_code: string | null
+          import_job_id: string
+          raw_comment_id: string | null
+          status: Database["public"]["Enums"]["item_status"]
+          workspace_id: string
+          youtube_comment_id: string
+        }
+        Insert: {
+          created_at?: string
+          error_code?: string | null
+          import_job_id: string
+          raw_comment_id?: string | null
+          status: Database["public"]["Enums"]["item_status"]
+          workspace_id: string
+          youtube_comment_id: string
+        }
+        Update: {
+          created_at?: string
+          error_code?: string | null
+          import_job_id?: string
+          raw_comment_id?: string | null
+          status?: Database["public"]["Enums"]["item_status"]
+          workspace_id?: string
+          youtube_comment_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comment_import_items_import_job_id_fkey"
+            columns: ["import_job_id"]
+            isOneToOne: false
+            referencedRelation: "comment_import_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comment_import_items_raw_comment_id_fkey"
+            columns: ["raw_comment_id"]
+            isOneToOne: false
+            referencedRelation: "raw_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comment_import_items_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      comment_import_jobs: {
+        Row: {
+          attempt_count: number
+          created_at: string
+          duplicate_count: number
+          failed_count: number
+          fetched_count: number
+          finished_at: string | null
+          id: string
+          last_error_code: string | null
+          next_page_token: string | null
+          requested_top_level_count: number
+          started_at: string | null
+          status: Database["public"]["Enums"]["job_status"]
+          stored_count: number
+          workspace_id: string
+          youtube_video_id: string
+        }
+        Insert: {
+          attempt_count?: number
+          created_at?: string
+          duplicate_count?: number
+          failed_count?: number
+          fetched_count?: number
+          finished_at?: string | null
+          id?: string
+          last_error_code?: string | null
+          next_page_token?: string | null
+          requested_top_level_count: number
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["job_status"]
+          stored_count?: number
+          workspace_id: string
+          youtube_video_id: string
+        }
+        Update: {
+          attempt_count?: number
+          created_at?: string
+          duplicate_count?: number
+          failed_count?: number
+          fetched_count?: number
+          finished_at?: string | null
+          id?: string
+          last_error_code?: string | null
+          next_page_token?: string | null
+          requested_top_level_count?: number
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["job_status"]
+          stored_count?: number
+          workspace_id?: string
+          youtube_video_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comment_import_jobs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      creator_feedback: {
+        Row: {
+          actor_user_id: string
+          analysis_id: string
+          corrected_category:
+            | Database["public"]["Enums"]["comment_category"]
+            | null
+          corrected_recommended_action:
+            | Database["public"]["Enums"]["recommended_action"]
+            | null
+          corrected_review_level:
+            | Database["public"]["Enums"]["review_level"]
+            | null
+          created_at: string
+          decision: string
+          edited_sanitized_feedback: string | null
+          id: string
+          raw_comment_id: string
+          use_for_personalization: boolean
+          use_for_training: boolean
+          workspace_id: string
+        }
+        Insert: {
+          actor_user_id: string
+          analysis_id: string
+          corrected_category?:
+            | Database["public"]["Enums"]["comment_category"]
+            | null
+          corrected_recommended_action?:
+            | Database["public"]["Enums"]["recommended_action"]
+            | null
+          corrected_review_level?:
+            | Database["public"]["Enums"]["review_level"]
+            | null
+          created_at?: string
+          decision: string
+          edited_sanitized_feedback?: string | null
+          id?: string
+          raw_comment_id: string
+          use_for_personalization?: boolean
+          use_for_training?: boolean
+          workspace_id: string
+        }
+        Update: {
+          actor_user_id?: string
+          analysis_id?: string
+          corrected_category?:
+            | Database["public"]["Enums"]["comment_category"]
+            | null
+          corrected_recommended_action?:
+            | Database["public"]["Enums"]["recommended_action"]
+            | null
+          corrected_review_level?:
+            | Database["public"]["Enums"]["review_level"]
+            | null
+          created_at?: string
+          decision?: string
+          edited_sanitized_feedback?: string | null
+          id?: string
+          raw_comment_id?: string
+          use_for_personalization?: boolean
+          use_for_training?: boolean
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creator_feedback_analysis_id_fkey"
+            columns: ["analysis_id"]
+            isOneToOne: false
+            referencedRelation: "comment_analyses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creator_feedback_analysis_id_fkey"
+            columns: ["analysis_id"]
+            isOneToOne: false
+            referencedRelation: "current_comment_analyses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creator_feedback_raw_comment_id_fkey"
+            columns: ["raw_comment_id"]
+            isOneToOne: false
+            referencedRelation: "raw_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creator_feedback_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      creator_policies: {
+        Row: {
+          category_sensitivity: Json
+          created_at: string
+          created_by: string
+          harmful_text_hidden: boolean
+          id: string
+          preferred_actions: Json
+          version: number
+          workspace_id: string
+        }
+        Insert: {
+          category_sensitivity?: Json
+          created_at?: string
+          created_by: string
+          harmful_text_hidden?: boolean
+          id?: string
+          preferred_actions?: Json
+          version: number
+          workspace_id: string
+        }
+        Update: {
+          category_sensitivity?: Json
+          created_at?: string
+          created_by?: string
+          harmful_text_hidden?: boolean
+          id?: string
+          preferred_actions?: Json
+          version?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creator_policies_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      deletion_audit_logs: {
+        Row: {
+          actor_fingerprint: string
+          created_at: string
+          deleted_workspace_id: string
+          event_type: string
+          id: string
+        }
+        Insert: {
+          actor_fingerprint: string
+          created_at?: string
+          deleted_workspace_id: string
+          event_type: string
+          id?: string
+        }
+        Update: {
+          actor_fingerprint?: string
+          created_at?: string
+          deleted_workspace_id?: string
+          event_type?: string
+          id?: string
+        }
+        Relationships: []
+      }
+      evaluation_cases: {
+        Row: {
+          created_at: string
+          expected: Json
+          fixture: Json
+          id: string
+          locale: string
+          reviewed_at: string
+          reviewed_by: string
+        }
+        Insert: {
+          created_at?: string
+          expected: Json
+          fixture: Json
+          id: string
+          locale: string
+          reviewed_at: string
+          reviewed_by: string
+        }
+        Update: {
+          created_at?: string
+          expected?: Json
+          fixture?: Json
+          id?: string
+          locale?: string
+          reviewed_at?: string
+          reviewed_by?: string
+        }
+        Relationships: []
+      }
+      evidence_records: {
+        Row: {
+          action_request_id: string
+          captured_at: string
+          id: string
+          raw_comment_id: string
+          source_snapshot: Json
+          workspace_id: string
+        }
+        Insert: {
+          action_request_id: string
+          captured_at?: string
+          id?: string
+          raw_comment_id: string
+          source_snapshot: Json
+          workspace_id: string
+        }
+        Update: {
+          action_request_id?: string
+          captured_at?: string
+          id?: string
+          raw_comment_id?: string
+          source_snapshot?: Json
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "evidence_records_action_request_id_fkey"
+            columns: ["action_request_id"]
+            isOneToOne: true
+            referencedRelation: "moderation_action_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evidence_records_raw_comment_id_fkey"
+            columns: ["raw_comment_id"]
+            isOneToOne: false
+            referencedRelation: "raw_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evidence_records_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feedback_embeddings: {
+        Row: {
+          created_at: string
+          creator_feedback_id: string
+          deleted_at: string | null
+          embedding: string
+          embedding_model: string
+          id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          creator_feedback_id: string
+          deleted_at?: string | null
+          embedding: string
+          embedding_model: string
+          id?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          creator_feedback_id?: string
+          deleted_at?: string | null
+          embedding?: string
+          embedding_model?: string
+          id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feedback_embeddings_creator_feedback_id_fkey"
+            columns: ["creator_feedback_id"]
+            isOneToOne: true
+            referencedRelation: "creator_feedback"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feedback_embeddings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      model_runs: {
+        Row: {
+          analysis_job_item_id: string | null
+          created_at: string
+          error_code: string | null
+          id: string
+          idempotency_key: string
+          latency_ms: number | null
+          model_identifier: string
+          policy_version: number
+          prompt_version: string
+          provider: string
+          provider_response_id: string | null
+          raw_comment_id: string
+          schema_version: string
+          stage: number
+          status: string
+          usage: Json
+          workspace_id: string
+        }
+        Insert: {
+          analysis_job_item_id?: string | null
+          created_at?: string
+          error_code?: string | null
+          id?: string
+          idempotency_key: string
+          latency_ms?: number | null
+          model_identifier: string
+          policy_version: number
+          prompt_version: string
+          provider: string
+          provider_response_id?: string | null
+          raw_comment_id: string
+          schema_version: string
+          stage: number
+          status: string
+          usage?: Json
+          workspace_id: string
+        }
+        Update: {
+          analysis_job_item_id?: string | null
+          created_at?: string
+          error_code?: string | null
+          id?: string
+          idempotency_key?: string
+          latency_ms?: number | null
+          model_identifier?: string
+          policy_version?: number
+          prompt_version?: string
+          provider?: string
+          provider_response_id?: string | null
+          raw_comment_id?: string
+          schema_version?: string
+          stage?: number
+          status?: string
+          usage?: Json
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "model_runs_analysis_job_item_id_fkey"
+            columns: ["analysis_job_item_id"]
+            isOneToOne: false
+            referencedRelation: "analysis_job_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "model_runs_raw_comment_id_fkey"
+            columns: ["raw_comment_id"]
+            isOneToOne: false
+            referencedRelation: "raw_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "model_runs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      moderation_action_requests: {
+        Row: {
+          action: Database["public"]["Enums"]["moderation_action"]
+          confirmed_at: string | null
+          created_at: string
+          error_code: string | null
+          executed_at: string | null
+          id: string
+          idempotency_key: string
+          provider_result: Json | null
+          raw_comment_id: string
+          requested_by: string
+          state: Database["public"]["Enums"]["action_state"]
+          workspace_id: string
+        }
+        Insert: {
+          action: Database["public"]["Enums"]["moderation_action"]
+          confirmed_at?: string | null
+          created_at?: string
+          error_code?: string | null
+          executed_at?: string | null
+          id?: string
+          idempotency_key: string
+          provider_result?: Json | null
+          raw_comment_id: string
+          requested_by: string
+          state: Database["public"]["Enums"]["action_state"]
+          workspace_id: string
+        }
+        Update: {
+          action?: Database["public"]["Enums"]["moderation_action"]
+          confirmed_at?: string | null
+          created_at?: string
+          error_code?: string | null
+          executed_at?: string | null
+          id?: string
+          idempotency_key?: string
+          provider_result?: Json | null
+          raw_comment_id?: string
+          requested_by?: string
+          state?: Database["public"]["Enums"]["action_state"]
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "moderation_action_requests_raw_comment_id_fkey"
+            columns: ["raw_comment_id"]
+            isOneToOne: false
+            referencedRelation: "raw_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "moderation_action_requests_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      phrase_rules: {
+        Row: {
+          context_note: string | null
+          created_at: string
+          enabled: boolean
+          id: string
+          kind: Database["public"]["Enums"]["rule_kind"]
+          normalized_phrase: string
+          phrase: string
+          policy_id: string
+          version: number
+          workspace_id: string
+        }
+        Insert: {
+          context_note?: string | null
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          kind: Database["public"]["Enums"]["rule_kind"]
+          normalized_phrase: string
+          phrase: string
+          policy_id: string
+          version: number
+          workspace_id: string
+        }
+        Update: {
+          context_note?: string | null
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          kind?: Database["public"]["Enums"]["rule_kind"]
+          normalized_phrase?: string
+          phrase?: string
+          policy_id?: string
+          version?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "phrase_rules_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "creator_policies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "phrase_rules_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      raw_comment_payloads: {
+        Row: {
+          captured_at: string
+          payload: Json
+          raw_comment_id: string
+          workspace_id: string
+        }
+        Insert: {
+          captured_at?: string
+          payload: Json
+          raw_comment_id: string
+          workspace_id: string
+        }
+        Update: {
+          captured_at?: string
+          payload?: Json
+          raw_comment_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "raw_comment_payloads_raw_comment_id_fkey"
+            columns: ["raw_comment_id"]
+            isOneToOne: true
+            referencedRelation: "raw_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "raw_comment_payloads_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      raw_comments: {
+        Row: {
+          author_avatar_url: string | null
+          author_channel_id: string | null
+          author_display_name: string | null
+          captured_at: string
+          first_import_job_id: string
+          id: string
+          like_count: number
+          parent_youtube_comment_id: string | null
+          published_at: string | null
+          source_deleted_at: string | null
+          source_moderation_status: string | null
+          text_display: string
+          text_original: string | null
+          updated_at: string | null
+          workspace_id: string
+          youtube_comment_id: string
+          youtube_video_id: string
+        }
+        Insert: {
+          author_avatar_url?: string | null
+          author_channel_id?: string | null
+          author_display_name?: string | null
+          captured_at?: string
+          first_import_job_id: string
+          id?: string
+          like_count?: number
+          parent_youtube_comment_id?: string | null
+          published_at?: string | null
+          source_deleted_at?: string | null
+          source_moderation_status?: string | null
+          text_display: string
+          text_original?: string | null
+          updated_at?: string | null
+          workspace_id: string
+          youtube_comment_id: string
+          youtube_video_id: string
+        }
+        Update: {
+          author_avatar_url?: string | null
+          author_channel_id?: string | null
+          author_display_name?: string | null
+          captured_at?: string
+          first_import_job_id?: string
+          id?: string
+          like_count?: number
+          parent_youtube_comment_id?: string | null
+          published_at?: string | null
+          source_deleted_at?: string | null
+          source_moderation_status?: string | null
+          text_display?: string
+          text_original?: string | null
+          updated_at?: string | null
+          workspace_id?: string
+          youtube_comment_id?: string
+          youtube_video_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "raw_comments_first_import_job_id_fkey"
+            columns: ["first_import_job_id"]
+            isOneToOne: false
+            referencedRelation: "comment_import_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "raw_comments_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rule_evaluations: {
+        Row: {
+          created_at: string
+          id: string
+          initial_review_level: Database["public"]["Enums"]["review_level"]
+          normalized_text: string
+          policy_version: number
+          raw_comment_id: string
+          rule_engine_version: string
+          signals: Json
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          initial_review_level: Database["public"]["Enums"]["review_level"]
+          normalized_text: string
+          policy_version: number
+          raw_comment_id: string
+          rule_engine_version: string
+          signals: Json
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          initial_review_level?: Database["public"]["Enums"]["review_level"]
+          normalized_text?: string
+          policy_version?: number
+          raw_comment_id?: string
+          rule_engine_version?: string
+          signals?: Json
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rule_evaluations_raw_comment_id_fkey"
+            columns: ["raw_comment_id"]
+            isOneToOne: false
+            referencedRelation: "raw_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rule_evaluations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sanitized_feedback: {
+        Row: {
+          analysis_id: string
+          created_at: string
+          id: string
+          neutral_text: string | null
+          no_signal: boolean
+          normalized_question: string | null
+          workspace_id: string
+        }
+        Insert: {
+          analysis_id: string
+          created_at?: string
+          id?: string
+          neutral_text?: string | null
+          no_signal: boolean
+          normalized_question?: string | null
+          workspace_id: string
+        }
+        Update: {
+          analysis_id?: string
+          created_at?: string
+          id?: string
+          neutral_text?: string | null
+          no_signal?: boolean
+          normalized_question?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sanitized_feedback_analysis_id_fkey"
+            columns: ["analysis_id"]
+            isOneToOne: true
+            referencedRelation: "comment_analyses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sanitized_feedback_analysis_id_fkey"
+            columns: ["analysis_id"]
+            isOneToOne: true
+            referencedRelation: "current_comment_analyses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sanitized_feedback_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspace_analysis_summaries: {
+        Row: {
+          analysis_job_id: string
+          created_at: string
+          id: string
+          model_identifier: string
+          prompt_version: string
+          provider: string
+          provider_response_id: string | null
+          schema_version: string
+          source_analysis_count: number
+          summary_text: string
+          usage: Json
+          workspace_id: string
+        }
+        Insert: {
+          analysis_job_id: string
+          created_at?: string
+          id?: string
+          model_identifier: string
+          prompt_version: string
+          provider: string
+          provider_response_id?: string | null
+          schema_version: string
+          source_analysis_count: number
+          summary_text: string
+          usage?: Json
+          workspace_id: string
+        }
+        Update: {
+          analysis_job_id?: string
+          created_at?: string
+          id?: string
+          model_identifier?: string
+          prompt_version?: string
+          provider?: string
+          provider_response_id?: string | null
+          schema_version?: string
+          source_analysis_count?: number
+          summary_text?: string
+          usage?: Json
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_analysis_summaries_analysis_job_id_fkey"
+            columns: ["analysis_job_id"]
+            isOneToOne: true
+            referencedRelation: "analysis_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workspace_analysis_summaries_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspace_members: {
+        Row: {
+          created_at: string
+          role: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          role: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          role?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_members_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspaces: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          owner_user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name?: string
+          owner_user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          owner_user_id?: string
+        }
+        Relationships: []
+      }
+      youtube_channel_candidates: {
+        Row: {
+          connection_id: string
+          handle: string | null
+          selected: boolean
+          thumbnail_url: string | null
+          title: string
+          workspace_id: string
+          youtube_channel_id: string
+        }
+        Insert: {
+          connection_id: string
+          handle?: string | null
+          selected?: boolean
+          thumbnail_url?: string | null
+          title: string
+          workspace_id: string
+          youtube_channel_id: string
+        }
+        Update: {
+          connection_id?: string
+          handle?: string | null
+          selected?: boolean
+          thumbnail_url?: string | null
+          title?: string
+          workspace_id?: string
+          youtube_channel_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "youtube_channel_candidates_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "youtube_connection_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "youtube_channel_candidates_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "youtube_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "youtube_channel_candidates_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      youtube_connections: {
+        Row: {
+          created_at: string
+          encrypted_access_token: string | null
+          encrypted_refresh_token: string | null
+          google_subject: string | null
+          granted_scopes: string[]
+          id: string
+          status: Database["public"]["Enums"]["connection_status"]
+          token_expires_at: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          encrypted_access_token?: string | null
+          encrypted_refresh_token?: string | null
+          google_subject?: string | null
+          granted_scopes?: string[]
+          id?: string
+          status: Database["public"]["Enums"]["connection_status"]
+          token_expires_at?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          encrypted_access_token?: string | null
+          encrypted_refresh_token?: string | null
+          google_subject?: string | null
+          granted_scopes?: string[]
+          id?: string
+          status?: Database["public"]["Enums"]["connection_status"]
+          token_expires_at?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "youtube_connections_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      youtube_videos: {
+        Row: {
+          captured_at: string
+          comments_enabled: boolean | null
+          id: string
+          published_at: string | null
+          thumbnail_url: string | null
+          title: string
+          workspace_id: string
+          youtube_channel_id: string
+          youtube_video_id: string
+        }
+        Insert: {
+          captured_at?: string
+          comments_enabled?: boolean | null
+          id?: string
+          published_at?: string | null
+          thumbnail_url?: string | null
+          title: string
+          workspace_id: string
+          youtube_channel_id: string
+          youtube_video_id: string
+        }
+        Update: {
+          captured_at?: string
+          comments_enabled?: boolean | null
+          id?: string
+          published_at?: string | null
+          thumbnail_url?: string | null
+          title?: string
+          workspace_id?: string
+          youtube_channel_id?: string
+          youtube_video_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "youtube_videos_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+    }
+    Views: {
+      current_comment_analyses: {
+        Row: {
+          actionable_feedback: boolean | null
+          analysis_job_item_id: string | null
+          category: Database["public"]["Enums"]["comment_category"] | null
+          confidence: number | null
+          created_at: string | null
+          current_rank: number | null
+          evidence_review: boolean | null
+          explanation: string | null
+          id: string | null
+          manual_review: boolean | null
+          model_run_id: string | null
+          phishing: number | null
+          policy_version: number | null
+          provenance: Json | null
+          raw_comment_id: string | null
+          recommended_action:
+            | Database["public"]["Enums"]["recommended_action"]
+            | null
+          retrieved_feedback: Json | null
+          review_level: Database["public"]["Enums"]["review_level"] | null
+          rule_evaluation_id: string | null
+          spam: number | null
+          stage: number | null
+          stage_one_analysis_id: string | null
+          toxicity: number | null
+          workspace_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comment_analyses_analysis_job_item_id_fkey"
+            columns: ["analysis_job_item_id"]
+            isOneToOne: false
+            referencedRelation: "analysis_job_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comment_analyses_model_run_id_fkey"
+            columns: ["model_run_id"]
+            isOneToOne: true
+            referencedRelation: "model_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comment_analyses_raw_comment_id_fkey"
+            columns: ["raw_comment_id"]
+            isOneToOne: false
+            referencedRelation: "raw_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comment_analyses_rule_evaluation_id_fkey"
+            columns: ["rule_evaluation_id"]
+            isOneToOne: false
+            referencedRelation: "rule_evaluations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comment_analyses_stage_one_analysis_id_fkey"
+            columns: ["stage_one_analysis_id"]
+            isOneToOne: false
+            referencedRelation: "comment_analyses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comment_analyses_stage_one_analysis_id_fkey"
+            columns: ["stage_one_analysis_id"]
+            isOneToOne: false
+            referencedRelation: "current_comment_analyses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comment_analyses_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      youtube_connection_overview: {
+        Row: {
+          created_at: string | null
+          granted_scopes: string[] | null
+          id: string | null
+          status: Database["public"]["Enums"]["connection_status"] | null
+          token_expires_at: string | null
+          updated_at: string | null
+          workspace_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          granted_scopes?: string[] | null
+          id?: string | null
+          status?: Database["public"]["Enums"]["connection_status"] | null
+          token_expires_at?: string | null
+          updated_at?: string | null
+          workspace_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          granted_scopes?: string[] | null
+          id?: string | null
+          status?: Database["public"]["Enums"]["connection_status"] | null
+          token_expires_at?: string | null
+          updated_at?: string | null
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "youtube_connections_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+    }
+    Functions: {
+      ensure_owner_workspace: { Args: never; Returns: string }
+      get_dashboard_summary: {
+        Args: { target_workspace_id: string }
+        Returns: {
+          analyzed_count: number
+          caution_count: number
+          imported_count: number
+          latest_analysis_job: Json
+          latest_import_job: Json
+          latest_summary: string
+          latest_summary_source_count: number
+          latest_video: Json
+          pending_review_count: number
+          risk_count: number
+          safe_count: number
+          selected_channel: Json
+        }[]
+      }
+      get_inbox_page: {
+        Args: {
+          category_filter?: Database["public"]["Enums"]["comment_category"]
+          max_confidence?: number
+          min_confidence?: number
+          page_offset?: number
+          page_size?: number
+          review_levels?: Database["public"]["Enums"]["review_level"][]
+          search_query?: string
+          target_workspace_id: string
+          video_id?: string
+        }
+        Returns: {
+          analysis_id: string
+          author_avatar_url: string
+          author_display_name: string
+          category: Database["public"]["Enums"]["comment_category"]
+          confidence: number
+          manual_review: boolean
+          neutral_text: string
+          normalized_question: string
+          published_at: string
+          raw_comment_id: string
+          recommended_action: Database["public"]["Enums"]["recommended_action"]
+          review_level: Database["public"]["Enums"]["review_level"]
+          source_available: boolean
+          total_count: number
+          youtube_video_id: string
+        }[]
+      }
+      is_workspace_member: { Args: { target: string }; Returns: boolean }
+      match_creator_feedback: {
+        Args: {
+          match_count?: number
+          match_threshold?: number
+          query_embedding: string
+          target_workspace_id: string
+        }
+        Returns: {
+          corrected_category: Database["public"]["Enums"]["comment_category"]
+          corrected_review_level: Database["public"]["Enums"]["review_level"]
+          decision: string
+          edited_sanitized_feedback: string
+          feedback_id: string
+          similarity: number
+        }[]
+      }
+    }
+    Enums: {
+      action_state:
+        | "pending_confirmation"
+        | "awaiting_scope"
+        | "running"
+        | "succeeded"
+        | "failed"
+        | "cancelled"
+      comment_category:
+        | "positive"
+        | "neutral"
+        | "question"
+        | "constructive_feedback"
+        | "toxic_but_actionable"
+        | "abusive_no_signal"
+        | "spam_advertisement"
+        | "phishing"
+        | "harassment"
+        | "threat_or_serious_risk"
+        | "uncertain"
+      connection_status:
+        | "pending_channel_selection"
+        | "connected"
+        | "revoked"
+        | "disconnected"
+        | "error"
+      item_status: "pending" | "running" | "succeeded" | "failed"
+      job_status:
+        | "pending"
+        | "running"
+        | "partially_succeeded"
+        | "succeeded"
+        | "failed"
+      moderation_action: "hold_for_review" | "publish" | "reject" | "delete"
+      recommended_action:
+        | "none"
+        | "review"
+        | "hold_for_review"
+        | "publish"
+        | "reject"
+      review_level: "safe" | "caution" | "risk"
+      rule_kind: "blocked" | "allowed" | "context_exception"
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+}
+
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
+  public: {
+    Enums: {
+      action_state: [
+        "pending_confirmation",
+        "awaiting_scope",
+        "running",
+        "succeeded",
+        "failed",
+        "cancelled",
+      ],
+      comment_category: [
+        "positive",
+        "neutral",
+        "question",
+        "constructive_feedback",
+        "toxic_but_actionable",
+        "abusive_no_signal",
+        "spam_advertisement",
+        "phishing",
+        "harassment",
+        "threat_or_serious_risk",
+        "uncertain",
+      ],
+      connection_status: [
+        "pending_channel_selection",
+        "connected",
+        "revoked",
+        "disconnected",
+        "error",
+      ],
+      item_status: ["pending", "running", "succeeded", "failed"],
+      job_status: [
+        "pending",
+        "running",
+        "partially_succeeded",
+        "succeeded",
+        "failed",
+      ],
+      moderation_action: ["hold_for_review", "publish", "reject", "delete"],
+      recommended_action: [
+        "none",
+        "review",
+        "hold_for_review",
+        "publish",
+        "reject",
+      ],
+      review_level: ["safe", "caution", "risk"],
+      rule_kind: ["blocked", "allowed", "context_exception"],
+    },
+  },
+} as const
+
