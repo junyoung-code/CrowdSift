@@ -29,25 +29,28 @@ export async function POST(
   const supabase = await createServerSupabaseClient();
   const repository: SourceRepository = {
     async findOwnedSource(input) {
-      const { data, error } = await supabase
-        .from("raw_comments")
-        .select("text_display, text_original, captured_at")
-        .eq("workspace_id", input.workspaceId)
-        .eq("id", input.commentId)
-        .is("source_deleted_at", null)
-        .maybeSingle();
+      const { data, error } = await supabase.rpc(
+        "get_acknowledged_comment_source",
+        {
+          target_workspace_id: input.workspaceId,
+          target_raw_comment_id: input.commentId,
+        },
+      );
 
       if (error) {
         throw error;
       }
-      if (!data) {
+      const row = data?.[0];
+      if (!row) {
         return null;
       }
 
       return {
-        textDisplay: data.text_display,
-        textOriginal: data.text_original,
-        capturedAt: data.captured_at,
+        authorDisplayName: row.author_display_name,
+        authorAvatarUrl: row.author_avatar_url,
+        publishedAt: row.published_at,
+        textDisplay: row.text_display,
+        capturedAt: row.captured_at,
       };
     },
   };

@@ -420,7 +420,7 @@ type CommentSource = {
 };
 ```
 
-- [ ] **Step 1: Write failing service tests for the enriched DTO**
+- [x] **Step 1: Write failing service tests for the enriched DTO**
 
 Update the repository fixture and expected result:
 
@@ -436,7 +436,7 @@ const source = {
 
 Keep the existing acknowledgement-required and cross-workspace not-found tests.
 
-- [ ] **Step 2: Write failing Route Handler tests**
+- [x] **Step 2: Write failing Route Handler tests**
 
 Mock `requireViewer`, `createServerSupabaseClient`, and `rpc`. Assert:
 
@@ -457,7 +457,7 @@ Also assert:
 - empty RPC data returns 404;
 - DB permission and unknown failures never include DB messages or source text.
 
-- [ ] **Step 3: Run focused tests and confirm failure**
+- [x] **Step 3: Run focused tests and confirm failure**
 
 Run:
 
@@ -467,7 +467,7 @@ npm test -- src/features/inbox/source-service.test.ts 'src/app/api/comments/[com
 
 Expected: FAIL because the route still calls `.from("raw_comments")` and the DTO is incomplete.
 
-- [ ] **Step 4: Implement the DTO and RPC-backed repository**
+- [x] **Step 4: Implement the DTO and RPC-backed repository**
 
 Replace the route repository body with:
 
@@ -495,7 +495,7 @@ return {
 
 Do not catch-and-log raw DB payloads. Preserve the public response codes `400`, `404`, and `500`.
 
-- [ ] **Step 5: Run focused tests**
+- [x] **Step 5: Run focused tests**
 
 Run:
 
@@ -505,7 +505,7 @@ npm test -- src/features/inbox/source-service.test.ts 'src/app/api/comments/[com
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit Task 3**
+- [x] **Step 6: Commit Task 3**
 
 ```bash
 git add src/features/inbox/source-service.ts src/features/inbox/source-service.test.ts 'src/app/api/comments/[commentId]/source/route.ts' 'src/app/api/comments/[commentId]/source/route.test.ts'

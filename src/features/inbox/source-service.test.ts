@@ -27,12 +27,15 @@ describe("acknowledged comment source", () => {
   });
 
   it("loads only the source scoped to the viewer workspace", async () => {
+    const source = {
+      authorDisplayName: "테스트 작성자",
+      authorAvatarUrl: null,
+      publishedAt: "2026-07-23T00:00:00.000Z",
+      textDisplay: "표시 원문",
+      capturedAt: "2026-07-23T00:01:00.000Z",
+    };
     const repository: SourceRepository = {
-      findOwnedSource: vi.fn().mockResolvedValue({
-        textDisplay: "표시 원문",
-        textOriginal: "원본 HTML 이전 텍스트",
-        capturedAt: "2026-07-23T00:00:00.000Z",
-      }),
+      findOwnedSource: vi.fn().mockResolvedValue(source),
     };
 
     const result = await loadAcknowledgedSource(
@@ -48,11 +51,7 @@ describe("acknowledged comment source", () => {
       workspaceId: "workspace-1",
       commentId: "comment-1",
     });
-    expect(result).toEqual({
-      textDisplay: "표시 원문",
-      textOriginal: "원본 HTML 이전 텍스트",
-      capturedAt: "2026-07-23T00:00:00.000Z",
-    });
+    expect(result).toEqual(source);
   });
 
   it("does not reveal whether a comment exists outside the workspace", async () => {

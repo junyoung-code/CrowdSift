@@ -1,6 +1,8 @@
 export type CommentSource = {
+  authorDisplayName: string | null;
+  authorAvatarUrl: string | null;
+  publishedAt: string | null;
   textDisplay: string;
-  textOriginal: string | null;
   capturedAt: string;
 };
 
