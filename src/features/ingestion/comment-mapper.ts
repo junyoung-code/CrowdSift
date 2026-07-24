@@ -52,7 +52,9 @@ export interface YouTubeCommentCollectionProvider {
   }>;
 }
 
-const mapProviderComment = (comment: ProviderComment): SourceComment => ({
+export const mapProviderComment = (
+  comment: ProviderComment,
+): SourceComment => ({
   youtubeCommentId: comment.id,
   parentYoutubeCommentId: comment.parentId,
   authorChannelId: comment.authorChannelId,
