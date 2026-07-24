@@ -7,6 +7,15 @@ export const DEFAULT_PRICING = {
   embedding: { inputPerMillion: 0.02 },
 } as const;
 
+export const FIXTURE_PRICING = {
+  version: "fixture-0-cost-v1",
+  effectiveAt: "2026-07-24T00:00:00.000Z",
+  currency: "USD",
+  stageOne: { inputPerMillion: 0, outputPerMillion: 0 },
+  stageTwo: { inputPerMillion: 0, outputPerMillion: 0 },
+  embedding: { inputPerMillion: 0 },
+} as const;
+
 const DEFAULT_ESTIMATE_ASSUMPTIONS = {
   stageOneInputPerComment: { low: 220, high: 500 },
   stageOneOutputPerComment: { low: 50, high: 120 },
@@ -16,7 +25,14 @@ const DEFAULT_ESTIMATE_ASSUMPTIONS = {
   embeddingInputPerComment: { low: 40, high: 160 },
 } as const;
 
-type Pricing = typeof DEFAULT_PRICING;
+export type AnalysisPricing = {
+  version: string;
+  effectiveAt: string;
+  currency: string;
+  stageOne: { inputPerMillion: number; outputPerMillion: number };
+  stageTwo: { inputPerMillion: number; outputPerMillion: number };
+  embedding: { inputPerMillion: number };
+};
 
 const tokenCost = (tokens: number, pricePerMillion: number) =>
   (tokens / 1_000_000) * pricePerMillion;
@@ -28,7 +44,7 @@ export const estimateAnalysisCost = ({
   pricing = DEFAULT_PRICING,
 }: {
   commentCount: number;
-  pricing?: Pricing;
+  pricing?: AnalysisPricing;
 }) => {
   const boundedCount = Math.max(Math.trunc(commentCount), 0);
   const stageTwoLow = Math.ceil(
@@ -136,7 +152,7 @@ export const calculateObservedCost = ({
   stageOne: { inputTokens: number; outputTokens: number };
   stageTwo: { inputTokens: number; outputTokens: number };
   embeddingInputTokens: number;
-  pricing?: Pricing;
+  pricing?: AnalysisPricing;
 }) => ({
   pricingVersion: pricing.version,
   currency: pricing.currency,

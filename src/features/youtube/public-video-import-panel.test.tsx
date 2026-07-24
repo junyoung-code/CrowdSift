@@ -70,6 +70,7 @@ describe("PublicVideoImportPanel", () => {
             commentsAvailable: true,
             commentCount: 1250,
             quotaUnitsUsed: 1,
+            fixtureLabel: "TEST FIXTURE",
           },
         }}
         mode={{ configured: true, enabled: true }}
@@ -80,11 +81,15 @@ describe("PublicVideoImportPanel", () => {
     expect(screen.getByText("다른 크리에이터")).toBeInTheDocument();
     expect(screen.getByText("공개 URL")).toBeInTheDocument();
     expect(screen.getByText("읽기 전용")).toBeInTheDocument();
+    expect(screen.getByText("TEST FIXTURE")).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "20개" })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "50개" })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "100개" })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "1,000개" })).toBeInTheDocument();
-    expect(screen.getByText(/예상 OpenAI 비용/)).toBeInTheDocument();
+    expect(screen.getByText("Fixture 분석 비용")).toBeInTheDocument();
+    expect(
+      screen.getByText("$0.0000 · 외부 API 호출 없음"),
+    ).toBeInTheDocument();
     expect(screen.getByText(/YouTube quota/)).toBeInTheDocument();
     expect(
       screen.getByRole("button", {
@@ -100,6 +105,7 @@ describe("PublicVideoImportPanel", () => {
         initialJobId="job-1"
         initialProgress={{
           jobId: "job-1",
+          providerMode: "fixture",
           sourceKind: "public_url",
           sourceLabel: "공개 URL",
           readOnly: true,
@@ -138,6 +144,7 @@ describe("PublicVideoImportPanel", () => {
     expect(within(progress).getByText("최상위 12")).toBeInTheDocument();
     expect(within(progress).getByText("답글 8")).toBeInTheDocument();
     expect(within(progress).getByText("10 / 19")).toBeInTheDocument();
+    expect(within(progress).getByText("TEST FIXTURE")).toBeInTheDocument();
     expect(
       within(progress).getByText("규칙 검사 · 1차 AI · 필요 시 2차 AI"),
     ).toBeInTheDocument();

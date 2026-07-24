@@ -7,6 +7,7 @@ type SourceKind = "owned_oauth" | "public_url";
 type ImportProgressInput = {
   job: {
     id: string;
+    providerMode: "live" | "fixture";
     sourceKind: SourceKind;
     requestedTopLevelCount: number | null;
     requestedTotalCount: number | null;
@@ -31,6 +32,7 @@ type ImportProgressInput = {
 
 export type ImportJobProgress = {
   jobId: string;
+  providerMode: "live" | "fixture";
   sourceKind: SourceKind;
   sourceLabel: "내 채널" | "공개 URL";
   readOnly: boolean;
@@ -70,6 +72,7 @@ export function toImportJobProgress({
 
   return {
     jobId: job.id,
+    providerMode: job.providerMode,
     sourceKind: job.sourceKind,
     sourceLabel: readOnly ? "공개 URL" : "내 채널",
     readOnly,

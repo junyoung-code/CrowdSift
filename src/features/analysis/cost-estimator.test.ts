@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   DEFAULT_PRICING,
+  FIXTURE_PRICING,
   calculateObservedCost,
   estimateAnalysisCost,
   summarizeStoredModelUsage,
@@ -70,6 +71,29 @@ describe("analysis cost estimator", () => {
       stageOne: { inputTokens: 100, outputTokens: 20 },
       stageTwo: { inputTokens: 80, outputTokens: 30 },
       embeddingInputTokens: 12,
+    });
+  });
+
+  it("records fixture estimates and observed usage at zero cost", () => {
+    const estimate = estimateAnalysisCost({
+      commentCount: 1_000,
+      pricing: FIXTURE_PRICING,
+    });
+    const observed = calculateObservedCost({
+      stageOne: { inputTokens: 0, outputTokens: 0 },
+      stageTwo: { inputTokens: 0, outputTokens: 0 },
+      embeddingInputTokens: 0,
+      pricing: FIXTURE_PRICING,
+    });
+
+    expect(estimate).toMatchObject({
+      pricingVersion: "fixture-0-cost-v1",
+      estimatedCostLow: 0,
+      estimatedCostHigh: 0,
+    });
+    expect(observed).toMatchObject({
+      pricingVersion: "fixture-0-cost-v1",
+      calculatedCost: 0,
     });
   });
 });

@@ -25,7 +25,13 @@ const navigationItems = [
   },
 ];
 
-export function AppShell({ children }: { children: ReactNode }) {
+export function AppShell({
+  children,
+  fixtureMode = false,
+}: {
+  children: ReactNode;
+  fixtureMode?: boolean;
+}) {
   return (
     <div className="product-shell">
       <aside className="product-sidebar">
@@ -58,10 +64,17 @@ export function AppShell({ children }: { children: ReactNode }) {
             <p>CREATOR WORKSPACE</p>
             <strong>내 CommentHawk</strong>
           </div>
-          <span className="product-status">
-            <span aria-hidden="true" />
-            실제 연결 데이터만 표시
-          </span>
+          {fixtureMode ? (
+            <div className="product-fixture-status" role="status">
+              <strong>TEST FIXTURE</strong>
+              <span>로컬 테스트 데이터 · 실제 YouTube 데이터 아님</span>
+            </div>
+          ) : (
+            <span className="product-status">
+              <span aria-hidden="true" />
+              실제 연결 데이터만 표시
+            </span>
+          )}
         </header>
         <main className="product-main">{children}</main>
       </div>

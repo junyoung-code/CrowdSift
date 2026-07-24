@@ -15,7 +15,7 @@ const modelResult = <T>(
   providerResponseId: string,
 ): ModelResult<T> => ({
   output,
-  provider: "openai",
+  provider: "fixture",
   modelIdentifier: "fixture-analysis-v1",
   providerResponseId,
   latencyMs: 0,

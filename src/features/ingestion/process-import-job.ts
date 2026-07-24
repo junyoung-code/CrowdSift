@@ -8,6 +8,10 @@ import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { createYouTubeProvider } from "@/features/youtube/provider-factory";
 import { decryptToken, encryptToken } from "@/features/youtube/token-crypto";
 import type { OAuthTokens } from "@/features/youtube/contracts";
+import {
+  ProviderModeMismatchError,
+  assertProviderModeMatchesJob,
+} from "@/features/providers/provider-mode";
 
 import { fetchSourceCommentPage } from "./comment-mapper";
 import {
@@ -67,13 +71,27 @@ export const processImportJob = async (jobId: string) => {
   const { data: job, error: jobError } = await admin
     .from("comment_import_jobs")
     .select(
-      "id, workspace_id, youtube_video_id, requested_top_level_count, source_kind, next_page_token, status, fetched_count, stored_count, duplicate_count, failed_count",
+      "id, workspace_id, youtube_video_id, requested_top_level_count, provider_mode, source_kind, next_page_token, status, fetched_count, stored_count, duplicate_count, failed_count",
     )
     .eq("id", jobId)
     .maybeSingle();
 
   if (jobError || !job) {
     throw new Error("Import job not found");
+  }
+
+  try {
+    assertProviderModeMatchesJob(
+      job.provider_mode,
+      environment.EXTERNAL_PROVIDER_MODE,
+    );
+  } catch (error) {
+    if (error instanceof ProviderModeMismatchError) {
+      throw new ImportProcessingError("provider_mode_mismatch", {
+        cause: error,
+      });
+    }
+    throw error;
   }
 
   if (job.source_kind === "public_url") {

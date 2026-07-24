@@ -1,5 +1,6 @@
 import type {
   DashboardSummaryOutput,
+  ModelProvider,
   ModelResult,
 } from "@/features/analysis/contracts";
 import {
@@ -28,7 +29,7 @@ export interface DashboardSummaryRepository {
     analysisJobId: string;
     sourceAnalysisCount: number;
     summaryText: string;
-    provider: "openai";
+    provider: ModelProvider;
     modelIdentifier: string;
     providerResponseId: string;
     promptVersion: string;

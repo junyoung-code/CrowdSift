@@ -77,7 +77,7 @@ values
     false
   );
 
-select plan(2);
+select plan(4);
 
 set local role authenticated;
 select set_config(
@@ -106,6 +106,26 @@ select results_eq(
   $$,
   $$ values ('channel-b'::text) $$,
   'the older selection is cleared atomically'
+);
+
+select lives_ok(
+  $$
+    select id, status, granted_scopes, updated_at
+    from public.youtube_connection_overview
+    where workspace_id = '55555555-5555-5555-5555-555555555555'
+  $$,
+  'a member can read the safe YouTube connection overview'
+);
+
+select is(
+  has_column_privilege(
+    'authenticated',
+    'public.youtube_connections',
+    'encrypted_access_token',
+    'select'
+  ),
+  false,
+  'authenticated users cannot select encrypted YouTube tokens'
 );
 
 select * from finish();

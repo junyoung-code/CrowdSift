@@ -15,6 +15,11 @@ import {
 import {
   publicCommentCountSchema,
 } from "@/features/youtube/public-video-url";
+import {
+  ProviderModeMismatchError,
+  assertProviderModeMatchesJob,
+  parseProviderMode,
+} from "@/features/providers/provider-mode";
 
 import { collectPublicComments } from "./public-comment-collector";
 import {
@@ -35,18 +40,22 @@ const createAnalysisConfigurationKey = ({
   policyVersion: number;
 }) => {
   const environment = getServerEnv();
+  const fixtureMode = environment.EXTERNAL_PROVIDER_MODE === "fixture";
 
   return createHash("sha256")
     .update(
       JSON.stringify({
         policyVersion,
         promptVersion: "stage-1-v1",
-        stageOneModel:
-          environment.OPENAI_STAGE1_MODEL ??
-          environment.OPENAI_ANALYSIS_MODEL,
-        stageTwoModel:
-          environment.OPENAI_STAGE2_MODEL ??
-          environment.OPENAI_ANALYSIS_MODEL,
+        providerMode: environment.EXTERNAL_PROVIDER_MODE,
+        stageOneModel: fixtureMode
+          ? "fixture-analysis-v1"
+          : environment.OPENAI_STAGE1_MODEL ??
+            environment.OPENAI_ANALYSIS_MODEL,
+        stageTwoModel: fixtureMode
+          ? "fixture-analysis-v1"
+          : environment.OPENAI_STAGE2_MODEL ??
+            environment.OPENAI_ANALYSIS_MODEL,
         schemaVersion: "comment-analysis-v1",
       }),
     )
@@ -85,11 +94,12 @@ const createPublicImportRepository = (
         requested_total_count: requestedTotalCount,
         source_kind: "public_url",
         source_video_url: video.canonicalUrl,
+        provider_mode: getServerEnv().EXTERNAL_PROVIDER_MODE,
         youtube_quota_units_used: video.quotaUnitsUsed,
         status: "pending",
       })
       .select(
-        "id, workspace_id, youtube_video_id, requested_total_count, source_video_url, status, fetched_count, stored_count, duplicate_count, failed_count, top_level_count, reply_count, youtube_quota_units_used",
+        "id, workspace_id, youtube_video_id, requested_total_count, source_video_url, provider_mode, status, fetched_count, stored_count, duplicate_count, failed_count, top_level_count, reply_count, youtube_quota_units_used",
       )
       .single();
 
@@ -108,6 +118,7 @@ const createPublicImportRepository = (
       youtubeVideoId: data.youtube_video_id,
       requestedTotalCount: data.requested_total_count,
       sourceVideoUrl: data.source_video_url,
+      providerMode: parseProviderMode(data.provider_mode),
       status: data.status,
       fetchedCount: data.fetched_count,
       storedCount: data.stored_count,
@@ -268,6 +279,7 @@ const toPublicJobRecord = (job: {
   youtube_video_id: string;
   requested_total_count: number | null;
   source_video_url: string | null;
+  provider_mode: string;
   status: PublicImportJobRecord["status"];
   fetched_count: number;
   stored_count: number;
@@ -291,6 +303,7 @@ const toPublicJobRecord = (job: {
     youtubeVideoId: job.youtube_video_id,
     requestedTotalCount,
     sourceVideoUrl: job.source_video_url,
+    providerMode: parseProviderMode(job.provider_mode),
     status: job.status,
     fetchedCount: job.fetched_count,
     storedCount: job.stored_count,
@@ -303,6 +316,10 @@ const toPublicJobRecord = (job: {
 };
 
 const mapPublicProviderError = (error: unknown) => {
+  if (error instanceof ProviderModeMismatchError) {
+    return "provider_mode_mismatch" as const;
+  }
+
   if (!(error instanceof PublicYouTubeProviderError)) {
     return "provider_error" as const;
   }
@@ -333,10 +350,11 @@ export async function createPublicImportJobForWorkspace(input: {
 
 export async function processPublicImportJobWithSupabase(jobId: string) {
   const admin = createAdminSupabaseClient();
+  const environment = getServerEnv();
   const { data: job, error: jobError } = await admin
     .from("comment_import_jobs")
     .select(
-      "id, workspace_id, youtube_video_id, requested_total_count, source_video_url, source_kind, status, fetched_count, stored_count, duplicate_count, failed_count, top_level_count, reply_count, youtube_quota_units_used",
+      "id, workspace_id, youtube_video_id, requested_total_count, source_video_url, provider_mode, source_kind, status, fetched_count, stored_count, duplicate_count, failed_count, top_level_count, reply_count, youtube_quota_units_used",
     )
     .eq("id", jobId)
     .eq("source_kind", "public_url")
@@ -358,11 +376,16 @@ export async function processPublicImportJobWithSupabase(jobId: string) {
     throw currentPolicyError;
   }
 
-  const provider = createPublicYouTubeReadProvider();
   const publicJob = toPublicJobRecord(job);
   const repository = createPublicImportRepository(admin);
 
   try {
+    assertProviderModeMatchesJob(
+      publicJob.providerMode,
+      environment.EXTERNAL_PROVIDER_MODE,
+    );
+    const provider = createPublicYouTubeReadProvider();
+
     return await processPublicImportJob(
       {
         job: publicJob,

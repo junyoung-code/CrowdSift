@@ -208,6 +208,7 @@ export const importYouTubeCommentsAction = async (formData: FormData) => {
       workspace_id: workspaceId,
       youtube_video_id: video.youtube_video_id,
       requested_top_level_count: request.topLevelLimit,
+      provider_mode: getServerEnv().EXTERNAL_PROVIDER_MODE,
       status: "pending",
     })
     .select("id")

@@ -1,5 +1,6 @@
 import { requireViewer } from "@/features/auth/require-viewer";
 import { toImportJobProgress } from "@/features/ingestion/import-job-progress";
+import { parseProviderMode } from "@/features/providers/provider-mode";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 
 export async function GET(
@@ -12,7 +13,7 @@ export async function GET(
   const { data: job, error: jobError } = await admin
     .from("comment_import_jobs")
     .select(
-      "id, workspace_id, source_kind, requested_top_level_count, requested_total_count, status, fetched_count, stored_count, duplicate_count, failed_count, top_level_count, reply_count, youtube_quota_units_used, last_error_code",
+      "id, workspace_id, provider_mode, source_kind, requested_top_level_count, requested_total_count, status, fetched_count, stored_count, duplicate_count, failed_count, top_level_count, reply_count, youtube_quota_units_used, last_error_code",
     )
     .eq("id", jobId)
     .maybeSingle();
@@ -46,6 +47,7 @@ export async function GET(
     data: toImportJobProgress({
       job: {
         id: job.id,
+        providerMode: parseProviderMode(job.provider_mode),
         sourceKind: job.source_kind,
         requestedTopLevelCount: job.requested_top_level_count,
         requestedTotalCount: job.requested_total_count,

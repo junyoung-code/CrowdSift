@@ -119,6 +119,9 @@ function ProgressPanel({
                   ? "AI 분석 중"
                   : "공개 댓글을 가져오는 중"}
           </h3>
+          {progress?.providerMode === "fixture" ? (
+            <strong className="public-fixture-label">TEST FIXTURE</strong>
+          ) : null}
         </div>
         <span className={error ? "is-error" : "is-running"}>
           {error ? (
@@ -393,11 +396,16 @@ export function PublicVideoImportPanel({
               )}
             </div>
             <div>
-              <span>
-                {preview.commentsAvailable
-                  ? "댓글 사용 가능"
-                  : "댓글 사용 불가"}
-              </span>
+              <div className="public-video-preview-state">
+                <span>
+                  {preview.commentsAvailable
+                    ? "댓글 사용 가능"
+                    : "댓글 사용 불가"}
+                </span>
+                {preview.fixtureLabel ? (
+                  <strong>{preview.fixtureLabel}</strong>
+                ) : null}
+              </div>
               <h3>{preview.title}</h3>
               <p>{preview.channelTitle}</p>
               <small>
@@ -421,10 +429,17 @@ export function PublicVideoImportPanel({
               <div>
                 <CurrencyDollar aria-hidden="true" weight="duotone" />
                 <span>
-                  <strong>예상 OpenAI 비용</strong>
+                  <strong>
+                    {preview.fixtureLabel
+                      ? "Fixture 분석 비용"
+                      : "예상 OpenAI 비용"}
+                  </strong>
                   <small>
-                    {formatUsd(cost.estimatedCostLow)}–
-                    {formatUsd(cost.estimatedCostHigh)}
+                    {preview.fixtureLabel
+                      ? "$0.0000 · 외부 API 호출 없음"
+                      : `${formatUsd(cost.estimatedCostLow)}–${formatUsd(
+                          cost.estimatedCostHigh,
+                        )}`}
                   </small>
                 </span>
               </div>
@@ -433,7 +448,9 @@ export function PublicVideoImportPanel({
                 <span>
                   <strong>YouTube quota</strong>
                   <small>
-                    영상 확인 1 unit + 댓글·답글 페이지당 약 1 unit
+                    {preview.fixtureLabel
+                      ? "0 unit · Fixture 데이터"
+                      : "영상 확인 1 unit + 댓글·답글 페이지당 약 1 unit"}
                   </small>
                 </span>
               </div>
@@ -441,8 +458,10 @@ export function PublicVideoImportPanel({
 
             <p className="public-video-consent" id="public-count-help">
               시작하면 선택한 총 댓글 수 안에서 최상위 댓글과 답글을 함께
-              저장하고 AI 분석을 실행합니다. 예상 비용은 실제 청구액과 다를 수
-              있습니다.
+              저장하고 AI 분석을 실행합니다.{" "}
+              {preview.fixtureLabel
+                ? "현재 Fixture 모드에서는 외부 API를 호출하거나 비용을 발생시키지 않습니다."
+                : "예상 비용은 실제 청구액과 다를 수 있습니다."}
             </p>
 
             <button

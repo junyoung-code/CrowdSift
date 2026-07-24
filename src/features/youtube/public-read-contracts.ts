@@ -13,6 +13,7 @@ export type PublicVideoPreview = {
   commentsAvailable: boolean;
   commentCount: number | null;
   quotaUnitsUsed: number;
+  fixtureLabel?: "TEST FIXTURE";
 };
 
 export type PublicThreadPageRequest = {

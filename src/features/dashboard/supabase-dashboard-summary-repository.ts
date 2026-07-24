@@ -1,3 +1,5 @@
+import type { ModelProvider } from "@/features/analysis/contracts";
+
 import type { DashboardSummaryRepository } from "./dashboard-summary-service";
 
 type SummaryInputRow = {
@@ -20,7 +22,7 @@ type SummaryInsert = {
   analysis_job_id: string;
   source_analysis_count: number;
   summary_text: string;
-  provider: "openai";
+  provider: ModelProvider;
   model_identifier: string;
   provider_response_id: string;
   prompt_version: string;

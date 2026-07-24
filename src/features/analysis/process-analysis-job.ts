@@ -5,6 +5,7 @@ import { getServerEnv } from "@/lib/env";
 import type { Json } from "@/types/database";
 import { createDashboardSummaryForCompletedJob } from "@/features/dashboard/process-dashboard-summary";
 import { triggerDashboardSummaryWhenComplete } from "@/features/dashboard/dashboard-summary-trigger";
+import { assertProviderModeMatchesJob } from "@/features/providers/provider-mode";
 
 import {
   createAnalysisService,
@@ -14,6 +15,7 @@ import {
 import { createAnalysisProvider } from "./analysis-provider";
 import {
   DEFAULT_PRICING,
+  FIXTURE_PRICING,
   calculateObservedCost,
   estimateAnalysisCost,
   summarizeStoredModelUsage,
@@ -29,15 +31,24 @@ import { createSupabaseRagRepository } from "./supabase-rag-repository";
 const isUniqueViolation = (error: { code?: string } | null) =>
   error?.code === "23505";
 
-const getAnalysisModels = (environment: ReturnType<typeof getServerEnv>) => ({
-  stageOne:
-    environment.OPENAI_STAGE1_MODEL ??
-    environment.OPENAI_ANALYSIS_MODEL,
-  stageTwo:
-    environment.OPENAI_STAGE2_MODEL ??
-    environment.OPENAI_ANALYSIS_MODEL,
-  embedding: environment.OPENAI_EMBEDDING_MODEL,
-});
+const getAnalysisModels = (environment: ReturnType<typeof getServerEnv>) =>
+  environment.EXTERNAL_PROVIDER_MODE === "fixture"
+    ? {
+        provider: "fixture" as const,
+        stageOne: "fixture-analysis-v1",
+        stageTwo: "fixture-analysis-v1",
+        embedding: "fixture-embedding-1536",
+      }
+    : {
+        provider: "openai" as const,
+        stageOne:
+          environment.OPENAI_STAGE1_MODEL ??
+          environment.OPENAI_ANALYSIS_MODEL,
+        stageTwo:
+          environment.OPENAI_STAGE2_MODEL ??
+          environment.OPENAI_ANALYSIS_MODEL,
+        embedding: environment.OPENAI_EMBEDDING_MODEL,
+      };
 
 const ensureAnalysisCostEstimate = async ({
   admin,
@@ -58,32 +69,35 @@ const ensureAnalysisCostEstimate = async ({
     throw error ?? new Error("Analysis job cost source was not loaded");
   }
 
+  const models = getAnalysisModels(environment);
+  const pricing =
+    models.provider === "fixture" ? FIXTURE_PRICING : DEFAULT_PRICING;
   const estimate = estimateAnalysisCost({
     commentCount: job.total_count,
+    pricing,
   });
-  const models = getAnalysisModels(environment);
   const { error: costError } = await admin
     .from("analysis_job_costs")
     .upsert(
       {
         analysis_job_id: job.id,
         workspace_id: job.workspace_id,
-        pricing_version: DEFAULT_PRICING.version,
-        pricing_effective_at: DEFAULT_PRICING.effectiveAt,
-        currency: DEFAULT_PRICING.currency,
+        pricing_version: pricing.version,
+        pricing_effective_at: pricing.effectiveAt,
+        currency: pricing.currency,
         stage_one_model: models.stageOne,
         stage_two_model: models.stageTwo,
         embedding_model: models.embedding,
         stage_one_input_per_million:
-          DEFAULT_PRICING.stageOne.inputPerMillion,
+          pricing.stageOne.inputPerMillion,
         stage_one_output_per_million:
-          DEFAULT_PRICING.stageOne.outputPerMillion,
+          pricing.stageOne.outputPerMillion,
         stage_two_input_per_million:
-          DEFAULT_PRICING.stageTwo.inputPerMillion,
+          pricing.stageTwo.inputPerMillion,
         stage_two_output_per_million:
-          DEFAULT_PRICING.stageTwo.outputPerMillion,
+          pricing.stageTwo.outputPerMillion,
         embedding_input_per_million:
-          DEFAULT_PRICING.embedding.inputPerMillion,
+          pricing.embedding.inputPerMillion,
         estimated_input_tokens_low:
           estimate.estimatedInputTokensLow,
         estimated_input_tokens_high:
@@ -137,7 +151,21 @@ const refreshObservedAnalysisCost = async ({
   }
 
   const usage = summarizeStoredModelUsage(runs ?? []);
-  const observed = calculateObservedCost(usage);
+  const { data: costSnapshot, error: costSnapshotError } = await admin
+    .from("analysis_job_costs")
+    .select("pricing_version")
+    .eq("analysis_job_id", jobId)
+    .maybeSingle();
+
+  if (costSnapshotError) {
+    throw costSnapshotError;
+  }
+
+  const pricing =
+    costSnapshot?.pricing_version === FIXTURE_PRICING.version
+      ? FIXTURE_PRICING
+      : DEFAULT_PRICING;
+  const observed = calculateObservedCost({ ...usage, pricing });
   const { error: updateError } = await admin
     .from("analysis_job_costs")
     .update({
@@ -164,6 +192,34 @@ export const processAnalysisChunk = async (
 ): Promise<AnalysisJobProgress> => {
   const admin = createAdminSupabaseClient();
   const environment = getServerEnv();
+  const { data: analysisSource, error: analysisSourceError } = await admin
+    .from("analysis_jobs")
+    .select("import_job_id")
+    .eq("id", jobId)
+    .maybeSingle();
+
+  if (
+    analysisSourceError ||
+    !analysisSource ||
+    !analysisSource.import_job_id
+  ) {
+    throw analysisSourceError ?? new Error("Analysis job not found");
+  }
+
+  const { data: importSource, error: importSourceError } = await admin
+    .from("comment_import_jobs")
+    .select("provider_mode")
+    .eq("id", analysisSource.import_job_id)
+    .maybeSingle();
+
+  if (importSourceError || !importSource) {
+    throw importSourceError ?? new Error("Analysis import source not found");
+  }
+
+  assertProviderModeMatchesJob(
+    importSource.provider_mode,
+    environment.EXTERNAL_PROVIDER_MODE,
+  );
   const models = getAnalysisModels(environment);
   const provider = createAnalysisProvider();
   const ragService = createRagService({
@@ -435,7 +491,7 @@ export const processAnalysisChunk = async (
         raw_comment_id: input.item.rawCommentId,
         analysis_job_item_id: input.item.id,
         stage: input.stage,
-        provider: "openai",
+        provider: models.provider,
         model_identifier:
           input.stage === 1 ? models.stageOne : models.stageTwo,
         idempotency_key: input.idempotencyKey,

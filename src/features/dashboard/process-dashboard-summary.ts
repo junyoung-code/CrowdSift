@@ -1,7 +1,9 @@
 import "server-only";
 
-import { createOpenAIAnalysisProvider } from "@/features/analysis/openai-analysis-provider";
+import { createAnalysisProvider } from "@/features/analysis/analysis-provider";
+import { assertProviderModeMatchesJob } from "@/features/providers/provider-mode";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
+import { getServerEnv } from "@/lib/env";
 import type { Json } from "@/types/database";
 
 import { createDashboardSummaryService } from "./dashboard-summary-service";
@@ -17,6 +19,35 @@ const toStringArray = (value: Json): string[] =>
 
 export const createDashboardSummaryForCompletedJob = async (jobId: string) => {
   const admin = createAdminSupabaseClient();
+  const environment = getServerEnv();
+  const { data: analysisSource, error: analysisSourceError } = await admin
+    .from("analysis_jobs")
+    .select("import_job_id")
+    .eq("id", jobId)
+    .maybeSingle();
+
+  if (
+    analysisSourceError ||
+    !analysisSource ||
+    !analysisSource.import_job_id
+  ) {
+    throw analysisSourceError ?? new Error("Analysis job not found");
+  }
+
+  const { data: importSource, error: importSourceError } = await admin
+    .from("comment_import_jobs")
+    .select("provider_mode")
+    .eq("id", analysisSource.import_job_id)
+    .maybeSingle();
+
+  if (importSourceError || !importSource) {
+    throw importSourceError ?? new Error("Analysis import source not found");
+  }
+
+  assertProviderModeMatchesJob(
+    importSource.provider_mode,
+    environment.EXTERNAL_PROVIDER_MODE,
+  );
   const repository = createSupabaseDashboardSummaryRepository({
     async claimAttempt(input) {
       const { data, error } = await admin
@@ -89,7 +120,7 @@ export const createDashboardSummaryForCompletedJob = async (jobId: string) => {
   });
 
   return createDashboardSummaryService({
-    provider: createOpenAIAnalysisProvider(),
+    provider: createAnalysisProvider(),
     repository,
   }).createForCompletedJob(jobId);
 };

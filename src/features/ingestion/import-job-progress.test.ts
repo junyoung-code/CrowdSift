@@ -8,6 +8,7 @@ describe("toImportJobProgress", () => {
       toImportJobProgress({
         job: {
           id: "job-1",
+          providerMode: "fixture",
           sourceKind: "public_url",
           requestedTopLevelCount: null,
           requestedTotalCount: 20,
@@ -31,6 +32,7 @@ describe("toImportJobProgress", () => {
       }),
     ).toEqual({
       jobId: "job-1",
+      providerMode: "fixture",
       sourceKind: "public_url",
       sourceLabel: "공개 URL",
       readOnly: true,
@@ -61,6 +63,7 @@ describe("toImportJobProgress", () => {
       toImportJobProgress({
         job: {
           id: "job-2",
+          providerMode: "live",
           sourceKind: "owned_oauth",
           requestedTopLevelCount: 30,
           requestedTotalCount: null,

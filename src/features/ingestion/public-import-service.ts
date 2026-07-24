@@ -23,6 +23,7 @@ export type PublicImportJobRecord = {
   youtubeVideoId: string;
   requestedTotalCount: number;
   sourceVideoUrl: string;
+  providerMode: "live" | "fixture";
   status: PublicImportJobStatus;
   fetchedCount: number;
   storedCount: number;

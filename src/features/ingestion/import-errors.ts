@@ -2,6 +2,7 @@ export type ImportFailureCode =
   | "comments_disabled"
   | "quota_exceeded"
   | "permission_revoked"
+  | "provider_mode_mismatch"
   | "provider_error";
 
 export class ImportProcessingError extends Error {

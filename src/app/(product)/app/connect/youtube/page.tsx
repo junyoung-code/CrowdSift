@@ -57,6 +57,8 @@ export default async function YouTubeConnectionPage({
     ENABLE_PUBLIC_YOUTUBE_DEV_MODE:
       environment.ENABLE_PUBLIC_YOUTUBE_DEV_MODE,
     YOUTUBE_PUBLIC_API_KEY: environment.YOUTUBE_PUBLIC_API_KEY,
+    EXTERNAL_PROVIDER_MODE: environment.EXTERNAL_PROVIDER_MODE,
+    ALLOW_FIXTURE_PROVIDERS: environment.ALLOW_FIXTURE_PROVIDERS,
   });
   const supabase = await createServerSupabaseClient();
   const [

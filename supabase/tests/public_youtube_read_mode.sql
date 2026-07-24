@@ -56,7 +56,7 @@ values (
   'Public test video'
 );
 
-select plan(19);
+select plan(23);
 
 insert into public.comment_import_jobs (
   id,
@@ -81,6 +81,16 @@ select is(
   'existing and owned jobs default to the OAuth source'
 );
 
+select is(
+  (
+    select provider_mode
+    from public.comment_import_jobs
+    where id = '27272727-2727-4272-8272-272727272727'
+  ),
+  'live',
+  'existing and owned jobs default to live provider provenance'
+);
+
 select lives_ok(
   $$
     insert into public.comment_import_jobs (
@@ -90,7 +100,8 @@ select lives_ok(
       requested_top_level_count,
       requested_total_count,
       source_kind,
-      source_video_url
+      source_video_url,
+      provider_mode
     )
     values (
       '28282828-2828-4282-8282-282828282828',
@@ -99,10 +110,41 @@ select lives_ok(
       null,
       20,
       'public_url',
-      'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
+      'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+      'fixture'
     )
   $$,
   'a canonical public URL job with an approved total count is accepted'
+);
+
+select is(
+  (
+    select provider_mode
+    from public.comment_import_jobs
+    where id = '28282828-2828-4282-8282-282828282828'
+  ),
+  'fixture',
+  'fixture imports preserve their provider provenance'
+);
+
+select throws_ok(
+  $$
+    insert into public.comment_import_jobs (
+      workspace_id,
+      youtube_video_id,
+      requested_top_level_count,
+      provider_mode
+    )
+    values (
+      '25252525-2525-4252-8252-252525252525',
+      'dQw4w9WgXcQ',
+      20,
+      'sample'
+    )
+  $$,
+  '23514',
+  null,
+  'unknown provider provenance is rejected'
 );
 
 select throws_ok(
@@ -190,6 +232,66 @@ select throws_ok(
   'P0001',
   'public import item limit exceeded',
   'a public job cannot observe more items than requested'
+);
+
+insert into public.comment_import_jobs (
+  id,
+  workspace_id,
+  youtube_video_id,
+  requested_total_count,
+  source_kind,
+  source_video_url,
+  provider_mode
+)
+values (
+  '34343434-3434-4343-8343-343434343434',
+  '25252525-2525-4252-8252-252525252525',
+  'dQw4w9WgXcQ',
+  20,
+  'public_url',
+  'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+  'fixture'
+);
+
+insert into public.raw_comments (
+  id,
+  workspace_id,
+  youtube_video_id,
+  youtube_comment_id,
+  parent_youtube_comment_id,
+  text_display,
+  first_import_job_id
+)
+values (
+  '35353535-3535-4353-8353-353535353535',
+  '25252525-2525-4252-8252-252525252525',
+  'dQw4w9WgXcQ',
+  'orphan-reply',
+  'missing-parent',
+  '부모가 관찰되지 않은 답글',
+  '34343434-3434-4343-8343-343434343434'
+);
+
+select throws_ok(
+  $$
+    insert into public.comment_import_items (
+      import_job_id,
+      workspace_id,
+      youtube_comment_id,
+      raw_comment_id,
+      status
+    )
+    values (
+      '34343434-3434-4343-8343-343434343434',
+      '25252525-2525-4252-8252-252525252525',
+      'orphan-reply',
+      '35353535-3535-4353-8353-353535353535',
+      'succeeded'
+    )
+  $$,
+  'P0001',
+  'public reply parent observation missing',
+  'a public reply cannot be observed without its parent in the same job'
 );
 
 insert into public.raw_comments (

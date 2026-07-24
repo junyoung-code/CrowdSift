@@ -498,6 +498,7 @@ export type Database = {
           id: string
           last_error_code: string | null
           next_page_token: string | null
+          provider_mode: string
           reply_count: number
           requested_top_level_count: number | null
           requested_total_count: number | null
@@ -521,6 +522,7 @@ export type Database = {
           id?: string
           last_error_code?: string | null
           next_page_token?: string | null
+          provider_mode?: string
           reply_count?: number
           requested_top_level_count?: number | null
           requested_total_count?: number | null
@@ -544,6 +546,7 @@ export type Database = {
           id?: string
           last_error_code?: string | null
           next_page_token?: string | null
+          provider_mode?: string
           reply_count?: number
           requested_top_level_count?: number | null
           requested_total_count?: number | null

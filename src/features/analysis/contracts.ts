@@ -18,6 +18,7 @@ export type Stage2Output = z.infer<typeof Stage2OutputSchema>;
 export type DashboardSummaryOutput = z.infer<
   typeof DashboardSummaryOutputSchema
 >;
+export type ModelProvider = "openai" | "fixture";
 
 export type CreatorPolicySnapshot = {
   version: number;
@@ -60,7 +61,7 @@ export type Stage2Input = Stage1Input & {
 
 export type ModelResult<T> = {
   output: T;
-  provider: "openai";
+  provider: ModelProvider;
   modelIdentifier: string;
   providerResponseId: string;
   latencyMs: number;

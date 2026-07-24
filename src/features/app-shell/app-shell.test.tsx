@@ -28,4 +28,20 @@ describe("AppShell", () => {
       screen.getByRole("heading", { name: "대시보드 내용" }),
     ).toBeInTheDocument();
   });
+
+  it("labels fixture mode instead of presenting test data as a real connection", () => {
+    render(
+      <AppShell fixtureMode>
+        <h1>테스트 대시보드</h1>
+      </AppShell>,
+    );
+
+    expect(screen.getByText("TEST FIXTURE")).toBeInTheDocument();
+    expect(
+      screen.getByText("로컬 테스트 데이터 · 실제 YouTube 데이터 아님"),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText("실제 연결 데이터만 표시"),
+    ).not.toBeInTheDocument();
+  });
 });

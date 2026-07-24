@@ -27,6 +27,8 @@ const importFailureMessages = {
     "오늘 사용할 수 있는 YouTube API 할당량을 모두 사용했습니다. 할당량이 갱신된 뒤 다시 시도해 주세요.",
   permission_revoked:
     "YouTube 읽기 권한이 만료되었거나 해제되었습니다. 채널을 다시 연결해 주세요.",
+  provider_mode_mismatch:
+    "작업을 만든 환경과 현재 서버의 데이터 모드가 다릅니다. Fixture 또는 live 설정을 작업 생성 시점과 맞춘 뒤 다시 시도해 주세요.",
   provider_error:
     "YouTube에서 댓글을 가져오지 못했습니다. 잠시 후 다시 시도해 주세요.",
 } as const;

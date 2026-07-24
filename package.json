@@ -14,6 +14,7 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "test:eval": "vitest run src/evaluation",
+    "test:eval:release": "EVALUATION_RELEASE_GATE=true vitest run src/evaluation/release-gate.test.ts",
     "db:start": "supabase start",
     "db:reset": "supabase db reset",
     "db:test": "supabase test db",

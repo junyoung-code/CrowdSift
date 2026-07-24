@@ -11,6 +11,7 @@ const failureStatus = {
   comments_disabled: 409,
   quota_exceeded: 429,
   permission_revoked: 403,
+  provider_mode_mismatch: 409,
   provider_error: 502,
 } as const;
 

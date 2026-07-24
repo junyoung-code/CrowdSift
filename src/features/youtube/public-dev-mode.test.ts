@@ -28,6 +28,20 @@ describe("getPublicYouTubeDevMode", () => {
     });
   });
 
+  it("treats an explicitly allowed local fixture as configured without an API key", () => {
+    expect(
+      getPublicYouTubeDevMode({
+        NODE_ENV: "test",
+        ENABLE_PUBLIC_YOUTUBE_DEV_MODE: "true",
+        EXTERNAL_PROVIDER_MODE: "fixture",
+        ALLOW_FIXTURE_PROVIDERS: true,
+      }),
+    ).toEqual({
+      enabled: true,
+      configured: true,
+    });
+  });
+
   it("rejects public mode in production even when the flag is true", () => {
     expect(() =>
       getPublicYouTubeDevMode({

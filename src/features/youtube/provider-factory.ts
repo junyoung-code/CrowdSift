@@ -7,6 +7,45 @@ import {
   type RefreshedGoogleTokens,
   type TokenRefreshContext,
 } from "./google-youtube-provider";
+import { FixtureYouTubeProvider } from "./fixture-youtube-provider";
+
+type ProviderFactoryConfiguration = {
+  externalProviderMode: "live" | "fixture";
+  nodeEnv: string | undefined;
+  allowFixtureProviders: boolean;
+  google: {
+    clientId: string;
+    clientSecret: string;
+    redirectUri: string;
+    appOrigin?: string;
+  };
+  onTokenRefresh?: (
+    tokens: RefreshedGoogleTokens,
+    context: TokenRefreshContext | null,
+  ) => Promise<void> | void;
+};
+
+export const createProviderFactory = (
+  configuration: ProviderFactoryConfiguration,
+) => {
+  if (configuration.externalProviderMode === "fixture") {
+    if (configuration.nodeEnv === "production") {
+      throw new Error("Fixture providers are test-only");
+    }
+    if (!configuration.allowFixtureProviders) {
+      throw new Error("Fixture providers are disabled");
+    }
+
+    return new FixtureYouTubeProvider(configuration.google.appOrigin);
+  }
+
+  return new GoogleYouTubeProvider({
+    clientId: configuration.google.clientId,
+    clientSecret: configuration.google.clientSecret,
+    redirectUri: configuration.google.redirectUri,
+    onTokenRefresh: configuration.onTokenRefresh,
+  });
+};
 
 export const createYouTubeProvider = (options?: {
   onTokenRefresh?: (
@@ -16,16 +55,16 @@ export const createYouTubeProvider = (options?: {
 }) => {
   const environment = getServerEnv();
 
-  if (environment.EXTERNAL_PROVIDER_MODE !== "live") {
-    throw new Error(
-      "Fixture providers are not available in the real YouTube connection flow",
-    );
-  }
-
-  return new GoogleYouTubeProvider({
-    clientId: environment.GOOGLE_CLIENT_ID,
-    clientSecret: environment.GOOGLE_CLIENT_SECRET,
-    redirectUri: environment.GOOGLE_REDIRECT_URI,
+  return createProviderFactory({
+    externalProviderMode: environment.EXTERNAL_PROVIDER_MODE,
+    nodeEnv: process.env.NODE_ENV,
+    allowFixtureProviders: environment.ALLOW_FIXTURE_PROVIDERS,
+    google: {
+      clientId: environment.GOOGLE_CLIENT_ID,
+      clientSecret: environment.GOOGLE_CLIENT_SECRET,
+      redirectUri: environment.GOOGLE_REDIRECT_URI,
+      appOrigin: environment.APP_ORIGIN,
+    },
     onTokenRefresh: options?.onTokenRefresh,
   });
 };
