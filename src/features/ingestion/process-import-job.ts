@@ -11,24 +11,16 @@ import type { OAuthTokens } from "@/features/youtube/contracts";
 
 import { fetchSourceCommentPage } from "./comment-mapper";
 import {
+  ImportProcessingError,
+  type ImportFailureCode,
+} from "./import-errors";
+import {
   createCommentImportService,
   type CommentImportRepository,
 } from "./comment-import-service";
+import { processPublicImportJobWithSupabase } from "./process-public-import-job";
 
-export type ImportFailureCode =
-  | "comments_disabled"
-  | "quota_exceeded"
-  | "permission_revoked"
-  | "provider_error";
-
-export class ImportProcessingError extends Error {
-  constructor(
-    public readonly code: ImportFailureCode,
-    options?: ErrorOptions,
-  ) {
-    super(code, options);
-  }
-}
+export { ImportProcessingError } from "./import-errors";
 
 const getProviderReason = (error: unknown) => {
   if (
@@ -82,6 +74,10 @@ export const processImportJob = async (jobId: string) => {
 
   if (jobError || !job) {
     throw new Error("Import job not found");
+  }
+
+  if (job.source_kind === "public_url") {
+    return processPublicImportJobWithSupabase(job.id);
   }
 
   if (
