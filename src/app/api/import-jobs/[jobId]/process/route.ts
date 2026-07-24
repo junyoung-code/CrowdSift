@@ -36,6 +36,8 @@ export async function POST(
 
   try {
     const summary = await processImportJob(job.id);
+    revalidatePath("/app");
+    revalidatePath("/app/inbox");
     revalidatePath("/app/videos");
     return Response.json({ data: summary });
   } catch (processingError) {

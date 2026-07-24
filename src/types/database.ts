@@ -1833,6 +1833,7 @@ export type Database = {
           analyzed_count: number
           caution_count: number
           imported_count: number
+          latest_analysis_cost: Json
           latest_analysis_job: Json
           latest_import_job: Json
           latest_summary: string
@@ -1890,6 +1891,8 @@ export type Database = {
           recommended_action: Database["public"]["Enums"]["recommended_action"]
           review_level: Database["public"]["Enums"]["review_level"]
           source_available: boolean
+          source_import_job_id: string
+          source_kind: Database["public"]["Enums"]["comment_source_kind"]
           total_count: number
           youtube_video_id: string
         }[]

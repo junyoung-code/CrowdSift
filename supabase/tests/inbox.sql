@@ -99,6 +99,21 @@ values (
   '55555555-5555-5555-5555-555555555555'
 );
 
+insert into public.comment_import_items (
+  import_job_id,
+  workspace_id,
+  youtube_comment_id,
+  raw_comment_id,
+  status
+)
+values (
+  '55555555-5555-5555-5555-555555555555',
+  '33333333-3333-3333-3333-333333333333',
+  'comment-pending',
+  '66666666-6666-6666-6666-666666666666',
+  'succeeded'
+);
+
 select plan(2);
 
 set local role authenticated;

@@ -56,7 +56,7 @@ values (
   'Public test video'
 );
 
-select plan(17);
+select plan(19);
 
 insert into public.comment_import_jobs (
   id,
@@ -520,6 +520,36 @@ select is(
   ),
   1,
   'workspace members can read their analysis cost snapshot'
+);
+
+select is(
+  (
+    select source_kind::text
+    from public.get_inbox_page(
+      target_workspace_id =>
+        '25252525-2525-4252-8252-252525252525',
+      analysis_state_filter => 'pending'
+    )
+    where raw_comment_id = '29292929-2929-4292-8292-292929292929'
+    limit 1
+  ),
+  'public_url',
+  'Inbox identifies the public source for each observation'
+);
+
+select is(
+  (
+    select source_import_job_id
+    from public.get_inbox_page(
+      target_workspace_id =>
+        '25252525-2525-4252-8252-252525252525',
+      analysis_state_filter => 'pending'
+    )
+    where raw_comment_id = '29292929-2929-4292-8292-292929292929'
+    limit 1
+  ),
+  '28282828-2828-4282-8282-282828282828'::uuid,
+  'Inbox preserves the exact public import observation id'
 );
 
 select * from finish();

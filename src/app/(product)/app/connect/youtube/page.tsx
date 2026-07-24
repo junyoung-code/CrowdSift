@@ -8,12 +8,19 @@ import {
 import Link from "next/link";
 
 import { requireViewer } from "@/features/auth/require-viewer";
+import { getPublicYouTubeDevMode } from "@/features/youtube/public-dev-mode";
+import { PublicVideoImportPanel } from "@/features/youtube/public-video-import-panel";
+import { getServerEnv } from "@/lib/env";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 import {
   disconnectYouTubeChannelAction,
   selectYouTubeChannelAction,
 } from "./actions";
+import {
+  previewPublicVideoAction,
+  startPublicVideoImportAction,
+} from "./public-video-actions";
 
 type YouTubeConnectionPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -44,6 +51,13 @@ export default async function YouTubeConnectionPage({
 }: YouTubeConnectionPageProps) {
   const parameters = await searchParams;
   const { workspaceId } = await requireViewer();
+  const environment = getServerEnv();
+  const publicMode = getPublicYouTubeDevMode({
+    NODE_ENV: process.env.NODE_ENV,
+    ENABLE_PUBLIC_YOUTUBE_DEV_MODE:
+      environment.ENABLE_PUBLIC_YOUTUBE_DEV_MODE,
+    YOUTUBE_PUBLIC_API_KEY: environment.YOUTUBE_PUBLIC_API_KEY,
+  });
   const supabase = await createServerSupabaseClient();
   const [
     { data: connection, error: connectionError },
@@ -63,6 +77,23 @@ export default async function YouTubeConnectionPage({
 
   if (connectionError || candidatesError) {
     throw new Error("YouTube connection could not be loaded");
+  }
+
+  const requestedPublicJobId =
+    typeof parameters.job === "string" ? parameters.job : null;
+  const { data: restoredPublicJob, error: restoredPublicJobError } =
+    requestedPublicJobId
+      ? await supabase
+          .from("comment_import_jobs")
+          .select("id")
+          .eq("id", requestedPublicJobId)
+          .eq("workspace_id", workspaceId)
+          .eq("source_kind", "public_url")
+          .maybeSingle()
+      : { data: null, error: null };
+
+  if (restoredPublicJobError) {
+    throw new Error("Public import job could not be restored");
   }
 
   const selectedChannel = candidates?.find((candidate) => candidate.selected);
@@ -220,6 +251,13 @@ export default async function YouTubeConnectionPage({
           </Link>
         </section>
       ) : null}
+
+      <PublicVideoImportPanel
+        initialJobId={restoredPublicJob?.id ?? null}
+        mode={publicMode}
+        previewAction={previewPublicVideoAction}
+        startAction={startPublicVideoImportAction}
+      />
     </div>
   );
 }

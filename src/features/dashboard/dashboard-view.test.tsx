@@ -35,6 +35,7 @@ const readyData = (
   },
   latestImport: {
     id: "import-1",
+    sourceKind: "owned_oauth",
     status: "succeeded",
     total: 37,
     completed: 37,
@@ -43,6 +44,7 @@ const readyData = (
   },
   latestAnalysis: {
     id: "analysis-job-1",
+    sourceKind: "owned_oauth",
     status: "succeeded",
     total: 37,
     completed: 35,
@@ -60,6 +62,8 @@ const readyData = (
   recentCorrections: [],
   recentActions: [],
   aiSummary: "주의 댓글에는 자막 개선 요청이 반복됩니다.",
+  latestCost: null,
+  sourceKind: "owned_oauth",
 });
 
 describe("DashboardView", () => {
@@ -138,5 +142,54 @@ describe("DashboardView", () => {
     expect(screen.getByText("사용자 확인 대기")).toBeInTheDocument();
     expect(screen.queryByText("hold_for_review")).not.toBeInTheDocument();
     expect(screen.queryByText("pending_confirmation")).not.toBeInTheDocument();
+  });
+
+  it("renders public URL provenance and persisted collection details", () => {
+    const data = readyData({
+      imported: 17,
+      analyzed: 15,
+      caution: 5,
+      risk: 2,
+    });
+    if (data.state !== "ready") {
+      throw new Error("Expected ready dashboard data");
+    }
+    data.channel = null;
+    data.sourceKind = "public_url";
+    data.latestImport = {
+      id: "public-import-1",
+      sourceKind: "public_url",
+      status: "succeeded",
+      total: 20,
+      completed: 17,
+      failed: 1,
+      observed: 20,
+      duplicates: 2,
+      topLevelCount: 12,
+      replyCount: 8,
+      youtubeQuotaUnitsUsed: 4,
+      createdAt: "2026-07-24T00:00:00.000Z",
+    };
+    data.latestCost = {
+      currency: "USD",
+      pricingVersion: "openai-2026-07-24",
+      estimatedCostLow: 0.001,
+      estimatedCostHigh: 0.003,
+      actualCalculatedCost: 0.002,
+      stageOneModel: "gpt-5.4-nano",
+      stageTwoModel: "gpt-5.4-mini",
+      embeddingModel: "text-embedding-3-small",
+    };
+
+    render(<DashboardView data={data} />);
+
+    expect(screen.getByText("공개 URL")).toBeInTheDocument();
+    expect(screen.getByText("읽기 전용")).toBeInTheDocument();
+    expect(screen.getByText("확인 20")).toBeInTheDocument();
+    expect(screen.getByText("신규 17")).toBeInTheDocument();
+    expect(screen.getByText("중복 2")).toBeInTheDocument();
+    expect(screen.getByText("최상위 12")).toBeInTheDocument();
+    expect(screen.getByText("답글 8")).toBeInTheDocument();
+    expect(screen.getByText("$0.002000")).toBeInTheDocument();
   });
 });

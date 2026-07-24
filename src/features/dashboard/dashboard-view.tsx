@@ -124,6 +124,15 @@ function JobCard({
               {job.completed}개 완료 · {job.failed}개 실패 ·{" "}
               {formatDate(job.createdAt)}
             </small>
+            {job.observed !== undefined ? (
+              <div className="dashboard-job-facts">
+                <span>확인 {job.observed}</span>
+                <span>신규 {job.completed}</span>
+                <span>중복 {job.duplicates ?? 0}</span>
+                <span>최상위 {job.topLevelCount ?? 0}</span>
+                <span>답글 {job.replyCount ?? 0}</span>
+              </div>
+            ) : null}
           </>
         ) : (
           <>
@@ -169,6 +178,7 @@ export function DashboardView({ data }: { data: DashboardData }) {
       icon: ShieldWarning,
     },
   ] as const;
+  const publicSource = data.sourceKind === "public_url";
 
   return (
     <div className="dashboard-ready">
@@ -216,14 +226,31 @@ export function DashboardView({ data }: { data: DashboardData }) {
         <article className="dashboard-channel-card">
           <header>
             <div>
-              <p>CONNECTED CHANNEL</p>
-              <h2>{data.channel.title}</h2>
-              <span>{data.channel.handle ?? "채널 핸들 정보 없음"}</span>
+              <p>
+                {publicSource ? "PUBLIC VIDEO SOURCE" : "CONNECTED CHANNEL"}
+              </p>
+              <h2>
+                {publicSource
+                  ? (data.video?.title ?? "공개 영상")
+                  : (data.channel?.title ?? "연결된 채널")}
+              </h2>
+              <span>
+                {publicSource
+                  ? "OAuth 없이 공개 댓글만 분석"
+                  : (data.channel?.handle ?? "채널 핸들 정보 없음")}
+              </span>
             </div>
-            <span className="channel-health">
-              <CheckCircle aria-hidden="true" weight="fill" />
-              연결됨
-            </span>
+            {publicSource ? (
+              <div className="source-badges">
+                <span>공개 URL</span>
+                <span>읽기 전용</span>
+              </div>
+            ) : (
+              <span className="channel-health">
+                <CheckCircle aria-hidden="true" weight="fill" />
+                연결됨
+              </span>
+            )}
           </header>
           <div className="dashboard-video">
             <span aria-hidden="true">
@@ -238,8 +265,12 @@ export function DashboardView({ data }: { data: DashboardData }) {
                   : "영상 목록에서 댓글을 가져올 영상을 선택하세요."}
               </small>
             </div>
-            <Link href="/app/videos">
-              영상 관리
+            <Link
+              href={
+                publicSource ? "/app/connect/youtube" : "/app/videos"
+              }
+            >
+              {publicSource ? "새 공개 영상" : "영상 관리"}
               <ArrowRight aria-hidden="true" />
             </Link>
           </div>
@@ -262,6 +293,25 @@ export function DashboardView({ data }: { data: DashboardData }) {
       <section className="dashboard-job-grid" aria-label="최근 작업 상태">
         <JobCard icon={ChatCircleDots} job={data.latestImport} title="댓글 가져오기" />
         <JobCard icon={ChartBar} job={data.latestAnalysis} title="AI 분석" />
+        {data.latestCost ? (
+          <article className="dashboard-job-card dashboard-cost-card">
+            <span aria-hidden="true">
+              <Sparkle weight="duotone" />
+            </span>
+            <div>
+              <p>분석 비용 snapshot</p>
+              <strong>
+                {data.latestCost.actualCalculatedCost === null
+                  ? `${data.latestCost.estimatedCostLow.toFixed(6)}–${data.latestCost.estimatedCostHigh.toFixed(6)} ${data.latestCost.currency}`
+                  : `$${data.latestCost.actualCalculatedCost.toFixed(6)}`}
+              </strong>
+              <small>
+                {data.latestCost.stageOneModel} ·{" "}
+                {data.latestCost.stageTwoModel}
+              </small>
+            </div>
+          </article>
+        ) : null}
       </section>
 
       <section className="dashboard-detail-grid">

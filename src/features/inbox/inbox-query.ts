@@ -15,6 +15,8 @@ export type InboxActionState =
 
 export type InboxItem = {
   rawCommentId: string;
+  sourceImportJobId: string;
+  sourceKind: "owned_oauth" | "public_url";
   youtubeVideoId: string;
   authorDisplayName: string | null;
   authorAvatarUrl: string | null;

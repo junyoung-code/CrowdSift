@@ -24,20 +24,39 @@ const VideoSummarySchema = z.object({
 
 const ImportJobSchema = z.object({
   id: z.string(),
+  sourceKind: z.enum(["owned_oauth", "public_url"]),
   status: z.string(),
-  requestedTopLevelCount: z.number().int().nonnegative(),
+  requestedTopLevelCount: z.number().int().nonnegative().nullable(),
+  requestedTotalCount: z.number().int().nonnegative().nullable(),
+  fetchedCount: z.number().int().nonnegative(),
   storedCount: z.number().int().nonnegative(),
+  duplicateCount: z.number().int().nonnegative(),
   failedCount: z.number().int().nonnegative(),
+  topLevelCount: z.number().int().nonnegative(),
+  replyCount: z.number().int().nonnegative(),
+  youtubeQuotaUnitsUsed: z.number().int().nonnegative(),
   createdAt: z.string(),
 });
 
 const AnalysisJobSchema = z.object({
   id: z.string(),
+  sourceKind: z.enum(["owned_oauth", "public_url"]),
   status: z.string(),
   totalCount: z.number().int().nonnegative(),
   completedCount: z.number().int().nonnegative(),
   failedCount: z.number().int().nonnegative(),
   createdAt: z.string(),
+});
+
+const AnalysisCostSchema = z.object({
+  currency: z.literal("USD"),
+  pricingVersion: z.string(),
+  estimatedCostLow: z.coerce.number().nonnegative(),
+  estimatedCostHigh: z.coerce.number().nonnegative(),
+  actualCalculatedCost: z.coerce.number().nonnegative().nullable(),
+  stageOneModel: z.string(),
+  stageTwoModel: z.string(),
+  embeddingModel: z.string(),
 });
 
 const PriorityCommentSchema = z.object({
@@ -73,6 +92,7 @@ const DashboardRpcRowSchema = z.object({
   latest_video: VideoSummarySchema.nullable(),
   latest_import_job: ImportJobSchema.nullable(),
   latest_analysis_job: AnalysisJobSchema.nullable(),
+  latest_analysis_cost: AnalysisCostSchema.nullable(),
   priority_comments: z.array(PriorityCommentSchema),
   recent_corrections: z.array(FeedbackSummarySchema),
   recent_actions: z.array(ActionSummarySchema),
@@ -94,10 +114,19 @@ const mapImportJob = (
   job
     ? {
         id: job.id,
+        sourceKind: job.sourceKind,
         status: job.status,
-        total: job.requestedTopLevelCount,
+        total:
+          job.sourceKind === "public_url"
+            ? (job.requestedTotalCount ?? 0)
+            : (job.requestedTopLevelCount ?? 0),
         completed: job.storedCount,
         failed: job.failedCount,
+        observed: job.fetchedCount,
+        duplicates: job.duplicateCount,
+        topLevelCount: job.topLevelCount,
+        replyCount: job.replyCount,
+        youtubeQuotaUnitsUsed: job.youtubeQuotaUnitsUsed,
         createdAt: job.createdAt,
       }
     : null;
@@ -108,6 +137,7 @@ const mapAnalysisJob = (
   job
     ? {
         id: job.id,
+        sourceKind: job.sourceKind,
         status: job.status,
         total: job.totalCount,
         completed: job.completedCount,
@@ -147,6 +177,7 @@ export const createSupabaseDashboardRepository = ({
       latestVideo: row.latest_video,
       latestImportJob: mapImportJob(row.latest_import_job),
       latestAnalysisJob: mapAnalysisJob(row.latest_analysis_job),
+      latestCost: row.latest_analysis_cost,
       priorityComments: row.priority_comments,
       recentCorrections: row.recent_corrections,
       recentActions: row.recent_actions,

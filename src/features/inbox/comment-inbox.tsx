@@ -319,9 +319,13 @@ export function CommentInbox({
                 ? LEVEL_DETAILS[item.reviewLevel]
                 : null;
               const LevelIcon = levelDetails?.icon ?? Circle;
+              const isPublicSource = item.sourceKind === "public_url";
 
               return (
-                <article className="inbox-comment-card" key={item.rawCommentId}>
+                <article
+                  className="inbox-comment-card"
+                  key={`${item.rawCommentId}:${item.sourceImportJobId}`}
+                >
                   <div className="inbox-comment-summary">
                     <div className="inbox-comment-meta">
                       <div>
@@ -334,6 +338,18 @@ export function CommentInbox({
                         </span>
                       </div>
                       <div>
+                        <span
+                          className={`source-kind-badge ${
+                            isPublicSource ? "is-public" : "is-owned"
+                          }`}
+                        >
+                          {isPublicSource ? "공개 URL" : "내 채널"}
+                        </span>
+                        {isPublicSource ? (
+                          <span className="source-readonly-badge">
+                            읽기 전용
+                          </span>
+                        ) : null}
                         {levelDetails ? (
                           <span
                             className={`review-level review-level-${item.reviewLevel}`}
@@ -406,7 +422,9 @@ export function CommentInbox({
 
                     {item.analysisId && item.category && item.reviewLevel ? (
                       <details className="feedback-correction">
-                        <summary>판단 수정 및 개인화</summary>
+                        <summary>
+                          {isPublicSource ? "판단 수정" : "판단 수정 및 개인화"}
+                        </summary>
                         <form action={correctionAction}>
                           <input
                             name="rawCommentId"
@@ -417,6 +435,11 @@ export function CommentInbox({
                             name="analysisId"
                             type="hidden"
                             value={item.analysisId}
+                          />
+                          <input
+                            name="sourceImportJobId"
+                            type="hidden"
+                            value={item.sourceImportJobId}
                           />
                           <input
                             name="decision"
@@ -489,34 +512,45 @@ export function CommentInbox({
                             />
                           </label>
 
-                          <label className="feedback-consent">
-                            <input
-                              name="useForPersonalization"
-                              type="checkbox"
-                              value="true"
-                            />
-                            <span>
-                              <strong>내 기준 개인화에 사용</strong>
-                              <small>
-                                같은 workspace의 비슷한 댓글을 판단할 때만
-                                활용합니다.
-                              </small>
-                            </span>
-                          </label>
+                          {isPublicSource ? (
+                            <p className="public-feedback-policy">
+                              공개 URL에서 수집한 댓글의 판단 수정은 감사 기록으로만
+                              저장합니다. 개인화 RAG와 향후 모델 학습에는 사용하지
+                              않습니다.
+                            </p>
+                          ) : (
+                            <>
+                              <label className="feedback-consent">
+                                <input
+                                  name="useForPersonalization"
+                                  type="checkbox"
+                                  value="true"
+                                />
+                                <span>
+                                  <strong>내 기준 개인화에 사용</strong>
+                                  <small>
+                                    같은 workspace의 비슷한 댓글을 판단할 때만
+                                    활용합니다.
+                                  </small>
+                                </span>
+                              </label>
 
-                          <label className="feedback-consent">
-                            <input
-                              name="useForTraining"
-                              type="checkbox"
-                              value="true"
-                            />
-                            <span>
-                              <strong>향후 공통 모델 학습 후보로 표시</strong>
-                              <small>
-                                표시만 저장하며 지금 학습 API를 호출하지 않습니다.
-                              </small>
-                            </span>
-                          </label>
+                              <label className="feedback-consent">
+                                <input
+                                  name="useForTraining"
+                                  type="checkbox"
+                                  value="true"
+                                />
+                                <span>
+                                  <strong>향후 공통 모델 학습 후보로 표시</strong>
+                                  <small>
+                                    표시만 저장하며 지금 학습 API를 호출하지
+                                    않습니다.
+                                  </small>
+                                </span>
+                              </label>
+                            </>
+                          )}
 
                           <button className="button button-primary" type="submit">
                             수정 내용 저장
@@ -525,7 +559,12 @@ export function CommentInbox({
                       </details>
                     ) : null}
 
-                    {item.sourceAvailable ? (
+                    {isPublicSource ? (
+                      <p className="public-moderation-policy">
+                        공개 URL 댓글에서 YouTube 조치는 사용할 수 없습니다.
+                        숨김·삭제는 해당 채널 소유자의 권한이 필요합니다.
+                      </p>
+                    ) : item.sourceAvailable ? (
                       <div
                         className="inbox-moderation-actions"
                         aria-label="YouTube 댓글 조치"
@@ -544,6 +583,11 @@ export function CommentInbox({
                               type="hidden"
                               value={item.rawCommentId}
                             />
+                            <input
+                              name="sourceImportJobId"
+                              type="hidden"
+                              value={item.sourceImportJobId}
+                            />
                             <button
                               className="button button-secondary"
                               name="action"
@@ -560,6 +604,11 @@ export function CommentInbox({
                               name="rawCommentId"
                               type="hidden"
                               value={item.rawCommentId}
+                            />
+                            <input
+                              name="sourceImportJobId"
+                              type="hidden"
+                              value={item.sourceImportJobId}
                             />
                             <button
                               className="button button-danger"

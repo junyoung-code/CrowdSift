@@ -5,6 +5,8 @@ import { CommentInbox } from "./comment-inbox";
 
 const item = {
   rawCommentId: "comment-1",
+  sourceImportJobId: "import-1",
+  sourceKind: "owned_oauth" as const,
   youtubeVideoId: "video-1",
   authorDisplayName: "시청자",
   authorAvatarUrl: null,
@@ -141,6 +143,51 @@ describe("CommentInbox", () => {
 
     expect(
       screen.getByRole("button", { name: "내 댓글 영구 삭제" }),
+    ).toBeInTheDocument();
+  });
+
+  it("marks public observations read-only and removes write-only controls", () => {
+    render(
+      <CommentInbox
+        correctionAction={vi.fn()}
+        moderationAction={vi.fn()}
+        data={{
+          items: [
+            {
+              ...item,
+              sourceImportJobId: "public-import-1",
+              sourceKind: "public_url",
+            },
+          ],
+          total: 1,
+        }}
+        filters={{ reviewLevels: ["caution", "risk"] }}
+        videos={[]}
+      />,
+    );
+
+    expect(screen.getByText("공개 URL")).toBeInTheDocument();
+    expect(screen.getByText("읽기 전용")).toBeInTheDocument();
+    expect(
+      screen.getByText(/YouTube 조치는 사용할 수 없습니다/),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "검토 대기로 이동" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("checkbox", {
+        name: /^내 기준 개인화에 사용/,
+      }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("checkbox", {
+        name: /^향후 공통 모델 학습 후보로 표시/,
+      }),
+    ).not.toBeInTheDocument();
+    expect(
+      document.querySelector(
+        'input[name="sourceImportJobId"][value="public-import-1"]',
+      ),
     ).toBeInTheDocument();
   });
 });

@@ -8,6 +8,8 @@ describe("Supabase Inbox repository", () => {
       data: [
         {
           raw_comment_id: "comment-1",
+          source_import_job_id: "import-1",
+          source_kind: "owned_oauth",
           youtube_video_id: "video-1",
           author_display_name: "시청자",
           author_avatar_url: null,
@@ -62,6 +64,8 @@ describe("Supabase Inbox repository", () => {
       items: [
         expect.objectContaining({
           rawCommentId: "comment-1",
+          sourceImportJobId: "import-1",
+          sourceKind: "owned_oauth",
           analysisId: "analysis-1",
           reviewLevel: "caution",
           normalizedQuestion: "자막을 크게 할 수 있나요?",

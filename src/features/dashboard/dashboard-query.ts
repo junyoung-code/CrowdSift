@@ -17,13 +17,32 @@ export type VideoSummary = {
   publishedAt: string | null;
 };
 
+export type DashboardSourceKind = "owned_oauth" | "public_url";
+
 export type JobSummary = {
   id: string;
+  sourceKind: DashboardSourceKind;
   status: string;
   total: number;
   completed: number;
   failed: number;
   createdAt: string;
+  observed?: number;
+  duplicates?: number;
+  topLevelCount?: number;
+  replyCount?: number;
+  youtubeQuotaUnitsUsed?: number;
+};
+
+export type AnalysisCostSummary = {
+  currency: "USD";
+  pricingVersion: string;
+  estimatedCostLow: number;
+  estimatedCostHigh: number;
+  actualCalculatedCost: number | null;
+  stageOneModel: string;
+  stageTwoModel: string;
+  embeddingModel: string;
 };
 
 export type PriorityCommentSummary = {
@@ -58,6 +77,7 @@ export type DashboardSnapshot = {
   latestVideo: VideoSummary | null;
   latestImportJob: JobSummary | null;
   latestAnalysisJob: JobSummary | null;
+  latestCost: AnalysisCostSummary | null;
   priorityComments: PriorityCommentSummary[];
   recentCorrections: FeedbackSummary[];
   recentActions: ActionSummary[];
@@ -69,7 +89,8 @@ export type DashboardData =
   | { state: "connected_empty"; channel: ChannelSummary }
   | {
       state: "ready";
-      channel: ChannelSummary;
+      channel: ChannelSummary | null;
+      sourceKind: DashboardSourceKind;
       video: VideoSummary | null;
       metrics: {
         imported: number;
@@ -84,6 +105,7 @@ export type DashboardData =
       };
       latestImport: JobSummary | null;
       latestAnalysis: JobSummary | null;
+      latestCost: AnalysisCostSummary | null;
       priorityComments: PriorityCommentSummary[];
       recentCorrections: FeedbackSummary[];
       recentActions: ActionSummary[];
@@ -100,11 +122,15 @@ export const getDashboardData = async (
 ): Promise<DashboardData> => {
   const snapshot = await repository.loadSnapshot(workspaceId);
 
-  if (!snapshot.selectedChannel) {
+  if (!snapshot.selectedChannel && !snapshot.latestImportJob) {
     return { state: "disconnected" };
   }
 
-  if (snapshot.importedCount === 0) {
+  if (
+    snapshot.importedCount === 0 &&
+    snapshot.selectedChannel &&
+    !snapshot.latestImportJob
+  ) {
     return {
       state: "connected_empty",
       channel: snapshot.selectedChannel,
@@ -114,6 +140,7 @@ export const getDashboardData = async (
   return {
     state: "ready",
     channel: snapshot.selectedChannel,
+    sourceKind: snapshot.latestImportJob?.sourceKind ?? "owned_oauth",
     video: snapshot.latestVideo,
     metrics: {
       imported: snapshot.importedCount,
@@ -128,6 +155,7 @@ export const getDashboardData = async (
     },
     latestImport: snapshot.latestImportJob,
     latestAnalysis: snapshot.latestAnalysisJob,
+    latestCost: snapshot.latestCost,
     priorityComments: snapshot.priorityComments,
     recentCorrections: snapshot.recentCorrections,
     recentActions: snapshot.recentActions,

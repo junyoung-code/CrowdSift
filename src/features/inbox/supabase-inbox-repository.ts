@@ -12,6 +12,8 @@ import type {
 
 type InboxRpcRow = {
   raw_comment_id: string;
+  source_import_job_id: string;
+  source_kind: "owned_oauth" | "public_url";
   youtube_video_id: string;
   author_display_name: string | null;
   author_avatar_url: string | null;
@@ -78,6 +80,8 @@ export const createSupabaseInboxRepository = ({
     return {
       items: (data ?? []).map((row) => ({
         rawCommentId: row.raw_comment_id,
+        sourceImportJobId: row.source_import_job_id,
+        sourceKind: row.source_kind,
         youtubeVideoId: row.youtube_video_id,
         authorDisplayName: row.author_display_name,
         authorAvatarUrl: row.author_avatar_url,

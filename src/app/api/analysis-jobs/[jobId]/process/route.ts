@@ -38,6 +38,7 @@ export async function POST(
   try {
     const progress = await processAnalysisChunk(job.id, maxItems);
     revalidatePath("/app");
+    revalidatePath("/app/inbox");
     revalidatePath("/app/comments");
     return Response.json({ data: progress });
   } catch {
