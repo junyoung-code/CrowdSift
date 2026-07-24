@@ -78,6 +78,7 @@ export default async function VideosPage({ searchParams }: VideoPageProps) {
         "id, requested_top_level_count, fetched_count, stored_count, duplicate_count, failed_count, status, last_error_code, created_at, youtube_video_id",
       )
       .eq("workspace_id", workspaceId)
+      .eq("source_kind", "owned_oauth")
       .order("created_at", { ascending: false })
       .limit(20),
   ]);
@@ -272,7 +273,7 @@ export default async function VideosPage({ searchParams }: VideoPageProps) {
               failedCount: selectedJob.failed_count,
               fetchedCount: selectedJob.fetched_count,
               requestedTopLevelCount:
-                selectedJob.requested_top_level_count,
+                selectedJob.requested_top_level_count ?? 20,
               status: selectedJob.status,
               storedCount: selectedJob.stored_count,
             }}

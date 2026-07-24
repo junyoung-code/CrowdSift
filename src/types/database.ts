@@ -34,6 +34,120 @@ export type Database = {
   }
   public: {
     Tables: {
+      analysis_job_costs: {
+        Row: {
+          actual_calculated_cost: number | null
+          actual_embedding_input_tokens: number
+          actual_stage_one_input_tokens: number
+          actual_stage_one_output_tokens: number
+          actual_stage_two_input_tokens: number
+          actual_stage_two_output_tokens: number
+          analysis_job_id: string
+          calculated_at: string | null
+          created_at: string
+          currency: string
+          embedding_input_per_million: number
+          embedding_model: string
+          estimated_at: string
+          estimated_cost_high: number
+          estimated_cost_low: number
+          estimated_input_tokens_high: number
+          estimated_input_tokens_low: number
+          estimated_output_tokens_high: number
+          estimated_output_tokens_low: number
+          id: string
+          pricing_effective_at: string
+          pricing_version: string
+          stage_one_input_per_million: number
+          stage_one_model: string
+          stage_one_output_per_million: number
+          stage_two_input_per_million: number
+          stage_two_model: string
+          stage_two_output_per_million: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          actual_calculated_cost?: number | null
+          actual_embedding_input_tokens?: number
+          actual_stage_one_input_tokens?: number
+          actual_stage_one_output_tokens?: number
+          actual_stage_two_input_tokens?: number
+          actual_stage_two_output_tokens?: number
+          analysis_job_id: string
+          calculated_at?: string | null
+          created_at?: string
+          currency: string
+          embedding_input_per_million: number
+          embedding_model: string
+          estimated_at?: string
+          estimated_cost_high: number
+          estimated_cost_low: number
+          estimated_input_tokens_high?: number
+          estimated_input_tokens_low?: number
+          estimated_output_tokens_high?: number
+          estimated_output_tokens_low?: number
+          id?: string
+          pricing_effective_at: string
+          pricing_version: string
+          stage_one_input_per_million: number
+          stage_one_model: string
+          stage_one_output_per_million: number
+          stage_two_input_per_million: number
+          stage_two_model: string
+          stage_two_output_per_million: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          actual_calculated_cost?: number | null
+          actual_embedding_input_tokens?: number
+          actual_stage_one_input_tokens?: number
+          actual_stage_one_output_tokens?: number
+          actual_stage_two_input_tokens?: number
+          actual_stage_two_output_tokens?: number
+          analysis_job_id?: string
+          calculated_at?: string | null
+          created_at?: string
+          currency?: string
+          embedding_input_per_million?: number
+          embedding_model?: string
+          estimated_at?: string
+          estimated_cost_high?: number
+          estimated_cost_low?: number
+          estimated_input_tokens_high?: number
+          estimated_input_tokens_low?: number
+          estimated_output_tokens_high?: number
+          estimated_output_tokens_low?: number
+          id?: string
+          pricing_effective_at?: string
+          pricing_version?: string
+          stage_one_input_per_million?: number
+          stage_one_model?: string
+          stage_one_output_per_million?: number
+          stage_two_input_per_million?: number
+          stage_two_model?: string
+          stage_two_output_per_million?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analysis_job_costs_analysis_job_id_fkey"
+            columns: ["analysis_job_id"]
+            isOneToOne: false
+            referencedRelation: "analysis_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "analysis_job_costs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       analysis_job_items: {
         Row: {
           analysis_job_id: string
@@ -384,11 +498,17 @@ export type Database = {
           id: string
           last_error_code: string | null
           next_page_token: string | null
-          requested_top_level_count: number
+          reply_count: number
+          requested_top_level_count: number | null
+          requested_total_count: number | null
+          source_kind: Database["public"]["Enums"]["comment_source_kind"]
+          source_video_url: string | null
           started_at: string | null
           status: Database["public"]["Enums"]["job_status"]
           stored_count: number
+          top_level_count: number
           workspace_id: string
+          youtube_quota_units_used: number
           youtube_video_id: string
         }
         Insert: {
@@ -401,11 +521,17 @@ export type Database = {
           id?: string
           last_error_code?: string | null
           next_page_token?: string | null
-          requested_top_level_count: number
+          reply_count?: number
+          requested_top_level_count?: number | null
+          requested_total_count?: number | null
+          source_kind?: Database["public"]["Enums"]["comment_source_kind"]
+          source_video_url?: string | null
           started_at?: string | null
           status?: Database["public"]["Enums"]["job_status"]
           stored_count?: number
+          top_level_count?: number
           workspace_id: string
+          youtube_quota_units_used?: number
           youtube_video_id: string
         }
         Update: {
@@ -418,11 +544,17 @@ export type Database = {
           id?: string
           last_error_code?: string | null
           next_page_token?: string | null
-          requested_top_level_count?: number
+          reply_count?: number
+          requested_top_level_count?: number | null
+          requested_total_count?: number | null
+          source_kind?: Database["public"]["Enums"]["comment_source_kind"]
+          source_video_url?: string | null
           started_at?: string | null
           status?: Database["public"]["Enums"]["job_status"]
           stored_count?: number
+          top_level_count?: number
           workspace_id?: string
+          youtube_quota_units_used?: number
           youtube_video_id?: string
         }
         Relationships: [
@@ -453,6 +585,7 @@ export type Database = {
           edited_sanitized_feedback: string | null
           id: string
           raw_comment_id: string
+          source_import_job_id: string | null
           use_for_personalization: boolean
           use_for_training: boolean
           workspace_id: string
@@ -474,6 +607,7 @@ export type Database = {
           edited_sanitized_feedback?: string | null
           id?: string
           raw_comment_id: string
+          source_import_job_id?: string | null
           use_for_personalization?: boolean
           use_for_training?: boolean
           workspace_id: string
@@ -495,6 +629,7 @@ export type Database = {
           edited_sanitized_feedback?: string | null
           id?: string
           raw_comment_id?: string
+          source_import_job_id?: string | null
           use_for_personalization?: boolean
           use_for_training?: boolean
           workspace_id?: string
@@ -519,6 +654,13 @@ export type Database = {
             columns: ["raw_comment_id"]
             isOneToOne: false
             referencedRelation: "raw_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creator_feedback_source_import_job_id_fkey"
+            columns: ["source_import_job_id"]
+            isOneToOne: false
+            referencedRelation: "comment_import_jobs"
             referencedColumns: ["id"]
           },
           {
@@ -814,6 +956,7 @@ export type Database = {
           provider_result: Json | null
           raw_comment_id: string
           requested_by: string
+          source_import_job_id: string
           state: Database["public"]["Enums"]["action_state"]
           workspace_id: string
           youtube_channel_id: string | null
@@ -831,6 +974,7 @@ export type Database = {
           provider_result?: Json | null
           raw_comment_id: string
           requested_by: string
+          source_import_job_id: string
           state: Database["public"]["Enums"]["action_state"]
           workspace_id: string
           youtube_channel_id?: string | null
@@ -848,6 +992,7 @@ export type Database = {
           provider_result?: Json | null
           raw_comment_id?: string
           requested_by?: string
+          source_import_job_id?: string
           state?: Database["public"]["Enums"]["action_state"]
           workspace_id?: string
           youtube_channel_id?: string | null
@@ -859,6 +1004,13 @@ export type Database = {
             columns: ["raw_comment_id"]
             isOneToOne: false
             referencedRelation: "raw_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "moderation_action_requests_source_import_job_id_fkey"
+            columns: ["source_import_job_id"]
+            isOneToOne: false
+            referencedRelation: "comment_import_jobs"
             referencedColumns: ["id"]
           },
           {
@@ -1822,6 +1974,7 @@ export type Database = {
         | "harassment"
         | "threat_or_serious_risk"
         | "uncertain"
+      comment_source_kind: "owned_oauth" | "public_url"
       connection_status:
         | "pending_channel_selection"
         | "connected"
@@ -1995,6 +2148,7 @@ export const Constants = {
         "threat_or_serious_risk",
         "uncertain",
       ],
+      comment_source_kind: ["owned_oauth", "public_url"],
       connection_status: [
         "pending_channel_selection",
         "connected",

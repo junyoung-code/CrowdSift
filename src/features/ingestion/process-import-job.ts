@@ -75,7 +75,7 @@ export const processImportJob = async (jobId: string) => {
   const { data: job, error: jobError } = await admin
     .from("comment_import_jobs")
     .select(
-      "id, workspace_id, youtube_video_id, requested_top_level_count, next_page_token, status, fetched_count, stored_count, duplicate_count, failed_count",
+      "id, workspace_id, youtube_video_id, requested_top_level_count, source_kind, next_page_token, status, fetched_count, stored_count, duplicate_count, failed_count",
     )
     .eq("id", jobId)
     .maybeSingle();
@@ -83,6 +83,14 @@ export const processImportJob = async (jobId: string) => {
   if (jobError || !job) {
     throw new Error("Import job not found");
   }
+
+  if (
+    job.source_kind !== "owned_oauth" ||
+    job.requested_top_level_count === null
+  ) {
+    throw new Error("Public import processing is not connected yet");
+  }
+  const requestedTopLevelCount = job.requested_top_level_count;
 
   const [
     { data: connection, error: connectionError },
@@ -197,7 +205,7 @@ export const processImportJob = async (jobId: string) => {
         id: job.id,
         workspaceId: job.workspace_id,
         youtubeVideoId: job.youtube_video_id,
-        requestedTopLevelCount: job.requested_top_level_count,
+        requestedTopLevelCount,
         nextPageToken: job.next_page_token,
         status: job.status,
         fetchedCount: job.fetched_count,
