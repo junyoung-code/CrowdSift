@@ -60,4 +60,16 @@ describe("GET /auth/callback", () => {
     expect(mockExchangeCodeForSession).toHaveBeenCalledWith("valid-code");
     expect(response.headers.get("location")).toBe("http://localhost:3000/app");
   });
+
+  it("preserves a valid internal query string", async () => {
+    const response = await GET(
+      new Request(
+        "http://127.0.0.1:3000/auth/callback?code=valid-code&next=%2Fapp%2Finbox%3Flevels%3Drisk",
+      ),
+    );
+
+    expect(response.headers.get("location")).toBe(
+      "http://localhost:3000/app/inbox?levels=risk",
+    );
+  });
 });

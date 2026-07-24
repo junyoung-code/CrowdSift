@@ -1,5 +1,13 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/app",
+  useRouter: () => ({
+    refresh: vi.fn(),
+    replace: vi.fn(),
+  }),
+}));
 
 import { AppShell } from "./app-shell";
 
@@ -24,6 +32,9 @@ describe("AppShell", () => {
     ).toBeInTheDocument();
     expect(screen.queryByText("결제")).not.toBeInTheDocument();
     expect(screen.queryByText("Instagram")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "로그아웃" }),
+    ).toBeInTheDocument();
     expect(
       screen.getByRole("heading", { name: "대시보드 내용" }),
     ).toBeInTheDocument();

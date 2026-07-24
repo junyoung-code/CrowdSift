@@ -19,7 +19,13 @@ describe("SignInPage", () => {
     expect(
       screen.getByRole("heading", { name: "CommentHawk에 로그인" }),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText("이메일")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Google로 계속하기" }),
+    ).toBeInTheDocument();
+    const alternative = screen.getByText("다른 방법으로 로그인");
+    expect(alternative.closest("details")).toContainElement(
+      screen.getByLabelText("이메일"),
+    );
     expect(
       screen.getByRole("button", { name: "로그인 링크 받기" }),
     ).toBeInTheDocument();

@@ -704,7 +704,7 @@ git commit -m "feat: reveal comment source by review level"
 - Produces: explicit Supabase sign-out.
 - Guarantees: email Magic Link remains usable and session policy remains indefinite until explicit or security-driven termination.
 
-- [ ] **Step 1: Write failing safe-next and Google OAuth tests**
+- [x] **Step 1: Write failing safe-next and Google OAuth tests**
 
 ```ts
 it.each([
@@ -732,7 +732,7 @@ expect(mockSignInWithOAuth).toHaveBeenCalledWith({
 
 Do not request YouTube scopes, `access_type: "offline"`, or provider-token persistence.
 
-- [ ] **Step 2: Write failing sign-in page and logout tests**
+- [x] **Step 2: Write failing sign-in page and logout tests**
 
 Assert:
 
@@ -743,7 +743,7 @@ Assert:
 - failure exposes a retryable alert without logging token data;
 - AppShell includes the logout control.
 
-- [ ] **Step 3: Run focused auth tests and confirm failure**
+- [x] **Step 3: Run focused auth tests and confirm failure**
 
 Run:
 
@@ -753,7 +753,7 @@ npm test -- src/features/auth src/app/auth src/features/app-shell
 
 Expected: FAIL because Google sign-in, shared safe-next, and sign-out do not exist.
 
-- [ ] **Step 4: Extract safe internal redirect validation**
+- [x] **Step 4: Extract safe internal redirect validation**
 
 Implement:
 
@@ -781,7 +781,7 @@ export const getSafeNextPath = (value: unknown) => {
 
 Use it in both the sign-in page and callback route.
 
-- [ ] **Step 5: Implement Google sign-in**
+- [x] **Step 5: Implement Google sign-in**
 
 `GoogleSignInButton`:
 
@@ -828,7 +828,7 @@ Render it before:
 </details>
 ```
 
-- [ ] **Step 6: Implement sign-out**
+- [x] **Step 6: Implement sign-out**
 
 Use a small client component that calls:
 
@@ -844,7 +844,7 @@ router.refresh();
 
 Place it in the AppShell sidebar footer without exposing session tokens to props.
 
-- [ ] **Step 7: Configure local Google provider**
+- [x] **Step 7: Configure local Google provider**
 
 Add to `supabase/config.toml`:
 
@@ -866,7 +866,7 @@ SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_SECRET=
 
 Do not add `[auth.sessions]`, do not change `jwt_expiry = 3600`, and do not expose the secret through `NEXT_PUBLIC_*`.
 
-- [ ] **Step 8: Run auth tests**
+- [x] **Step 8: Run auth tests**
 
 Run:
 
@@ -876,7 +876,7 @@ npm test -- src/features/auth src/app/auth src/features/app-shell
 
 Expected: PASS.
 
-- [ ] **Step 9: Commit Task 5**
+- [x] **Step 9: Commit Task 5**
 
 ```bash
 git add .env.example supabase/config.toml src/features/auth src/app/auth src/features/app-shell src/lib/supabase/proxy.ts src/app/globals.css

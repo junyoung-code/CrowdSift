@@ -1,17 +1,22 @@
 import { ShieldCheck } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 
+import { GoogleSignInButton } from "@/features/auth/google-sign-in-button";
+import { getSafeNextPath } from "@/features/auth/safe-next-path";
+
 import { SignInForm } from "./sign-in-form";
 
 type SignInPageProps = {
   searchParams: Promise<{
     error?: string | string[];
+    next?: string | string[];
   }>;
 };
 
 export default async function SignInPage({ searchParams }: SignInPageProps) {
   const parameters = await searchParams;
   const hasExpiredError = parameters.error === "expired";
+  const nextPath = getSafeNextPath(parameters.next);
 
   return (
     <main className="auth-page">
@@ -25,15 +30,25 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
         <p className="auth-eyebrow">CREATOR SIGN IN</p>
         <h1 id="sign-in-title">CommentHawk에 로그인</h1>
         <p className="auth-description">
-          이메일로 안전한 일회용 로그인 링크를 받습니다. 비밀번호는 저장하지
-          않습니다.
+          Google 계정으로 간편하게 로그인합니다. 같은 브라우저에서는 직접
+          로그아웃할 때까지 로그인 상태가 유지됩니다.
         </p>
         {hasExpiredError ? (
           <p className="form-message form-message-error" role="alert">
             로그인 링크가 만료되었거나 유효하지 않습니다. 새 링크를 받아 주세요.
           </p>
         ) : null}
-        <SignInForm />
+        <GoogleSignInButton nextPath={nextPath} />
+        <details className="auth-alternative">
+          <summary>다른 방법으로 로그인</summary>
+          <div>
+            <p>
+              이메일로 일회용 로그인 링크를 받을 수 있습니다. 비밀번호는
+              저장하지 않습니다.
+            </p>
+            <SignInForm />
+          </div>
+        </details>
         <div className="auth-separation-note">
           <strong>권한은 분리해서 관리합니다</strong>
           <p>

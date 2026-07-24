@@ -2,6 +2,8 @@ import { ShieldCheck } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { SignOutButton } from "@/features/auth/sign-out-button";
+
 import { AppNavigation } from "./app-navigation";
 
 export function AppShell({
@@ -27,6 +29,7 @@ export function AppShell({
           <p>현재 단계</p>
           <strong>YouTube 댓글 관리</strong>
           <Link href="/app/settings/data">데이터 설정</Link>
+          <SignOutButton />
         </div>
       </aside>
 

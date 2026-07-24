@@ -1660,6 +1660,70 @@ a {
   word-break: keep-all;
 }
 
+.google-sign-in {
+  display: grid;
+  gap: 9px;
+}
+
+.button-google {
+  width: 100%;
+  min-height: 54px;
+  border: 1px solid var(--ch-border-strong);
+  background: white;
+  color: var(--ch-ink);
+  box-shadow: 0 8px 20px rgb(19 47 89 / 7%);
+  font-weight: 760;
+}
+
+.button-google:hover {
+  border-color: #aebbd0;
+  background: #f9fbff;
+}
+
+.button-google:disabled {
+  cursor: wait;
+  opacity: 0.65;
+  transform: none;
+}
+
+.button-google svg {
+  width: 20px;
+  height: 20px;
+}
+
+.auth-alternative {
+  margin-top: 17px;
+  border: 1px solid var(--ch-border);
+  border-radius: 15px;
+  background: #fbfdff;
+}
+
+.auth-alternative summary {
+  padding: 15px 17px;
+  color: var(--ch-ink-soft);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 740;
+}
+
+.auth-alternative > div {
+  border-top: 1px solid var(--ch-border);
+  padding: 16px;
+}
+
+.auth-alternative > div > p {
+  margin: 0 0 13px;
+  color: var(--ch-muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.auth-alternative summary:focus-visible,
+.button-google:focus-visible {
+  outline: 3px solid rgb(36 107 254 / 18%);
+  outline-offset: 2px;
+}
+
 .sign-in-form {
   display: grid;
   gap: 10px;
@@ -1827,6 +1891,56 @@ a {
   color: var(--ch-blue);
   font-size: 12px;
   font-weight: 720;
+}
+
+.sign-out-control {
+  display: grid;
+  gap: 7px;
+  margin-top: 11px;
+}
+
+.sign-out-control button {
+  display: inline-flex;
+  width: 100%;
+  min-height: 36px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid var(--ch-border);
+  border-radius: 10px;
+  background: white;
+  color: var(--ch-ink-soft);
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 720;
+}
+
+.sign-out-control button:hover {
+  border-color: var(--ch-border-strong);
+  background: #f4f7fc;
+}
+
+.sign-out-control button:focus-visible {
+  outline: 3px solid rgb(36 107 254 / 16%);
+  outline-offset: 2px;
+}
+
+.sign-out-control button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.sign-out-control button svg {
+  width: 15px;
+  height: 15px;
+}
+
+.sign-out-control p {
+  margin: 0;
+  color: var(--ch-risk);
+  font-size: 10px;
+  line-height: 1.45;
 }
 
 .product-workspace {
