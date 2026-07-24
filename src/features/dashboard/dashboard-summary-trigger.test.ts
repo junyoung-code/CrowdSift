@@ -34,6 +34,28 @@ describe("dashboard summary trigger", () => {
         createSummary,
       }),
     ).resolves.toEqual(completedProgress);
+    expect(createSummary).toHaveBeenCalledTimes(3);
+  });
+
+  it("retries a durable summary job with bounded attempts and recovers", async () => {
+    const createSummary = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("provider down"))
+      .mockRejectedValueOnce(new Error("database unavailable"))
+      .mockResolvedValueOnce({ id: "summary-1" });
+    const onError = vi.fn();
+
+    await expect(
+      triggerDashboardSummaryWhenComplete({
+        jobId: "job-1",
+        progress: completedProgress,
+        createSummary,
+        onError,
+      }),
+    ).resolves.toEqual(completedProgress);
+
+    expect(createSummary).toHaveBeenCalledTimes(3);
+    expect(onError).toHaveBeenCalledTimes(2);
   });
 
   it("does not create a summary while analysis items remain", async () => {

@@ -42,4 +42,13 @@ describe("parseServerEnv", () => {
       }).ALLOW_FIXTURE_PROVIDERS,
     ).toBe(true);
   });
+
+  it("accepts a strong optional internal worker secret", () => {
+    expect(
+      parseServerEnv({
+        ...validEnvironment,
+        INTERNAL_WORKER_SECRET: "w".repeat(32),
+      }).INTERNAL_WORKER_SECRET,
+    ).toBe("w".repeat(32));
+  });
 });

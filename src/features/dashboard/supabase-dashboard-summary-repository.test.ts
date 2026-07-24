@@ -20,10 +20,14 @@ describe("Supabase dashboard summary repository", () => {
       id: "summary-1",
       summary_text: "실제 데이터 요약",
     });
+    const claimAttempt = vi.fn().mockResolvedValue({ attempt_count: 2 });
+    const updateAttempt = vi.fn().mockResolvedValue(undefined);
     const repository = createSupabaseDashboardSummaryRepository({
       loadInputs,
       findByJobId: vi.fn().mockResolvedValue(null),
       insert,
+      claimAttempt,
+      updateAttempt,
     });
 
     await expect(repository.getJob("job-1")).resolves.toEqual({
@@ -64,6 +68,41 @@ describe("Supabase dashboard summary repository", () => {
       prompt_version: "commenthawk-dashboard-summary-v1",
       schema_version: "dashboard-summary-v1",
       usage: { inputTokens: 20, outputTokens: 10, totalTokens: 30 },
+    });
+
+    await expect(
+      repository.claimAttempt({
+        workspaceId: "workspace-1",
+        analysisJobId: "job-1",
+        maxAttempts: 3,
+      }),
+    ).resolves.toEqual({ attemptCount: 2 });
+    await repository.markAttemptFailed({
+      analysisJobId: "job-1",
+      attemptCount: 2,
+      errorCode: "dashboard_summary_failed",
+    });
+    await repository.markSucceeded({
+      analysisJobId: "job-1",
+      attemptCount: 2,
+    });
+
+    expect(claimAttempt).toHaveBeenCalledWith({
+      target_workspace_id: "workspace-1",
+      target_analysis_job_id: "job-1",
+      target_max_attempts: 3,
+    });
+    expect(updateAttempt).toHaveBeenNthCalledWith(1, {
+      analysis_job_id: "job-1",
+      attempt_count: 2,
+      state: "failed",
+      error_code: "dashboard_summary_failed",
+    });
+    expect(updateAttempt).toHaveBeenNthCalledWith(2, {
+      analysis_job_id: "job-1",
+      attempt_count: 2,
+      state: "succeeded",
+      error_code: null,
     });
   });
 });

@@ -1189,6 +1189,60 @@ export type Database = {
           },
         ]
       }
+      workspace_analysis_summary_jobs: {
+        Row: {
+          analysis_job_id: string
+          attempt_count: number
+          created_at: string
+          finished_at: string | null
+          last_attempt_at: string | null
+          last_error_code: string | null
+          started_at: string | null
+          state: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          analysis_job_id: string
+          attempt_count?: number
+          created_at?: string
+          finished_at?: string | null
+          last_attempt_at?: string | null
+          last_error_code?: string | null
+          started_at?: string | null
+          state?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          analysis_job_id?: string
+          attempt_count?: number
+          created_at?: string
+          finished_at?: string | null
+          last_attempt_at?: string | null
+          last_error_code?: string | null
+          started_at?: string | null
+          state?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_analysis_summary_jobs_analysis_job_id_fkey"
+            columns: ["analysis_job_id"]
+            isOneToOne: true
+            referencedRelation: "analysis_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workspace_analysis_summary_jobs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspace_members: {
         Row: {
           created_at: string
@@ -1513,6 +1567,16 @@ export type Database = {
           workspace_id: string
         }[]
       }
+      claim_dashboard_summary_job: {
+        Args: {
+          target_analysis_job_id: string
+          target_max_attempts: number
+          target_workspace_id: string
+        }
+        Returns: {
+          attempt_count: number
+        }[]
+      }
       create_creator_policy_version: {
         Args: {
           target_category_sensitivity: Json
@@ -1595,6 +1659,12 @@ export type Database = {
           source_available: boolean
           total_count: number
           youtube_video_id: string
+        }[]
+      }
+      get_retryable_dashboard_summary_jobs: {
+        Args: { target_max_jobs: number }
+        Returns: {
+          analysis_job_id: string
         }[]
       }
       is_workspace_member: { Args: { target: string }; Returns: boolean }

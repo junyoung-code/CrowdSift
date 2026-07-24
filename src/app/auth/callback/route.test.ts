@@ -45,4 +45,19 @@ describe("GET /auth/callback", () => {
     expect(mockExchangeCodeForSession).toHaveBeenCalledWith("valid-code");
     expect(response.headers.get("location")).toBe("http://localhost:3000/app");
   });
+
+  it.each([
+    "/%5Cevil.example",
+    "/%5cevil.example",
+    "/%5C%5Cevil.example",
+  ])("rejects a backslash-based next target: %s", async (next) => {
+    const response = await GET(
+      new Request(
+        `http://127.0.0.1:3000/auth/callback?code=valid-code&next=${next}`,
+      ),
+    );
+
+    expect(mockExchangeCodeForSession).toHaveBeenCalledWith("valid-code");
+    expect(response.headers.get("location")).toBe("http://localhost:3000/app");
+  });
 });

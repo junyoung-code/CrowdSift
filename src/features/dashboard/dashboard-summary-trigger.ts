@@ -15,10 +15,14 @@ export const triggerDashboardSummaryWhenComplete = async <
     return progress;
   }
 
-  try {
-    await createSummary(jobId);
-  } catch (error) {
-    onError?.(error);
+  const maxAttempts = 3;
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    try {
+      await createSummary(jobId);
+      break;
+    } catch (error) {
+      onError?.(error);
+    }
   }
 
   return progress;

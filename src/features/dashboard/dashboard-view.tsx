@@ -26,6 +26,22 @@ const JOB_STATUS_LABELS: Record<string, string> = {
   failed: "실패",
 };
 
+const ACTION_LABELS: Record<string, string> = {
+  hold_for_review: "검토 대기로 이동",
+  publish: "공개",
+  reject: "숨김",
+  delete: "영구 삭제",
+};
+
+const ACTION_STATE_LABELS: Record<string, string> = {
+  pending_confirmation: "사용자 확인 대기",
+  awaiting_scope: "추가 권한 필요",
+  running: "처리 중",
+  succeeded: "완료",
+  failed: "실패",
+  cancelled: "취소",
+};
+
 const CATEGORY_LABELS: Record<string, string> = {
   positive: "긍정 반응",
   neutral: "중립",
@@ -348,8 +364,12 @@ export function DashboardView({ data }: { data: DashboardData }) {
             <ul>
               {data.recentActions.map((action) => (
                 <li key={action.id}>
-                  <strong>{action.action}</strong>
-                  <span>{JOB_STATUS_LABELS[action.state] ?? action.state}</span>
+                  <strong>
+                    {ACTION_LABELS[action.action] ?? action.action}
+                  </strong>
+                  <span>
+                    {ACTION_STATE_LABELS[action.state] ?? action.state}
+                  </span>
                 </li>
               ))}
             </ul>

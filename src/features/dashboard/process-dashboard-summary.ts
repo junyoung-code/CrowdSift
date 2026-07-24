@@ -18,6 +18,13 @@ const toStringArray = (value: Json): string[] =>
 export const createDashboardSummaryForCompletedJob = async (jobId: string) => {
   const admin = createAdminSupabaseClient();
   const repository = createSupabaseDashboardSummaryRepository({
+    async claimAttempt(input) {
+      const { data, error } = await admin
+        .rpc("claim_dashboard_summary_job", input)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
     async loadInputs(targetJobId) {
       const { data, error } = await admin
         .rpc("get_dashboard_summary_inputs", {
@@ -63,6 +70,21 @@ export const createDashboardSummaryForCompletedJob = async (jobId: string) => {
         .single();
       if (existingError) throw existingError;
       return existing;
+    },
+    async updateAttempt(input) {
+      const completedAt = new Date().toISOString();
+      const { error } = await admin
+        .from("workspace_analysis_summary_jobs")
+        .update({
+          state: input.state,
+          last_error_code: input.error_code,
+          finished_at: completedAt,
+          updated_at: completedAt,
+        })
+        .eq("analysis_job_id", input.analysis_job_id)
+        .eq("state", "running")
+        .eq("attempt_count", input.attempt_count);
+      if (error) throw error;
     },
   });
 

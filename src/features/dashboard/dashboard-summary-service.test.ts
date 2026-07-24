@@ -38,6 +38,9 @@ const createRepository = (): DashboardSummaryRepository => ({
     id: "summary-1",
     summaryText: summaryModelResult.output.summary,
   }),
+  claimAttempt: vi.fn().mockResolvedValue({ attemptCount: 1 }),
+  markAttemptFailed: vi.fn().mockResolvedValue(undefined),
+  markSucceeded: vi.fn().mockResolvedValue(undefined),
 });
 
 describe("dashboard summary service", () => {
@@ -83,6 +86,15 @@ describe("dashboard summary service", () => {
         modelIdentifier: "configured-model",
       }),
     );
+    expect(repository.claimAttempt).toHaveBeenCalledWith({
+      analysisJobId: "job-1",
+      workspaceId: "workspace-1",
+      maxAttempts: 3,
+    });
+    expect(repository.markSucceeded).toHaveBeenCalledWith({
+      analysisJobId: "job-1",
+      attemptCount: 1,
+    });
   });
 
   it("returns an existing summary without another model call", async () => {
@@ -98,6 +110,39 @@ describe("dashboard summary service", () => {
       id: "summary-existing",
       summaryText: "저장된 실제 요약",
     });
+    expect(provider.summarizeDashboard).not.toHaveBeenCalled();
+    expect(repository.claimAttempt).not.toHaveBeenCalled();
+  });
+
+  it("persists a failed attempt so the next bounded retry can claim it", async () => {
+    const repository = createRepository();
+    const provider = {
+      summarizeDashboard: vi.fn().mockRejectedValue(new Error("provider down")),
+    };
+    const service = createDashboardSummaryService({ repository, provider });
+
+    await expect(service.createForCompletedJob("job-1")).rejects.toThrow(
+      "provider down",
+    );
+
+    expect(repository.markAttemptFailed).toHaveBeenCalledWith({
+      analysisJobId: "job-1",
+      attemptCount: 1,
+      errorCode: "dashboard_summary_failed",
+    });
+    expect(repository.markSucceeded).not.toHaveBeenCalled();
+  });
+
+  it("does not call the model when another worker owns the durable attempt", async () => {
+    const repository = createRepository();
+    vi.mocked(repository.claimAttempt).mockResolvedValue(null);
+    const provider = {
+      summarizeDashboard: vi.fn(),
+    };
+    const service = createDashboardSummaryService({ repository, provider });
+
+    await expect(service.createForCompletedJob("job-1")).resolves.toBeNull();
+
     expect(provider.summarizeDashboard).not.toHaveBeenCalled();
   });
 });

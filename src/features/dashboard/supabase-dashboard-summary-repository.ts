@@ -28,14 +28,31 @@ type SummaryInsert = {
   usage: Record<string, number>;
 };
 
+type SummaryAttemptClaim = {
+  attempt_count: number;
+};
+
 export const createSupabaseDashboardSummaryRepository = ({
+  claimAttempt,
   findByJobId: loadExisting,
   insert,
   loadInputs,
+  updateAttempt,
 }: {
   loadInputs(jobId: string): Promise<SummaryInputRow | null>;
   findByJobId(jobId: string): Promise<SummaryRow | null>;
   insert(input: SummaryInsert): Promise<SummaryRow>;
+  claimAttempt(input: {
+    target_workspace_id: string;
+    target_analysis_job_id: string;
+    target_max_attempts: number;
+  }): Promise<SummaryAttemptClaim | null>;
+  updateAttempt(input: {
+    analysis_job_id: string;
+    attempt_count: number;
+    state: "failed" | "succeeded";
+    error_code: string | null;
+  }): Promise<void>;
 }): DashboardSummaryRepository => {
   const inputsByJobId = new Map<string, Promise<SummaryInputRow | null>>();
   const getInputs = (jobId: string) => {
@@ -90,6 +107,30 @@ export const createSupabaseDashboardSummaryRepository = ({
         usage: input.usage,
       });
       return { id: row.id, summaryText: row.summary_text };
+    },
+    async claimAttempt(input) {
+      const row = await claimAttempt({
+        target_workspace_id: input.workspaceId,
+        target_analysis_job_id: input.analysisJobId,
+        target_max_attempts: input.maxAttempts,
+      });
+      return row ? { attemptCount: row.attempt_count } : null;
+    },
+    async markAttemptFailed(input) {
+      await updateAttempt({
+        analysis_job_id: input.analysisJobId,
+        attempt_count: input.attemptCount,
+        state: "failed",
+        error_code: input.errorCode,
+      });
+    },
+    async markSucceeded(input) {
+      await updateAttempt({
+        analysis_job_id: input.analysisJobId,
+        attempt_count: input.attemptCount,
+        state: "succeeded",
+        error_code: null,
+      });
     },
   };
 };

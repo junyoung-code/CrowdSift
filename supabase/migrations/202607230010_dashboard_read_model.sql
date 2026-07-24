@@ -47,6 +47,13 @@ begin
       )::bigint as pending_review
     from public.current_comment_analyses cca
     where cca.workspace_id = target_workspace_id
+  ),
+  latest_import as (
+    select cij.*
+    from public.comment_import_jobs cij
+    where cij.workspace_id = target_workspace_id
+    order by cij.created_at desc, cij.id desc
+    limit 1
   )
   select
     cc.imported,
@@ -63,8 +70,12 @@ begin
         'thumbnailUrl', ycc.thumbnail_url
       )
       from public.youtube_channel_candidates ycc
+      join public.youtube_connections yc
+        on yc.id = ycc.connection_id
+        and yc.workspace_id = ycc.workspace_id
       where ycc.workspace_id = target_workspace_id
         and ycc.selected
+        and yc.status = 'connected'
       limit 1
     ),
     (
@@ -74,9 +85,10 @@ begin
         'thumbnailUrl', yv.thumbnail_url,
         'publishedAt', yv.published_at
       )
-      from public.youtube_videos yv
-      where yv.workspace_id = target_workspace_id
-      order by yv.captured_at desc
+      from latest_import li
+      join public.youtube_videos yv
+        on yv.workspace_id = li.workspace_id
+        and yv.youtube_video_id = li.youtube_video_id
       limit 1
     ),
     (
@@ -88,9 +100,7 @@ begin
         'failedCount', cij.failed_count,
         'createdAt', cij.created_at
       )
-      from public.comment_import_jobs cij
-      where cij.workspace_id = target_workspace_id
-      order by cij.created_at desc
+      from latest_import cij
       limit 1
     ),
     (

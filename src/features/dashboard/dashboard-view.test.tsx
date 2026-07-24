@@ -112,4 +112,31 @@ describe("DashboardView", () => {
     ).toBeInTheDocument();
     expect(screen.queryByText("가져온 댓글")).not.toBeInTheDocument();
   });
+
+  it("renders moderation actions with creator-facing Korean labels", () => {
+    const data = readyData({
+      imported: 37,
+      analyzed: 35,
+      caution: 8,
+      risk: 2,
+    });
+    if (data.state !== "ready") {
+      throw new Error("Expected ready dashboard data");
+    }
+    data.recentActions = [
+      {
+        id: "action-1",
+        action: "hold_for_review",
+        state: "pending_confirmation",
+        createdAt: "2026-07-23T00:10:00.000Z",
+      },
+    ];
+
+    render(<DashboardView data={data} />);
+
+    expect(screen.getByText("검토 대기로 이동")).toBeInTheDocument();
+    expect(screen.getByText("사용자 확인 대기")).toBeInTheDocument();
+    expect(screen.queryByText("hold_for_review")).not.toBeInTheDocument();
+    expect(screen.queryByText("pending_confirmation")).not.toBeInTheDocument();
+  });
 });

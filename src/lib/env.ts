@@ -23,6 +23,7 @@ const serverEnvSchema = z.object({
     .enum(["true", "false"])
     .default("false")
     .transform((value) => value === "true"),
+  INTERNAL_WORKER_SECRET: z.string().min(32).optional(),
   APP_ORIGIN: z.url(),
 });
 

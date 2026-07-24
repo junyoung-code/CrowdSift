@@ -35,6 +35,20 @@ export interface DashboardSummaryRepository {
     schemaVersion: string;
     usage: Record<string, number>;
   }): Promise<StoredDashboardSummary>;
+  claimAttempt(input: {
+    workspaceId: string;
+    analysisJobId: string;
+    maxAttempts: number;
+  }): Promise<{ attemptCount: number } | null>;
+  markAttemptFailed(input: {
+    analysisJobId: string;
+    attemptCount: number;
+    errorCode: string;
+  }): Promise<void>;
+  markSucceeded(input: {
+    analysisJobId: string;
+    attemptCount: number;
+  }): Promise<void>;
 }
 
 const TERMINAL_JOB_STATUSES = new Set([
@@ -74,28 +88,51 @@ export const createDashboardSummaryService = ({
       return null;
     }
 
-    const inputs = await repository.getSummaryInputs(jobId);
-    const sanitizedSignals = inputs.sanitizedSignals
-      .map((signal) => signal.trim())
-      .filter(Boolean)
-      .slice(0, 20);
-    const result = await provider.summarizeDashboard({
-      analysisCount,
-      distribution: inputs.distribution,
-      sanitizedSignals,
-    });
-
-    return repository.insertSummary({
+    const attempt = await repository.claimAttempt({
       workspaceId: job.workspaceId,
       analysisJobId: jobId,
-      sourceAnalysisCount: analysisCount,
-      summaryText: result.output.summary,
-      provider: result.provider,
-      modelIdentifier: result.modelIdentifier,
-      providerResponseId: result.providerResponseId,
-      promptVersion: DASHBOARD_SUMMARY_PROMPT_VERSION,
-      schemaVersion: DASHBOARD_SUMMARY_SCHEMA_VERSION,
-      usage: result.usage,
+      maxAttempts: 3,
     });
+    if (!attempt) {
+      return null;
+    }
+
+    try {
+      const inputs = await repository.getSummaryInputs(jobId);
+      const sanitizedSignals = inputs.sanitizedSignals
+        .map((signal) => signal.trim())
+        .filter(Boolean)
+        .slice(0, 20);
+      const result = await provider.summarizeDashboard({
+        analysisCount,
+        distribution: inputs.distribution,
+        sanitizedSignals,
+      });
+
+      const summary = await repository.insertSummary({
+        workspaceId: job.workspaceId,
+        analysisJobId: jobId,
+        sourceAnalysisCount: analysisCount,
+        summaryText: result.output.summary,
+        provider: result.provider,
+        modelIdentifier: result.modelIdentifier,
+        providerResponseId: result.providerResponseId,
+        promptVersion: DASHBOARD_SUMMARY_PROMPT_VERSION,
+        schemaVersion: DASHBOARD_SUMMARY_SCHEMA_VERSION,
+        usage: result.usage,
+      });
+      await repository.markSucceeded({
+        analysisJobId: jobId,
+        attemptCount: attempt.attemptCount,
+      });
+      return summary;
+    } catch (error) {
+      await repository.markAttemptFailed({
+        analysisJobId: jobId,
+        attemptCount: attempt.attemptCount,
+        errorCode: "dashboard_summary_failed",
+      });
+      throw error;
+    }
   },
 });
