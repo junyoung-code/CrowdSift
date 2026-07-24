@@ -4337,31 +4337,113 @@ a {
 }
 
 .source-reveal-content {
-  border: 1px solid color-mix(in srgb, var(--ch-caution) 22%, white);
+  display: grid;
+  gap: 9px;
+}
+
+.comment-source-block {
   border-radius: 13px;
-  padding: 13px;
+  padding: 15px;
+}
+
+.comment-source-block.is-safe {
+  border: 1px solid color-mix(in srgb, var(--ch-safe) 22%, white);
+  background: color-mix(in srgb, var(--ch-safe-soft) 68%, white);
+}
+
+.comment-source-block.is-protected {
+  border: 1px solid color-mix(in srgb, var(--ch-caution) 24%, white);
   background: var(--ch-caution-soft);
 }
 
-.source-reveal-content > div {
-  display: flex;
+.comment-source-protected-label {
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
+  margin-bottom: 11px;
   color: var(--ch-caution);
   font-size: 10px;
+  letter-spacing: 0.02em;
 }
 
-.source-reveal-content p {
-  margin: 10px 0;
+.comment-source-author {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.comment-source-author > div {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.comment-source-author strong {
+  overflow: hidden;
   color: var(--ch-ink);
   font-size: 12px;
-  line-height: 1.6;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.comment-source-author time {
+  color: var(--ch-muted);
+  font-size: 9px;
+}
+
+.comment-source-avatar,
+.comment-source-avatar-fallback {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  border-radius: 999px;
+}
+
+.comment-source-avatar {
+  object-fit: cover;
+}
+
+.comment-source-avatar-fallback {
+  display: grid;
+  place-items: center;
+  background: white;
+  color: var(--ch-muted);
+}
+
+.comment-source-avatar-fallback svg {
+  width: 27px;
+  height: 27px;
+}
+
+.comment-source-text {
+  margin: 13px 0 0;
+  color: var(--ch-ink);
+  font-size: 14px;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
   white-space: pre-wrap;
 }
 
-.source-reveal-content small {
+.comment-source-block > small {
+  display: block;
+  margin-top: 10px;
   color: var(--ch-muted);
   font-size: 9px;
+}
+
+.source-collapse-button {
+  min-height: 38px;
+  justify-self: start;
+}
+
+.source-collapse-button:focus-visible,
+.source-reveal-button:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--ch-blue) 35%, transparent);
+  outline-offset: 2px;
+}
+
+.source-reveal-content > div {
+  color: inherit;
+  font-size: 10px;
 }
 
 .feedback-correction {

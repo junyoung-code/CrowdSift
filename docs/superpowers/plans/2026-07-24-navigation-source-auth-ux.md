@@ -533,7 +533,7 @@ git commit -m "fix: load acknowledged source through secure rpc"
 - Produces: reusable `CommentSourceBlock`.
 - Guarantees: only `safe` renders source without acknowledgement.
 
-- [ ] **Step 1: Write failing repository and Inbox tests**
+- [x] **Step 1: Write failing repository and Inbox tests**
 
 Add `safe_source_text` to the RPC fixture and assert mapping:
 
@@ -572,7 +572,7 @@ it.each(["caution", "risk"] as const)(
 );
 ```
 
-- [ ] **Step 2: Write failing SourceReveal interaction tests**
+- [x] **Step 2: Write failing SourceReveal interaction tests**
 
 Assert that after acknowledgement:
 
@@ -582,7 +582,7 @@ Assert that after acknowledgement:
 - a 500 response leaves a retry button available;
 - `textOriginal` is neither expected nor rendered.
 
-- [ ] **Step 3: Run focused tests and confirm failure**
+- [x] **Step 3: Run focused tests and confirm failure**
 
 Run:
 
@@ -592,7 +592,7 @@ npm test -- src/features/inbox
 
 Expected: FAIL because `safeSourceText`, `CommentSourceBlock`, enriched source, retry, and collapse do not exist.
 
-- [ ] **Step 4: Extend Inbox contracts and repository mapping**
+- [x] **Step 4: Extend Inbox contracts and repository mapping**
 
 Add:
 
@@ -608,7 +608,7 @@ safeSourceText: row.safe_source_text,
 
 and add `safe_source_text: string | null` to `InboxRpcRow`.
 
-- [ ] **Step 5: Implement `CommentSourceBlock`**
+- [x] **Step 5: Implement `CommentSourceBlock`**
 
 ```tsx
 type CommentSourceBlockProps = {
@@ -630,7 +630,7 @@ Render:
 - captured time only for acknowledged protected source;
 - `확인한 원문` label only when `protectedSource`.
 
-- [ ] **Step 6: Implement safe and protected branches**
+- [x] **Step 6: Implement safe and protected branches**
 
 In `CommentInbox`:
 
@@ -654,11 +654,11 @@ In `SourceReveal`:
 - retain the sanitized parent summary;
 - show `다시 시도` after a transient error.
 
-- [ ] **Step 7: Add accessible styling**
+- [x] **Step 7: Add accessible styling**
 
 Add focused classes for source author row, avatar, fallback icon, source body, protected label, collapse, and retry. Preserve desktop and responsive Inbox layout. Ensure controls have visible focus styles and do not rely on color alone.
 
-- [ ] **Step 8: Run focused and component tests**
+- [x] **Step 8: Run focused and component tests**
 
 Run:
 
@@ -668,7 +668,7 @@ npm test -- src/features/inbox
 
 Expected: PASS.
 
-- [ ] **Step 9: Commit Task 4**
+- [x] **Step 9: Commit Task 4**
 
 ```bash
 git add src/features/inbox src/app/globals.css

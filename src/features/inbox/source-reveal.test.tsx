@@ -23,9 +23,11 @@ describe("SourceReveal", () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       json: vi.fn().mockResolvedValue({
+        authorDisplayName: "테스트 작성자",
+        authorAvatarUrl: null,
+        publishedAt: "2026-07-23T00:00:00.000Z",
         textDisplay: "source harmful text",
-        textOriginal: null,
-        capturedAt: "2026-07-23T00:00:00.000Z",
+        capturedAt: "2026-07-23T00:01:00.000Z",
       }),
     });
     vi.stubGlobal("fetch", fetchMock);
@@ -50,5 +52,81 @@ describe("SourceReveal", () => {
       }),
     );
     expect(await screen.findByText("source harmful text")).toBeInTheDocument();
+    expect(screen.getByText("테스트 작성자")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "원문 접기" }),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "원문 접기" }));
+
+    expect(screen.queryByText("source harmful text")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "원문 확인" }),
+    ).toBeInTheDocument();
+  });
+
+  it("keeps the sanitized summary visible after revealing source", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: vi.fn().mockResolvedValue({
+          authorDisplayName: "테스트 작성자",
+          authorAvatarUrl: null,
+          publishedAt: "2026-07-23T00:00:00.000Z",
+          textDisplay: "원문에만 있는 표현",
+          capturedAt: "2026-07-23T00:01:00.000Z",
+        }),
+      }),
+    );
+
+    render(
+      <div>
+        <p>순화된 요약</p>
+        <SourceReveal commentId="comment-1" />
+      </div>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "원문 확인" }));
+    await user.click(
+      screen.getByRole("button", { name: "경고를 확인하고 원문 보기" }),
+    );
+
+    expect(await screen.findByText("원문에만 있는 표현")).toBeInTheDocument();
+    expect(screen.getByText("순화된 요약")).toBeInTheDocument();
+  });
+
+  it("offers a retry after a transient source failure", async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: false })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: vi.fn().mockResolvedValue({
+          authorDisplayName: null,
+          authorAvatarUrl: null,
+          publishedAt: null,
+          textDisplay: "재시도 후 원문",
+          capturedAt: "2026-07-23T00:01:00.000Z",
+        }),
+      });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<SourceReveal commentId="comment-1" />);
+
+    await user.click(screen.getByRole("button", { name: "원문 확인" }));
+    await user.click(
+      screen.getByRole("button", { name: "경고를 확인하고 원문 보기" }),
+    );
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "원문을 불러오지 못했습니다",
+    );
+    await user.click(screen.getByRole("button", { name: "다시 시도" }));
+
+    expect(await screen.findByText("재시도 후 원문")).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });

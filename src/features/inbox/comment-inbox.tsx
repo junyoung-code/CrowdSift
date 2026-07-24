@@ -22,6 +22,7 @@ import type {
   InboxAnalysisState,
   InboxItem,
 } from "./inbox-query";
+import { CommentSourceBlock } from "./comment-source-block";
 import { SourceReveal } from "./source-reveal";
 
 const LEVEL_DETAILS: Record<
@@ -298,7 +299,7 @@ export function CommentInbox({
             <p>COMMENT INBOX</p>
             <h2 id="inbox-results-title">댓글 {data.total}개</h2>
           </div>
-          <span>원문은 확인 전까지 화면에 포함하지 않습니다</span>
+          <span>주의·위험 원문은 확인 전까지 화면에 포함하지 않습니다</span>
         </header>
 
         {data.items.length === 0 ? (
@@ -320,6 +321,10 @@ export function CommentInbox({
                 : null;
               const LevelIcon = levelDetails?.icon ?? Circle;
               const isPublicSource = item.sourceKind === "public_url";
+              const showSafeSource =
+                item.reviewLevel === "safe" &&
+                item.sourceAvailable &&
+                item.safeSourceText !== null;
 
               return (
                 <article
@@ -369,9 +374,27 @@ export function CommentInbox({
                       </div>
                     </div>
 
-                    <p className="inbox-sanitized-feedback">
-                      {getPrimarySummary(item)}
-                    </p>
+                    {showSafeSource ? (
+                      <CommentSourceBlock
+                        authorAvatarUrl={item.authorAvatarUrl}
+                        authorDisplayName={item.authorDisplayName}
+                        publishedAt={item.publishedAt}
+                        textDisplay={item.safeSourceText}
+                      />
+                    ) : (
+                      <>
+                        <p className="inbox-sanitized-feedback">
+                          {getPrimarySummary(item)}
+                        </p>
+                        {item.sourceAvailable ? (
+                          <SourceReveal commentId={item.rawCommentId} />
+                        ) : (
+                          <p className="source-unavailable">
+                            YouTube에서 더 이상 원문을 확인할 수 없습니다.
+                          </p>
+                        )}
+                      </>
+                    )}
 
                     <dl className="inbox-analysis-facts">
                       <div>
@@ -412,14 +435,6 @@ export function CommentInbox({
                   </div>
 
                   <div className="inbox-comment-controls">
-                    {item.sourceAvailable ? (
-                      <SourceReveal commentId={item.rawCommentId} />
-                    ) : (
-                      <p className="source-unavailable">
-                        YouTube에서 더 이상 원문을 확인할 수 없습니다.
-                      </p>
-                    )}
-
                     {item.analysisId && item.category && item.reviewLevel ? (
                       <details className="feedback-correction">
                         <summary>

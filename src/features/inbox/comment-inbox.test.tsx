@@ -2,28 +2,44 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { CommentInbox } from "./comment-inbox";
+import type { InboxItem } from "./inbox-query";
 
-const item = {
+const item: InboxItem = {
   rawCommentId: "comment-1",
   sourceImportJobId: "import-1",
-  sourceKind: "owned_oauth" as const,
+  sourceKind: "owned_oauth",
   youtubeVideoId: "video-1",
   authorDisplayName: "시청자",
   authorAvatarUrl: null,
   publishedAt: "2026-07-23T00:00:00.000Z",
   sourceAvailable: true,
+  safeSourceText: null,
   analysisId: "analysis-1",
-  category: "toxic_but_actionable" as const,
-  reviewLevel: "caution" as const,
+  category: "toxic_but_actionable",
+  reviewLevel: "caution",
   confidence: 0.82,
-  recommendedAction: "review" as const,
+  recommendedAction: "review",
   manualReview: true,
   neutralText: "자막 크기를 키워 달라는 요청",
   normalizedQuestion: null,
-  analysisState: "analyzed" as const,
+  analysisState: "analyzed",
   actionState: null,
   deleteEligible: false,
 };
+
+const renderInbox = (
+  inboxItem: InboxItem,
+  reviewLevels = ["caution", "risk"] as const,
+) =>
+  render(
+    <CommentInbox
+      correctionAction={vi.fn()}
+      moderationAction={vi.fn()}
+      data={{ items: [inboxItem], total: 1 }}
+      filters={{ reviewLevels: [...reviewLevels] }}
+      videos={[{ id: "video-1", title: "새 영상" }]}
+    />,
+  );
 
 describe("CommentInbox", () => {
   it("shows sanitized feedback and never embeds source text in the list", () => {
@@ -63,6 +79,41 @@ describe("CommentInbox", () => {
       }),
     ).toBeInTheDocument();
   });
+
+  it("shows safe source immediately without a reveal button", () => {
+    renderInbox(
+      {
+        ...item,
+        reviewLevel: "safe",
+        category: "positive",
+        safeSourceText: "오늘 영상도 잘 봤어요.",
+      },
+      ["safe"],
+    );
+
+    expect(screen.getByText("오늘 영상도 잘 봤어요.")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "원문 확인" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it.each(["caution", "risk"] as const)(
+    "does not embed %s source in the initial card",
+    (reviewLevel) => {
+      renderInbox({
+        ...item,
+        reviewLevel,
+        safeSourceText: null,
+      });
+
+      expect(
+        screen.queryByText("원문에만 있는 표현"),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: "원문 확인" }),
+      ).toBeInTheDocument();
+    },
+  );
 
   it("explains why no numbers are shown when the queue is empty", () => {
     render(

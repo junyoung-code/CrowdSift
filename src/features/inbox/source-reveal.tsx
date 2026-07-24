@@ -1,17 +1,14 @@
 "use client";
 
-import { Eye, WarningCircle, X } from "@phosphor-icons/react";
+import { CaretUp, Eye, WarningCircle, X } from "@phosphor-icons/react";
 import { useState } from "react";
 
-type SourcePayload = {
-  textDisplay: string;
-  textOriginal: string | null;
-  capturedAt: string;
-};
+import type { CommentSource } from "./source-service";
+import { CommentSourceBlock } from "./comment-source-block";
 
 export function SourceReveal({ commentId }: { commentId: string }) {
   const [warningOpen, setWarningOpen] = useState(false);
-  const [source, setSource] = useState<SourcePayload | null>(null);
+  const [source, setSource] = useState<CommentSource | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -33,7 +30,7 @@ export function SourceReveal({ commentId }: { commentId: string }) {
         throw new Error("source_request_failed");
       }
 
-      setSource((await response.json()) as SourcePayload);
+      setSource((await response.json()) as CommentSource);
       setWarningOpen(false);
     } catch {
       setError("원문을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.");
@@ -44,20 +41,27 @@ export function SourceReveal({ commentId }: { commentId: string }) {
 
   if (source) {
     return (
-      <section className="source-reveal-content" aria-label="확인한 댓글 원문">
-        <div>
-          <WarningCircle aria-hidden="true" weight="fill" />
-          <strong>확인한 원문</strong>
-        </div>
-        <p>{source.textOriginal ?? source.textDisplay}</p>
-        <small>
-          수집 시각:{" "}
-          {new Intl.DateTimeFormat("ko-KR", {
-            dateStyle: "medium",
-            timeStyle: "short",
-          }).format(new Date(source.capturedAt))}
-        </small>
-      </section>
+      <div className="source-reveal-content">
+        <CommentSourceBlock
+          authorAvatarUrl={source.authorAvatarUrl}
+          authorDisplayName={source.authorDisplayName}
+          capturedAt={source.capturedAt}
+          protectedSource
+          publishedAt={source.publishedAt}
+          textDisplay={source.textDisplay}
+        />
+        <button
+          className="button button-secondary source-collapse-button"
+          onClick={() => {
+            setSource(null);
+            setError(null);
+          }}
+          type="button"
+        >
+          <CaretUp aria-hidden="true" weight="bold" />
+          원문 접기
+        </button>
+      </div>
     );
   }
 
@@ -113,7 +117,11 @@ export function SourceReveal({ commentId }: { commentId: string }) {
                 onClick={revealSource}
                 type="button"
               >
-                {loading ? "불러오는 중…" : "경고를 확인하고 원문 보기"}
+                {loading
+                  ? "불러오는 중…"
+                  : error
+                    ? "다시 시도"
+                    : "경고를 확인하고 원문 보기"}
               </button>
             </div>
           </section>

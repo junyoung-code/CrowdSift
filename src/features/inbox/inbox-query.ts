@@ -22,6 +22,7 @@ export type InboxItem = {
   authorAvatarUrl: string | null;
   publishedAt: string | null;
   sourceAvailable: boolean;
+  safeSourceText: string | null;
   analysisId: string | null;
   category: CommentCategory | null;
   reviewLevel: ReviewLevel | null;

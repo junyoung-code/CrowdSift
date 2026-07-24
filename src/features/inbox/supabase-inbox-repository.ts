@@ -19,6 +19,7 @@ type InboxRpcRow = {
   author_avatar_url: string | null;
   published_at: string | null;
   source_available: boolean;
+  safe_source_text: string | null;
   analysis_id: string | null;
   category: InboxItem["category"];
   review_level: InboxItem["reviewLevel"];
@@ -87,6 +88,7 @@ export const createSupabaseInboxRepository = ({
         authorAvatarUrl: row.author_avatar_url,
         publishedAt: row.published_at,
         sourceAvailable: row.source_available,
+        safeSourceText: row.safe_source_text,
         analysisId: row.analysis_id,
         category: row.category,
         reviewLevel: row.review_level,

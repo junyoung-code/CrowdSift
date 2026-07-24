@@ -15,6 +15,7 @@ describe("Supabase Inbox repository", () => {
           author_avatar_url: null,
           published_at: "2026-07-23T00:00:00.000Z",
           source_available: true,
+          safe_source_text: "안전 댓글 원문",
           analysis_id: "analysis-1",
           category: "question",
           review_level: "caution",
@@ -76,5 +77,6 @@ describe("Supabase Inbox repository", () => {
       ],
       total: 1,
     });
+    expect(result.items[0]?.safeSourceText).toBe("안전 댓글 원문");
   });
 });
