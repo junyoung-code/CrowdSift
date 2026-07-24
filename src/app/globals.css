@@ -1787,8 +1787,12 @@ a {
     color 150ms ease;
 }
 
-.product-navigation a:first-child,
 .product-navigation a:hover {
+  background: #f4f7fc;
+  color: var(--ch-ink-soft);
+}
+
+.product-navigation a.is-active {
   background: var(--ch-blue-soft);
   color: var(--ch-blue-strong);
 }

@@ -62,7 +62,7 @@
 - Produces: `isNavigationItemActive(pathname: string, href: string): boolean` and `AppNavigation`.
 - Guarantees: at most one link receives `className="is-active"` and `aria-current="page"`.
 
-- [ ] **Step 1: Write failing route-matching tests**
+- [x] **Step 1: Write failing route-matching tests**
 
 ```tsx
 import { render, screen } from "@testing-library/react";
@@ -105,7 +105,7 @@ describe("AppNavigation", () => {
 });
 ```
 
-- [ ] **Step 2: Run the focused test and confirm failure**
+- [x] **Step 2: Run the focused test and confirm failure**
 
 Run:
 
@@ -115,7 +115,7 @@ npm test -- src/features/app-shell/app-navigation.test.tsx
 
 Expected: FAIL because `app-navigation.tsx` does not exist.
 
-- [ ] **Step 3: Implement the client navigation**
+- [x] **Step 3: Implement the client navigation**
 
 ```tsx
 "use client";
@@ -181,7 +181,7 @@ Replace the inline navigation map in `AppShell` with `<AppNavigation />`. Change
 }
 ```
 
-- [ ] **Step 4: Run navigation and shell tests**
+- [x] **Step 4: Run navigation and shell tests**
 
 Run:
 
@@ -191,7 +191,7 @@ npm test -- src/features/app-shell/app-navigation.test.tsx src/features/app-shel
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit Task 1**
+- [x] **Step 5: Commit Task 1**
 
 ```bash
 git add src/features/app-shell/app-navigation.tsx src/features/app-shell/app-navigation.test.tsx src/features/app-shell/app-shell.tsx src/features/app-shell/app-shell.test.tsx src/app/globals.css

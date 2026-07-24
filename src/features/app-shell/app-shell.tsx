@@ -1,29 +1,8 @@
-import {
-  ChatCircleDots,
-  House,
-  ShieldCheck,
-  SlidersHorizontal,
-  Video,
-  YoutubeLogo,
-} from "@phosphor-icons/react/dist/ssr";
+import { ShieldCheck } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-const navigationItems = [
-  { href: "/app", label: "개요", icon: House },
-  { href: "/app/inbox", label: "댓글 Inbox", icon: ChatCircleDots },
-  { href: "/app/videos", label: "영상", icon: Video },
-  {
-    href: "/app/connect/youtube",
-    label: "YouTube 연결",
-    icon: YoutubeLogo,
-  },
-  {
-    href: "/app/settings/moderation",
-    label: "운영 기준",
-    icon: SlidersHorizontal,
-  },
-];
+import { AppNavigation } from "./app-navigation";
 
 export function AppShell({
   children,
@@ -42,14 +21,7 @@ export function AppShell({
           <strong>CommentHawk</strong>
         </Link>
 
-        <nav className="product-navigation" aria-label="CommentHawk 메뉴">
-          {navigationItems.map(({ href, icon: Icon, label }) => (
-            <Link href={href} key={href}>
-              <Icon aria-hidden="true" weight="duotone" />
-              <span>{label}</span>
-            </Link>
-          ))}
-        </nav>
+        <AppNavigation />
 
         <div className="product-sidebar-footer">
           <p>현재 단계</p>
