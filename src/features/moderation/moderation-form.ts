@@ -4,6 +4,7 @@ import type { ModerationAction } from "./contracts";
 
 const moderationRequestSchema = z.object({
   rawCommentId: z.uuid(),
+  sourceImportJobId: z.uuid(),
   action: z.enum(["hold_for_review", "publish", "reject", "delete"]),
 });
 
@@ -16,10 +17,12 @@ export const parseModerationRequestForm = (
   formData: FormData,
 ): {
   rawCommentId: string;
+  sourceImportJobId: string;
   action: ModerationAction;
 } => {
   const parsed = moderationRequestSchema.safeParse({
     rawCommentId: formData.get("rawCommentId"),
+    sourceImportJobId: formData.get("sourceImportJobId"),
     action: formData.get("action"),
   });
 

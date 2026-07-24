@@ -36,6 +36,39 @@ const createModerationDependencies = (workspaceId: string) => {
   );
 
   const repository: ModerationRepository = {
+    async loadSourceObservation(input) {
+      const [
+        { data: item, error: itemError },
+        { data: job, error: jobError },
+      ] = await Promise.all([
+        admin
+          .from("comment_import_items")
+          .select("import_job_id")
+          .eq("workspace_id", input.workspaceId)
+          .eq("import_job_id", input.sourceImportJobId)
+          .eq("raw_comment_id", input.rawCommentId)
+          .maybeSingle(),
+        admin
+          .from("comment_import_jobs")
+          .select("id, source_kind")
+          .eq("workspace_id", input.workspaceId)
+          .eq("id", input.sourceImportJobId)
+          .maybeSingle(),
+      ]);
+
+      if (itemError || jobError || !item || !job) {
+        throw (
+          itemError ??
+          jobError ??
+          new Error("SOURCE_OBSERVATION_MISMATCH")
+        );
+      }
+
+      return {
+        sourceKind: job.source_kind,
+        sourceImportJobId: job.id,
+      };
+    },
     async loadTarget(input) {
       const [
         { data: rawComment, error: rawError },
@@ -94,6 +127,8 @@ const createModerationDependencies = (workspaceId: string) => {
       }
 
       return {
+        sourceKind: "owned_oauth",
+        sourceImportJobId: input.sourceImportJobId,
         youtubeCommentId: rawComment.youtube_comment_id,
         connectionId: connection.id,
         connectionUpdatedAt: connection.updated_at,
@@ -129,6 +164,7 @@ const createModerationDependencies = (workspaceId: string) => {
         .rpc("create_moderation_request_with_evidence", {
           target_workspace_id: input.workspaceId,
           target_raw_comment_id: input.rawCommentId,
+          target_source_import_job_id: input.sourceImportJobId,
           target_requested_by: input.actorUserId,
           target_action: input.action,
           target_state: input.state,
@@ -153,7 +189,7 @@ const createModerationDependencies = (workspaceId: string) => {
       const { data: request, error: requestError } = await admin
         .from("moderation_action_requests")
         .select(
-          "id, workspace_id, raw_comment_id, requested_by, action, state, executed_at, provider_result, error_code, youtube_connection_id, youtube_channel_id, connection_updated_at",
+          "id, workspace_id, raw_comment_id, source_import_job_id, requested_by, action, state, executed_at, provider_result, error_code, youtube_connection_id, youtube_channel_id, connection_updated_at",
         )
         .eq("id", input.requestId)
         .eq("workspace_id", input.workspaceId)
@@ -165,14 +201,34 @@ const createModerationDependencies = (workspaceId: string) => {
 
       const state = request.state as ModerationRequestState;
       const isFinal = state === "succeeded" || state === "failed";
-      const { data: rawComment, error: rawError } = await admin
-        .from("raw_comments")
-        .select("youtube_comment_id, author_channel_id")
-        .eq("workspace_id", input.workspaceId)
-        .eq("id", request.raw_comment_id)
-        .maybeSingle();
-      if (rawError || !rawComment) {
-        throw rawError ?? new Error("Moderation source was not found");
+      const [
+        { data: rawComment, error: rawError },
+        { data: sourceJob, error: sourceJobError },
+      ] = await Promise.all([
+        admin
+          .from("raw_comments")
+          .select("youtube_comment_id, author_channel_id")
+          .eq("workspace_id", input.workspaceId)
+          .eq("id", request.raw_comment_id)
+          .maybeSingle(),
+        admin
+          .from("comment_import_jobs")
+          .select("id, source_kind")
+          .eq("workspace_id", input.workspaceId)
+          .eq("id", request.source_import_job_id)
+          .maybeSingle(),
+      ]);
+      if (
+        rawError ||
+        sourceJobError ||
+        !rawComment ||
+        !sourceJob
+      ) {
+        throw (
+          rawError ??
+          sourceJobError ??
+          new Error("Moderation source was not found")
+        );
       }
 
       if (isFinal) {
@@ -180,6 +236,8 @@ const createModerationDependencies = (workspaceId: string) => {
           requestId: request.id,
           workspaceId: request.workspace_id,
           rawCommentId: request.raw_comment_id,
+          sourceImportJobId: sourceJob.id,
+          sourceKind: sourceJob.source_kind,
           youtubeCommentId: rawComment.youtube_comment_id,
           requestedBy: request.requested_by,
           action: request.action as ModerationAction,
@@ -247,6 +305,8 @@ const createModerationDependencies = (workspaceId: string) => {
         requestId: request.id,
         workspaceId: request.workspace_id,
         rawCommentId: request.raw_comment_id,
+        sourceImportJobId: sourceJob.id,
+        sourceKind: sourceJob.source_kind,
         youtubeCommentId: rawComment.youtube_comment_id,
         requestedBy: request.requested_by,
         action: request.action as ModerationAction,
@@ -383,6 +443,7 @@ const createModerationDependencies = (workspaceId: string) => {
 export const requestYouTubeModeration = async (input: {
   workspaceId: string;
   rawCommentId: string;
+  sourceImportJobId: string;
   action: ModerationAction;
   actorUserId: string;
 }) =>

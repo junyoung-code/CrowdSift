@@ -7,6 +7,10 @@ describe("creator correction form", () => {
     const formData = new FormData();
     formData.set("rawCommentId", "11111111-1111-4111-8111-111111111111");
     formData.set("analysisId", "22222222-2222-4222-8222-222222222222");
+    formData.set(
+      "sourceImportJobId",
+      "33333333-3333-4333-8333-333333333333",
+    );
     formData.set("decision", "corrected");
     formData.set("correctedCategory", "constructive_feedback");
     formData.set("correctedReviewLevel", "caution");
@@ -17,6 +21,7 @@ describe("creator correction form", () => {
     expect(parseCreatorCorrectionForm(formData)).toEqual({
       rawCommentId: "11111111-1111-4111-8111-111111111111",
       analysisId: "22222222-2222-4222-8222-222222222222",
+      sourceImportJobId: "33333333-3333-4333-8333-333333333333",
       decision: "corrected",
       correctedCategory: "constructive_feedback",
       correctedReviewLevel: "caution",
@@ -31,6 +36,10 @@ describe("creator correction form", () => {
     const formData = new FormData();
     formData.set("rawCommentId", "11111111-1111-4111-8111-111111111111");
     formData.set("analysisId", "22222222-2222-4222-8222-222222222222");
+    formData.set(
+      "sourceImportJobId",
+      "33333333-3333-4333-8333-333333333333",
+    );
     formData.set("decision", "corrected");
     formData.set("correctedCategory", "made_up");
     formData.set("correctedReviewLevel", "caution");

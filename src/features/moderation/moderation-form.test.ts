@@ -9,10 +9,15 @@ describe("parseModerationRequestForm", () => {
   it("accepts a supported action and a UUID comment id", () => {
     const formData = new FormData();
     formData.set("rawCommentId", "11111111-1111-4111-8111-111111111111");
+    formData.set(
+      "sourceImportJobId",
+      "33333333-3333-4333-8333-333333333333",
+    );
     formData.set("action", "hold_for_review");
 
     expect(parseModerationRequestForm(formData)).toEqual({
       rawCommentId: "11111111-1111-4111-8111-111111111111",
+      sourceImportJobId: "33333333-3333-4333-8333-333333333333",
       action: "hold_for_review",
     });
   });
@@ -20,6 +25,10 @@ describe("parseModerationRequestForm", () => {
   it("rejects unsupported actions before any provider call", () => {
     const formData = new FormData();
     formData.set("rawCommentId", "11111111-1111-4111-8111-111111111111");
+    formData.set(
+      "sourceImportJobId",
+      "33333333-3333-4333-8333-333333333333",
+    );
     formData.set("action", "ban_creator");
 
     expect(() => parseModerationRequestForm(formData)).toThrow(

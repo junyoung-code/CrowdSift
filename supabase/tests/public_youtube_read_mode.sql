@@ -56,7 +56,7 @@ values (
   'Public test video'
 );
 
-select plan(12);
+select plan(17);
 
 insert into public.comment_import_jobs (
   id,
@@ -209,6 +209,45 @@ values (
   '28282828-2828-4282-8282-282828282828'
 );
 
+update public.comment_import_items
+set
+  raw_comment_id = '29292929-2929-4292-8292-292929292929',
+  status = 'succeeded'
+where import_job_id = '28282828-2828-4282-8282-282828282828'
+  and youtube_comment_id = 'public-comment-1';
+
+insert into public.raw_comments (
+  id,
+  workspace_id,
+  youtube_video_id,
+  youtube_comment_id,
+  text_display,
+  first_import_job_id
+)
+values (
+  '31313131-3131-4313-8313-313131313131',
+  '25252525-2525-4252-8252-252525252525',
+  'dQw4w9WgXcQ',
+  'owned-comment-1',
+  '소유 채널에서 가져온 댓글',
+  '27272727-2727-4272-8272-272727272727'
+);
+
+insert into public.comment_import_items (
+  import_job_id,
+  workspace_id,
+  youtube_comment_id,
+  raw_comment_id,
+  status
+)
+values (
+  '27272727-2727-4272-8272-272727272727',
+  '25252525-2525-4252-8252-252525252525',
+  'owned-comment-1',
+  '31313131-3131-4313-8313-313131313131',
+  'succeeded'
+);
+
 insert into public.analysis_jobs (
   id,
   workspace_id,
@@ -337,6 +376,132 @@ select results_eq(
   $$,
   $$ values (3, 12, 8) $$,
   'quota and parent/reply counts are readable'
+);
+
+select throws_ok(
+  $$
+    insert into public.creator_feedback (
+      workspace_id,
+      raw_comment_id,
+      analysis_id,
+      source_import_job_id,
+      actor_user_id,
+      decision,
+      use_for_personalization
+    )
+    values (
+      '25252525-2525-4252-8252-252525252525',
+      '29292929-2929-4292-8292-292929292929',
+      '32323232-3232-4323-8323-323232323232',
+      '28282828-2828-4282-8282-282828282828',
+      '24242424-2424-4242-8242-242424242424',
+      'approved',
+      true
+    )
+  $$,
+  '42501',
+  'public source feedback cannot enable personalization or training',
+  'public feedback cannot opt into personalization'
+);
+
+select throws_ok(
+  $$
+    insert into public.creator_feedback (
+      workspace_id,
+      raw_comment_id,
+      analysis_id,
+      source_import_job_id,
+      actor_user_id,
+      decision,
+      use_for_training
+    )
+    values (
+      '25252525-2525-4252-8252-252525252525',
+      '29292929-2929-4292-8292-292929292929',
+      '32323232-3232-4323-8323-323232323232',
+      '28282828-2828-4282-8282-282828282828',
+      '24242424-2424-4242-8242-242424242424',
+      'approved',
+      true
+    )
+  $$,
+  '42501',
+  'public source feedback cannot enable personalization or training',
+  'public feedback cannot opt into training'
+);
+
+select throws_ok(
+  $$
+    insert into public.moderation_action_requests (
+      workspace_id,
+      raw_comment_id,
+      source_import_job_id,
+      requested_by,
+      action,
+      idempotency_key,
+      state
+    )
+    values (
+      '25252525-2525-4252-8252-252525252525',
+      '29292929-2929-4292-8292-292929292929',
+      '28282828-2828-4282-8282-282828282828',
+      '24242424-2424-4242-8242-242424242424',
+      'reject',
+      'public-moderation-rejected',
+      'pending_confirmation'
+    )
+  $$,
+  '42501',
+  'public source comments are read-only',
+  'public comments cannot create moderation requests'
+);
+
+select throws_ok(
+  $$
+    insert into public.creator_feedback (
+      workspace_id,
+      raw_comment_id,
+      analysis_id,
+      source_import_job_id,
+      actor_user_id,
+      decision
+    )
+    values (
+      '25252525-2525-4252-8252-252525252525',
+      '31313131-3131-4313-8313-313131313131',
+      '32323232-3232-4323-8323-323232323232',
+      '28282828-2828-4282-8282-282828282828',
+      '24242424-2424-4242-8242-242424242424',
+      'approved'
+    )
+  $$,
+  '42501',
+  'feedback source observation mismatch',
+  'a caller cannot swap the raw comment for another observation'
+);
+
+select lives_ok(
+  $$
+    insert into public.moderation_action_requests (
+      workspace_id,
+      raw_comment_id,
+      source_import_job_id,
+      requested_by,
+      action,
+      idempotency_key,
+      state
+    )
+    values (
+      '25252525-2525-4252-8252-252525252525',
+      '31313131-3131-4313-8313-313131313131',
+      '27272727-2727-4272-8272-272727272727',
+      '24242424-2424-4242-8242-242424242424',
+      'reject',
+      'owned-moderation-accepted',
+      'pending_confirmation'
+    )
+  $$,
+  'owned observations retain the existing moderation path'
 );
 
 set local role authenticated;

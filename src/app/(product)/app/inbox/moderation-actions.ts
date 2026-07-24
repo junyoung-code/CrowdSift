@@ -29,8 +29,15 @@ export const requestYouTubeModerationAction = async (formData: FormData) => {
       workspaceId,
       actorUserId: userId,
     });
-  } catch {
-    redirect("/app/inbox?moderationError=request_failed");
+  } catch (error) {
+    const code =
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      error.code === "PUBLIC_SOURCE_READ_ONLY"
+        ? "public_source_read_only"
+        : "request_failed";
+    redirect(`/app/inbox?moderationError=${code}`);
   }
 
   revalidatePath("/app/inbox");

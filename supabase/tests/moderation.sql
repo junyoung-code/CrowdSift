@@ -103,6 +103,21 @@ values (
   '99999999-9999-4999-8999-999999999999'
 );
 
+insert into public.comment_import_items (
+  import_job_id,
+  workspace_id,
+  youtube_comment_id,
+  raw_comment_id,
+  status
+)
+values (
+  '99999999-9999-4999-8999-999999999999',
+  '88888888-8888-4888-8888-888888888888',
+  'youtube-comment-1',
+  'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+  'succeeded'
+);
+
 select plan(18);
 
 set local role service_role;
@@ -114,6 +129,7 @@ select lives_ok(
     from public.create_moderation_request_with_evidence(
       '88888888-8888-4888-8888-888888888888',
       'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      '99999999-9999-4999-8999-999999999999',
       '77777777-7777-4777-8777-777777777777',
       'reject',
       'pending_confirmation',
@@ -240,6 +256,7 @@ select lives_ok(
     from public.create_moderation_request_with_evidence(
       '88888888-8888-4888-8888-888888888888',
       'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      '99999999-9999-4999-8999-999999999999',
       '77777777-7777-4777-8777-777777777777',
       'reject',
       'pending_confirmation',
@@ -298,6 +315,7 @@ select lives_ok(
     from public.create_moderation_request_with_evidence(
       '88888888-8888-4888-8888-888888888888',
       'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      '99999999-9999-4999-8999-999999999999',
       '77777777-7777-4777-8777-777777777777',
       'delete',
       'pending_confirmation',
@@ -331,6 +349,7 @@ select lives_ok(
     from public.create_moderation_request_with_evidence(
       '88888888-8888-4888-8888-888888888888',
       'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      '99999999-9999-4999-8999-999999999999',
       '77777777-7777-4777-8777-777777777777',
       'reject',
       'awaiting_scope',

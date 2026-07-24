@@ -9,6 +9,7 @@ import {
 const CreatorCorrectionFormSchema = z.object({
   rawCommentId: z.string().uuid(),
   analysisId: z.string().uuid(),
+  sourceImportJobId: z.string().uuid(),
   decision: z.enum(["approved", "rejected", "corrected"]),
   correctedCategory: CommentCategorySchema,
   correctedReviewLevel: ReviewLevelSchema,
@@ -22,6 +23,7 @@ export const parseCreatorCorrectionForm = (formData: FormData) =>
   CreatorCorrectionFormSchema.parse({
     rawCommentId: formData.get("rawCommentId"),
     analysisId: formData.get("analysisId"),
+    sourceImportJobId: formData.get("sourceImportJobId"),
     decision: formData.get("decision"),
     correctedCategory: formData.get("correctedCategory"),
     correctedReviewLevel: formData.get("correctedReviewLevel"),

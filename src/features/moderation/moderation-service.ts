@@ -10,6 +10,8 @@ export const FORCE_SSL_SCOPE =
   "https://www.googleapis.com/auth/youtube.force-ssl";
 
 type ModerationTarget = {
+  sourceKind: "owned_oauth" | "public_url";
+  sourceImportJobId: string;
   youtubeCommentId: string;
   connectionId: string;
   connectionUpdatedAt: string;
@@ -24,6 +26,8 @@ type StoredModerationRequest = {
   requestId: string;
   workspaceId: string;
   rawCommentId: string;
+  sourceImportJobId: string;
+  sourceKind: "owned_oauth" | "public_url";
   youtubeCommentId: string;
   requestedBy: string;
   action: ModerationAction;
@@ -40,13 +44,23 @@ type StoredModerationRequest = {
 };
 
 export interface ModerationRepository {
+  loadSourceObservation(input: {
+    workspaceId: string;
+    rawCommentId: string;
+    sourceImportJobId: string;
+  }): Promise<{
+    sourceKind: "owned_oauth" | "public_url";
+    sourceImportJobId: string;
+  }>;
   loadTarget(input: {
     workspaceId: string;
     rawCommentId: string;
+    sourceImportJobId: string;
   }): Promise<ModerationTarget>;
   createRequestWithEvidence(input: {
     workspaceId: string;
     rawCommentId: string;
+    sourceImportJobId: string;
     actorUserId: string;
     action: ModerationAction;
     state: "pending_confirmation" | "awaiting_scope";
@@ -115,6 +129,14 @@ export interface YouTubeModerationProvider {
   }): Promise<{ status: number }>;
 }
 
+export class PublicSourceReadOnlyError extends Error {
+  readonly code = "PUBLIC_SOURCE_READ_ONLY";
+
+  constructor() {
+    super("Public-source comments are read-only");
+  }
+}
+
 const MODERATION_STATUS = {
   hold_for_review: "heldForReview",
   publish: "published",
@@ -166,12 +188,26 @@ export const createModerationService = ({
   async requestModeration(input: {
     workspaceId: string;
     rawCommentId: string;
+    sourceImportJobId: string;
     action: ModerationAction;
     actorUserId: string;
   }) {
+    const observation = await repository.loadSourceObservation({
+      workspaceId: input.workspaceId,
+      rawCommentId: input.rawCommentId,
+      sourceImportJobId: input.sourceImportJobId,
+    });
+    if (observation.sourceImportJobId !== input.sourceImportJobId) {
+      throw new Error("SOURCE_OBSERVATION_MISMATCH");
+    }
+    if (observation.sourceKind === "public_url") {
+      throw new PublicSourceReadOnlyError();
+    }
+
     const target = await repository.loadTarget({
       workspaceId: input.workspaceId,
       rawCommentId: input.rawCommentId,
+      sourceImportJobId: input.sourceImportJobId,
     });
 
     if (
@@ -212,6 +248,9 @@ export const createModerationService = ({
     }
 
     const request = await repository.loadRequest(input);
+    if (request.sourceKind === "public_url") {
+      throw new PublicSourceReadOnlyError();
+    }
     if (
       (request.state === "succeeded" || request.state === "failed") &&
       request.result

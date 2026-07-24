@@ -1813,6 +1813,7 @@ export type Database = {
           target_idempotency_key: string
           target_raw_comment_id: string
           target_requested_by: string
+          target_source_import_job_id: string
           target_state: Database["public"]["Enums"]["action_state"]
           target_workspace_id: string
         }
@@ -2177,4 +2178,3 @@ export const Constants = {
     },
   },
 } as const
-

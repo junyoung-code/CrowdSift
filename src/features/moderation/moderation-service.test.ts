@@ -8,6 +8,8 @@ import {
 } from "./moderation-service";
 
 const target = {
+  sourceKind: "owned_oauth" as const,
+  sourceImportJobId: "import-job-1",
   youtubeCommentId: "youtube-comment-1",
   connectionId: "connection-1",
   connectionUpdatedAt: "2026-07-24T09:00:00.000Z",
@@ -27,6 +29,7 @@ const target = {
 const requestInput = {
   workspaceId: "workspace-1",
   rawCommentId: "raw-comment-1",
+  sourceImportJobId: "import-job-1",
   action: "reject" as const,
   actorUserId: "user-1",
 };
@@ -54,6 +57,10 @@ const createDependencies = () => {
   };
 
   const repository: ModerationRepository = {
+    loadSourceObservation: vi.fn(async () => ({
+      sourceKind: "owned_oauth" as const,
+      sourceImportJobId: "import-job-1",
+    })),
     loadTarget: vi.fn(async () => target),
     createRequestWithEvidence: vi.fn(async (input) => {
       storedState = input.state;
@@ -63,6 +70,8 @@ const createDependencies = () => {
       requestId: "request-1",
       workspaceId: "workspace-1",
       rawCommentId: "raw-comment-1",
+      sourceImportJobId: "import-job-1",
+      sourceKind: "owned_oauth" as const,
       youtubeCommentId: "youtube-comment-1",
       requestedBy: "user-1",
       action: "reject" as const,
@@ -170,6 +179,8 @@ describe("moderation service", () => {
       requestId: "request-1",
       workspaceId: "workspace-1",
       rawCommentId: "raw-comment-1",
+      sourceImportJobId: "import-job-1",
+      sourceKind: "owned_oauth",
       youtubeCommentId: "youtube-comment-1",
       requestedBy: "user-1",
       action: "delete",
@@ -199,6 +210,8 @@ describe("moderation service", () => {
       requestId: "request-1",
       workspaceId: "workspace-1",
       rawCommentId: "raw-comment-1",
+      sourceImportJobId: "import-job-1",
+      sourceKind: "owned_oauth",
       youtubeCommentId: "youtube-comment-1",
       requestedBy: "user-1",
       action: "reject",
@@ -339,5 +352,50 @@ describe("moderation service", () => {
       providerStatus: 403,
       errorCode: "youtube_moderation_failed",
     });
+  });
+
+  it.each([
+    "hold_for_review",
+    "publish",
+    "reject",
+    "delete",
+  ] as const)(
+    "rejects %s for a public source before storing or calling YouTube",
+    async (action) => {
+      const dependencies = createDependencies();
+      vi.mocked(
+        dependencies.repository.loadSourceObservation,
+      ).mockResolvedValue({
+        sourceKind: "public_url",
+        sourceImportJobId: "import-job-1",
+      });
+      const service = createModerationService(dependencies);
+
+      await expect(
+        service.requestModeration({ ...requestInput, action }),
+      ).rejects.toMatchObject({ code: "PUBLIC_SOURCE_READ_ONLY" });
+      expect(
+        dependencies.repository.createRequestWithEvidence,
+      ).not.toHaveBeenCalled();
+      expect(dependencies.provider.setModerationStatus).not.toHaveBeenCalled();
+      expect(dependencies.provider.deleteComment).not.toHaveBeenCalled();
+    },
+  );
+
+  it("rejects a mismatched source observation before provider access", async () => {
+    const dependencies = createDependencies();
+    vi.mocked(
+      dependencies.repository.loadSourceObservation,
+    ).mockResolvedValue({
+      sourceKind: "owned_oauth",
+      sourceImportJobId: "different-import-job",
+    });
+    const service = createModerationService(dependencies);
+
+    await expect(
+      service.requestModeration(requestInput),
+    ).rejects.toThrow("SOURCE_OBSERVATION_MISMATCH");
+    expect(dependencies.provider.setModerationStatus).not.toHaveBeenCalled();
+    expect(dependencies.provider.deleteComment).not.toHaveBeenCalled();
   });
 });

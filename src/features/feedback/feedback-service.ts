@@ -10,6 +10,7 @@ export type CreatorCorrection = {
   actorUserId: string;
   rawCommentId: string;
   analysisId: string;
+  sourceImportJobId: string;
   decision: "approved" | "rejected" | "corrected";
   correctedCategory: CommentCategory | null;
   correctedReviewLevel: ReviewLevel | null;
@@ -24,7 +25,12 @@ export interface FeedbackRepository {
     workspaceId: string;
     rawCommentId: string;
     analysisId: string;
-  }): Promise<{ sourceText: string }>;
+    sourceImportJobId: string;
+  }): Promise<{
+    sourceText: string;
+    sourceKind: "owned_oauth" | "public_url";
+    sourceImportJobId: string;
+  }>;
   insertFeedback(input: CreatorCorrection): Promise<string>;
   insertEmbedding(input: {
     workspaceId: string;
@@ -47,6 +53,14 @@ const buildRetrievalDocument = (
     editedSanitizedFeedback: input.editedSanitizedFeedback,
   });
 
+export class PublicSourceReadOnlyError extends Error {
+  readonly code = "PUBLIC_SOURCE_READ_ONLY";
+
+  constructor() {
+    super("Public-source comments are read-only");
+  }
+}
+
 export const saveCreatorCorrection = async (
   input: CreatorCorrection,
   {
@@ -63,7 +77,20 @@ export const saveCreatorCorrection = async (
     workspaceId: input.workspaceId,
     rawCommentId: input.rawCommentId,
     analysisId: input.analysisId,
+    sourceImportJobId: input.sourceImportJobId,
   });
+
+  if (
+    context.sourceImportJobId !== input.sourceImportJobId
+  ) {
+    throw new Error("SOURCE_OBSERVATION_MISMATCH");
+  }
+  if (
+    context.sourceKind === "public_url" &&
+    (input.useForPersonalization || input.useForTraining)
+  ) {
+    throw new PublicSourceReadOnlyError();
+  }
 
   if (!input.useForPersonalization) {
     return repository.insertFeedback(input);
