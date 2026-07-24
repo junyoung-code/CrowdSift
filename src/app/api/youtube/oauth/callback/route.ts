@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { requireViewer } from "@/features/auth/require-viewer";
+import { completeModerationOAuth } from "@/features/moderation/moderation-oauth";
 import { consumeOAuthState } from "@/features/youtube/oauth-state-cookie";
 import { createYouTubeProvider } from "@/features/youtube/provider-factory";
 import { encryptToken } from "@/features/youtube/token-crypto";
@@ -13,6 +14,11 @@ const getEncryptionKey = (encodedKey: string) =>
 const errorRedirect = (origin: string, reason: string) =>
   NextResponse.redirect(
     new URL(`/app/connect/youtube?error=${encodeURIComponent(reason)}`, origin),
+  );
+
+const moderationErrorRedirect = (origin: string, reason: string) =>
+  NextResponse.redirect(
+    new URL(`/app/inbox?moderationError=${encodeURIComponent(reason)}`, origin),
   );
 
 export const GET = async (request: Request) => {
@@ -36,17 +42,23 @@ export const GET = async (request: Request) => {
     return errorRedirect(environment.APP_ORIGIN, "missing_code");
   }
 
+  let statePayload: Awaited<ReturnType<typeof consumeOAuthState>>;
   try {
-    const statePayload = await consumeOAuthState(state);
-
-    if (statePayload.purpose !== "read") {
-      return errorRedirect(environment.APP_ORIGIN, "invalid_state");
+    statePayload = await consumeOAuthState(state);
+    if (
+      statePayload.purpose === "moderation" &&
+      !statePayload.actionRequestId
+    ) {
+      return moderationErrorRedirect(
+        environment.APP_ORIGIN,
+        "invalid_state",
+      );
     }
   } catch {
     return errorRedirect(environment.APP_ORIGIN, "invalid_state");
   }
 
-  const { workspaceId } = await requireViewer();
+  const { userId, workspaceId } = await requireViewer();
   const admin = createAdminSupabaseClient();
   const encryptionKey = getEncryptionKey(
     environment.YOUTUBE_TOKEN_ENCRYPTION_KEY,
@@ -96,6 +108,167 @@ export const GET = async (request: Request) => {
     const provider = createYouTubeProvider({
       onTokenRefresh: persistRefreshedTokens,
     });
+
+    if (
+      statePayload.purpose === "moderation" &&
+      statePayload.actionRequestId
+    ) {
+      const actionRequestId = statePayload.actionRequestId;
+      await completeModerationOAuth(
+        {
+          workspaceId,
+          actorUserId: userId,
+          requestId: actionRequestId,
+          code,
+        },
+        {
+          provider,
+          repository: {
+            async loadAwaitingRequest(input) {
+              const { data: actionRequest, error } = await admin
+                .from("moderation_action_requests")
+                .select(
+                  "id, youtube_connection_id, youtube_channel_id, connection_updated_at",
+                )
+                .eq("id", input.requestId)
+                .eq("workspace_id", input.workspaceId)
+                .eq("requested_by", input.actorUserId)
+                .eq("state", "awaiting_scope")
+                .maybeSingle();
+              if (error) throw error;
+              if (
+                !actionRequest?.youtube_connection_id ||
+                !actionRequest.youtube_channel_id ||
+                !actionRequest.connection_updated_at
+              ) {
+                return null;
+              }
+
+              const [
+                { data: connection, error: connectionError },
+                { data: selectedChannel, error: channelError },
+              ] = await Promise.all([
+                admin
+                  .from("youtube_connections")
+                  .select("id, updated_at")
+                  .eq("id", actionRequest.youtube_connection_id)
+                  .eq("workspace_id", input.workspaceId)
+                  .eq("status", "connected")
+                  .eq(
+                    "updated_at",
+                    actionRequest.connection_updated_at,
+                  )
+                  .maybeSingle(),
+                admin
+                  .from("youtube_channel_candidates")
+                  .select("connection_id, youtube_channel_id")
+                  .eq("connection_id", actionRequest.youtube_connection_id)
+                  .eq("workspace_id", input.workspaceId)
+                  .eq(
+                    "youtube_channel_id",
+                    actionRequest.youtube_channel_id,
+                  )
+                  .eq("selected", true)
+                  .maybeSingle(),
+              ]);
+
+              if (
+                connectionError ||
+                channelError ||
+                !connection ||
+                !selectedChannel
+              ) {
+                return null;
+              }
+
+              return {
+                connectionId: connection.id,
+                connectionUpdatedAt: connection.updated_at,
+                selectedChannelId: selectedChannel.youtube_channel_id,
+              };
+            },
+            async completeGrant({
+              actorUserId: targetActorUserId,
+              expectedBinding,
+              requestId: targetRequestId,
+              tokens,
+              workspaceId: targetWorkspaceId,
+            }) {
+              const { data: existingConnection, error: existingError } =
+                await admin
+                  .from("youtube_connections")
+                  .select(
+                    "id, encrypted_refresh_token, granted_scopes, google_subject, updated_at",
+                  )
+                  .eq("id", expectedBinding.connectionId)
+                  .eq("workspace_id", targetWorkspaceId)
+                  .eq("status", "connected")
+                  .eq(
+                    "updated_at",
+                    expectedBinding.connectionUpdatedAt,
+                  )
+                  .maybeSingle();
+
+              if (existingError || !existingConnection) {
+                throw (
+                  existingError ??
+                  new Error("Existing YouTube connection was not found")
+                );
+              }
+
+              const grantedScopes = Array.from(
+                new Set([
+                  ...existingConnection.granted_scopes,
+                  ...tokens.grantedScopes,
+                ]),
+              );
+              const updatedAt = new Date().toISOString();
+              const { data, error: updateError } = await admin.rpc(
+                "complete_moderation_scope_grant",
+                {
+                  target_workspace_id: targetWorkspaceId,
+                  target_request_id: targetRequestId,
+                  target_actor_user_id: targetActorUserId,
+                  target_connection_id: expectedBinding.connectionId,
+                  target_channel_id: expectedBinding.selectedChannelId,
+                  target_expected_updated_at:
+                    expectedBinding.connectionUpdatedAt,
+                  target_new_updated_at: updatedAt,
+                  target_encrypted_access_token: encryptToken(
+                    tokens.accessToken,
+                    encryptionKey,
+                  ),
+                  target_encrypted_refresh_token: (tokens.refreshToken
+                    ? encryptToken(tokens.refreshToken, encryptionKey)
+                    : existingConnection.encrypted_refresh_token) as string,
+                  target_token_expires_at: tokens.expiresAt as string,
+                  target_granted_scopes: grantedScopes,
+                  target_google_subject: (tokens.googleSubject ??
+                    existingConnection.google_subject) as string,
+                },
+              );
+
+              if (updateError || !data) {
+                throw (
+                  updateError ??
+                  new Error("YouTube moderation grant could not be stored")
+                );
+              }
+
+              return true;
+            },
+          },
+        },
+      );
+
+      return NextResponse.redirect(
+        new URL(
+          `/app/inbox?moderation=${encodeURIComponent(actionRequestId)}&scope=connected`,
+          environment.APP_ORIGIN,
+        ),
+      );
+    }
+
     const tokens = await provider.exchangeCode(code);
     const { data: existingConnection, error: existingError } = await admin
       .from("youtube_connections")
@@ -186,11 +359,18 @@ export const GET = async (request: Request) => {
       new URL("/app/connect/youtube?connected=1", environment.APP_ORIGIN),
     );
   } catch {
-    await admin
-      .from("youtube_connections")
-      .update({ status: "error", updated_at: new Date().toISOString() })
-      .eq("workspace_id", workspaceId);
+    if (statePayload.purpose === "read") {
+      await admin
+        .from("youtube_connections")
+        .update({ status: "error", updated_at: new Date().toISOString() })
+        .eq("workspace_id", workspaceId);
 
-    return errorRedirect(environment.APP_ORIGIN, "oauth_failed");
+      return errorRedirect(environment.APP_ORIGIN, "oauth_failed");
+    }
+
+    return moderationErrorRedirect(
+      environment.APP_ORIGIN,
+      "scope_connection_failed",
+    );
   }
 };

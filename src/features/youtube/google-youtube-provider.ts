@@ -20,8 +20,14 @@ export type RefreshedGoogleTokens = {
   expiresAt: string | null;
 };
 
+export type TokenRefreshContext = {
+  connectionId: string;
+  connectionUpdatedAt: string;
+};
+
 type TokenRefreshHandler = (
   tokens: RefreshedGoogleTokens,
+  context: TokenRefreshContext | null,
 ) => Promise<void> | void;
 
 const toExpiresAt = (expiryDate?: number | null) =>
@@ -96,7 +102,13 @@ export class GoogleYouTubeProvider implements YouTubeProvider {
     },
   ) {}
 
-  private createOAuthClient({ listenForRefresh = false } = {}) {
+  private createOAuthClient({
+    listenForRefresh = false,
+    refreshContext = null,
+  }: {
+    listenForRefresh?: boolean;
+    refreshContext?: TokenRefreshContext | null;
+  } = {}) {
     const client = new google.auth.OAuth2({
       clientId: this.configuration.clientId,
       clientSecret: this.configuration.clientSecret,
@@ -105,7 +117,10 @@ export class GoogleYouTubeProvider implements YouTubeProvider {
 
     if (listenForRefresh && this.configuration.onTokenRefresh) {
       client.on("tokens", (tokens) => {
-        void this.configuration.onTokenRefresh?.(toRefreshPayload(tokens));
+        void this.configuration.onTokenRefresh?.(
+          toRefreshPayload(tokens),
+          refreshContext,
+        );
       });
     }
 
@@ -113,10 +128,19 @@ export class GoogleYouTubeProvider implements YouTubeProvider {
   }
 
   private createAuthorizedClient(
-    tokens: OAuthTokens,
-    { listenForRefresh = true } = {},
+    tokens: Pick<OAuthTokens, "accessToken" | "refreshToken" | "expiresAt">,
+    {
+      listenForRefresh = true,
+      refreshContext = null,
+    }: {
+      listenForRefresh?: boolean;
+      refreshContext?: TokenRefreshContext | null;
+    } = {},
   ) {
-    const client = this.createOAuthClient({ listenForRefresh });
+    const client = this.createOAuthClient({
+      listenForRefresh,
+      refreshContext,
+    });
     client.setCredentials({
       access_token: tokens.accessToken,
       refresh_token: tokens.refreshToken,
@@ -329,6 +353,51 @@ export class GoogleYouTubeProvider implements YouTubeProvider {
       }),
       nextPageToken: response.data.nextPageToken ?? null,
     };
+  }
+
+  async setModerationStatus({
+    moderationStatus,
+    tokens,
+    youtubeCommentId,
+  }: {
+    youtubeCommentId: string;
+    moderationStatus: "heldForReview" | "published" | "rejected";
+    tokens: Pick<OAuthTokens, "accessToken" | "refreshToken" | "expiresAt"> &
+      TokenRefreshContext;
+  }) {
+    const client = this.createAuthorizedClient(tokens, {
+      refreshContext: {
+        connectionId: tokens.connectionId,
+        connectionUpdatedAt: tokens.connectionUpdatedAt,
+      },
+    });
+    const youtube = google.youtube({ version: "v3", auth: client });
+    const response = await youtube.comments.setModerationStatus({
+      id: [youtubeCommentId],
+      moderationStatus,
+    });
+    return { status: response.status };
+  }
+
+  async deleteComment({
+    tokens,
+    youtubeCommentId,
+  }: {
+    youtubeCommentId: string;
+    tokens: Pick<OAuthTokens, "accessToken" | "refreshToken" | "expiresAt"> &
+      TokenRefreshContext;
+  }) {
+    const client = this.createAuthorizedClient(tokens, {
+      refreshContext: {
+        connectionId: tokens.connectionId,
+        connectionUpdatedAt: tokens.connectionUpdatedAt,
+      },
+    });
+    const youtube = google.youtube({ version: "v3", auth: client });
+    const response = await youtube.comments.delete({
+      id: youtubeCommentId,
+    });
+    return { status: response.status };
   }
 
   async revokeToken(token: string) {

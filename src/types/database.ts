@@ -805,6 +805,7 @@ export type Database = {
         Row: {
           action: Database["public"]["Enums"]["moderation_action"]
           confirmed_at: string | null
+          connection_updated_at: string | null
           created_at: string
           error_code: string | null
           executed_at: string | null
@@ -815,10 +816,13 @@ export type Database = {
           requested_by: string
           state: Database["public"]["Enums"]["action_state"]
           workspace_id: string
+          youtube_channel_id: string | null
+          youtube_connection_id: string | null
         }
         Insert: {
           action: Database["public"]["Enums"]["moderation_action"]
           confirmed_at?: string | null
+          connection_updated_at?: string | null
           created_at?: string
           error_code?: string | null
           executed_at?: string | null
@@ -829,10 +833,13 @@ export type Database = {
           requested_by: string
           state: Database["public"]["Enums"]["action_state"]
           workspace_id: string
+          youtube_channel_id?: string | null
+          youtube_connection_id?: string | null
         }
         Update: {
           action?: Database["public"]["Enums"]["moderation_action"]
           confirmed_at?: string | null
+          connection_updated_at?: string | null
           created_at?: string
           error_code?: string | null
           executed_at?: string | null
@@ -843,6 +850,8 @@ export type Database = {
           requested_by?: string
           state?: Database["public"]["Enums"]["action_state"]
           workspace_id?: string
+          youtube_channel_id?: string | null
+          youtube_connection_id?: string | null
         }
         Relationships: [
           {
@@ -857,6 +866,20 @@ export type Database = {
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "moderation_action_requests_youtube_connection_id_fkey"
+            columns: ["youtube_connection_id"]
+            isOneToOne: false
+            referencedRelation: "youtube_connection_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "moderation_action_requests_youtube_connection_id_fkey"
+            columns: ["youtube_connection_id"]
+            isOneToOne: false
+            referencedRelation: "youtube_connections"
             referencedColumns: ["id"]
           },
         ]
@@ -1577,6 +1600,44 @@ export type Database = {
           attempt_count: number
         }[]
       }
+      claim_moderation_request: {
+        Args: {
+          target_actor_user_id: string
+          target_confirmed_at: string
+          target_request_id: string
+          target_workspace_id: string
+        }
+        Returns: boolean
+      }
+      complete_moderation_request: {
+        Args: {
+          target_actor_user_id: string
+          target_error_code: string
+          target_executed_at: string
+          target_provider_status: number
+          target_request_id: string
+          target_state: Database["public"]["Enums"]["action_state"]
+          target_workspace_id: string
+        }
+        Returns: boolean
+      }
+      complete_moderation_scope_grant: {
+        Args: {
+          target_actor_user_id: string
+          target_channel_id: string
+          target_connection_id: string
+          target_encrypted_access_token: string
+          target_encrypted_refresh_token: string
+          target_expected_updated_at: string
+          target_google_subject: string
+          target_granted_scopes: string[]
+          target_new_updated_at: string
+          target_request_id: string
+          target_token_expires_at: string
+          target_workspace_id: string
+        }
+        Returns: boolean
+      }
       create_creator_policy_version: {
         Args: {
           target_category_sensitivity: Json
@@ -1588,6 +1649,24 @@ export type Database = {
         Returns: {
           policy_id: string
           policy_version: number
+        }[]
+      }
+      create_moderation_request_with_evidence: {
+        Args: {
+          target_action: Database["public"]["Enums"]["moderation_action"]
+          target_channel_id: string
+          target_connection_id: string
+          target_connection_updated_at: string
+          target_evidence: Json
+          target_idempotency_key: string
+          target_raw_comment_id: string
+          target_requested_by: string
+          target_state: Database["public"]["Enums"]["action_state"]
+          target_workspace_id: string
+        }
+        Returns: {
+          request_id: string
+          request_state: Database["public"]["Enums"]["action_state"]
         }[]
       }
       disconnect_youtube_channel: {
@@ -1649,6 +1728,7 @@ export type Database = {
           author_display_name: string
           category: Database["public"]["Enums"]["comment_category"]
           confidence: number
+          delete_eligible: boolean
           manual_review: boolean
           neutral_text: string
           normalized_question: string
@@ -1683,6 +1763,16 @@ export type Database = {
           feedback_id: string
           similarity: number
         }[]
+      }
+      reconcile_stale_moderation_request: {
+        Args: {
+          target_actor_user_id: string
+          target_reconciled_at: string
+          target_request_id: string
+          target_stale_before: string
+          target_workspace_id: string
+        }
+        Returns: boolean
       }
       select_youtube_channel: {
         Args: { target_channel_id: string; target_workspace_id: string }

@@ -5,10 +5,14 @@ import { getServerEnv } from "@/lib/env";
 import {
   GoogleYouTubeProvider,
   type RefreshedGoogleTokens,
+  type TokenRefreshContext,
 } from "./google-youtube-provider";
 
 export const createYouTubeProvider = (options?: {
-  onTokenRefresh?: (tokens: RefreshedGoogleTokens) => Promise<void> | void;
+  onTokenRefresh?: (
+    tokens: RefreshedGoogleTokens,
+    context: TokenRefreshContext | null,
+  ) => Promise<void> | void;
 }) => {
   const environment = getServerEnv();
 

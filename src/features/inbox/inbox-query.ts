@@ -30,6 +30,7 @@ export type InboxItem = {
   normalizedQuestion: string | null;
   analysisState: InboxAnalysisState;
   actionState: InboxActionState | null;
+  deleteEligible: boolean;
 };
 
 export type InboxQueryInput = {

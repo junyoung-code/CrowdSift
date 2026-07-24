@@ -41,6 +41,32 @@ values (
   'owner'
 );
 
+insert into public.youtube_connections (
+  id,
+  workspace_id,
+  status
+)
+values (
+  '22222222-2222-4222-8222-222222222222',
+  '33333333-3333-3333-3333-333333333333',
+  'connected'
+);
+
+insert into public.youtube_channel_candidates (
+  connection_id,
+  workspace_id,
+  youtube_channel_id,
+  title,
+  selected
+)
+values (
+  '22222222-2222-4222-8222-222222222222',
+  '33333333-3333-3333-3333-333333333333',
+  'creator-channel',
+  'Creator channel',
+  true
+);
+
 insert into public.comment_import_jobs (
   id,
   workspace_id,
@@ -59,6 +85,7 @@ insert into public.raw_comments (
   workspace_id,
   youtube_video_id,
   youtube_comment_id,
+  author_channel_id,
   text_display,
   first_import_job_id
 )
@@ -67,11 +94,12 @@ values (
   '33333333-3333-3333-3333-333333333333',
   'video-inbox',
   'comment-pending',
+  'creator-channel',
   '아직 분석하지 않은 댓글',
   '55555555-5555-5555-5555-555555555555'
 );
 
-select plan(1);
+select plan(2);
 
 set local role authenticated;
 select set_config(
@@ -96,6 +124,19 @@ select is(
   ),
   1,
   'Inbox can explicitly show pending comments without exposing source text'
+);
+
+select ok(
+  (
+    select delete_eligible
+    from public.get_inbox_page(
+      target_workspace_id =>
+        '33333333-3333-3333-3333-333333333333',
+      analysis_state_filter => 'pending'
+    )
+    limit 1
+  ),
+  'permanent delete is exposed only when the connected channel wrote the comment'
 );
 
 select * from finish();

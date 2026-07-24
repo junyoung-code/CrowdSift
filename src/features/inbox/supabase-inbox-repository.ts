@@ -27,6 +27,7 @@ type InboxRpcRow = {
   normalized_question: string | null;
   analysis_state: string;
   action_state: InboxActionState | null;
+  delete_eligible: boolean;
   total_count: number;
 };
 
@@ -92,6 +93,7 @@ export const createSupabaseInboxRepository = ({
         normalizedQuestion: row.normalized_question,
         analysisState: row.analysis_state as InboxAnalysisState,
         actionState: row.action_state,
+        deleteEligible: row.delete_eligible,
       })),
       total: data?.[0]?.total_count ?? 0,
     };

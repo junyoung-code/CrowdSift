@@ -214,6 +214,23 @@ a {
   background: white;
 }
 
+.button-danger {
+  border-color: color-mix(in srgb, var(--ch-risk) 28%, white);
+  background: var(--ch-risk-soft);
+  color: var(--ch-risk);
+}
+
+.button-danger:hover {
+  border-color: var(--ch-risk);
+  background: color-mix(in srgb, var(--ch-risk-soft) 76%, white);
+}
+
+.button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  transform: none;
+}
+
 .button-small {
   min-height: 43px;
   border-radius: 11px;
@@ -3921,6 +3938,132 @@ a {
   font-size: 11px;
 }
 
+.inbox-moderation-actions {
+  display: grid;
+  gap: 7px;
+  border: 1px solid var(--ch-border);
+  border-radius: 13px;
+  padding: 12px;
+  background: #fbfdff;
+}
+
+.inbox-moderation-actions > p {
+  margin: 0 0 2px;
+  color: var(--ch-ink-soft);
+  font-size: 10px;
+  font-weight: 760;
+}
+
+.inbox-moderation-actions form,
+.inbox-moderation-actions .button {
+  width: 100%;
+}
+
+.inbox-moderation-actions .button {
+  min-height: 38px;
+  padding: 0 10px;
+  font-size: 10px;
+}
+
+.moderation-dialog {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px 15px;
+  border: 1px solid color-mix(in srgb, var(--ch-caution) 24%, white);
+  border-radius: 20px;
+  padding: 23px;
+  background: var(--ch-surface);
+  box-shadow: 0 16px 42px rgb(38 70 120 / 8%);
+}
+
+.moderation-dialog > svg {
+  grid-row: 1 / span 3;
+  width: 30px;
+  height: 30px;
+  color: var(--ch-caution);
+}
+
+.moderation-dialog > p {
+  margin: 0;
+  color: var(--ch-caution);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.moderation-dialog h2 {
+  margin: 0;
+  font-size: 20px;
+  letter-spacing: -0.035em;
+}
+
+.moderation-dialog > span {
+  color: var(--ch-muted);
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.moderation-dialog dl,
+.moderation-dialog > label,
+.moderation-dialog > div {
+  grid-column: 2;
+}
+
+.moderation-dialog dl {
+  display: grid;
+  grid-template-columns: minmax(140px, 0.45fr) minmax(0, 1fr);
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.moderation-dialog dl > div {
+  border-radius: 11px;
+  padding: 11px 12px;
+  background: #f7f9fd;
+}
+
+.moderation-dialog dt {
+  margin-bottom: 5px;
+  color: var(--ch-muted);
+  font-size: 9px;
+  font-weight: 720;
+}
+
+.moderation-dialog dd {
+  margin: 0;
+  color: var(--ch-ink-soft);
+  font-size: 11px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.moderation-dialog > label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ch-ink-soft);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 720;
+}
+
+.moderation-dialog > label input {
+  accent-color: var(--ch-blue);
+}
+
+.moderation-dialog > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-top: 8px;
+}
+
+.moderation-dialog .button {
+  min-height: 43px;
+  padding: 0 16px;
+  font-size: 11px;
+}
+
 .inbox-empty-state {
   display: grid;
   min-height: 330px;
@@ -4311,6 +4454,30 @@ a {
   .source-warning-actions {
     align-items: stretch;
     flex-direction: column-reverse;
+  }
+
+  .moderation-dialog {
+    grid-template-columns: 1fr;
+    padding: 21px 18px;
+  }
+
+  .moderation-dialog > svg {
+    grid-row: auto;
+  }
+
+  .moderation-dialog dl,
+  .moderation-dialog > label,
+  .moderation-dialog > div {
+    grid-column: 1;
+  }
+
+  .moderation-dialog dl {
+    grid-template-columns: 1fr;
+  }
+
+  .moderation-dialog > div {
+    align-items: stretch;
+    flex-direction: column;
   }
 }
 

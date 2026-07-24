@@ -115,12 +115,14 @@ export function CommentInbox({
   correctionAction,
   data,
   filters,
+  moderationAction,
   videos,
 }: {
   data: { items: InboxItem[]; total: number };
   filters: ActiveFilters;
   videos: Array<{ id: string; title: string }>;
   correctionAction: (formData: FormData) => void | Promise<void>;
+  moderationAction: (formData: FormData) => void | Promise<void>;
 }) {
   const videoTitleById = new Map(
     videos.map((video) => [video.id, video.title]),
@@ -521,6 +523,55 @@ export function CommentInbox({
                           </button>
                         </form>
                       </details>
+                    ) : null}
+
+                    {item.sourceAvailable ? (
+                      <div
+                        className="inbox-moderation-actions"
+                        aria-label="YouTube 댓글 조치"
+                      >
+                        <p>실제 YouTube 조치</p>
+                        {(
+                          [
+                            ["hold_for_review", "검토 대기로 이동"],
+                            ["publish", "게시 승인"],
+                            ["reject", "거절하여 숨기기"],
+                          ] as const
+                        ).map(([action, label]) => (
+                          <form action={moderationAction} key={action}>
+                            <input
+                              name="rawCommentId"
+                              type="hidden"
+                              value={item.rawCommentId}
+                            />
+                            <button
+                              className="button button-secondary"
+                              name="action"
+                              type="submit"
+                              value={action}
+                            >
+                              {label}
+                            </button>
+                          </form>
+                        ))}
+                        {item.deleteEligible ? (
+                          <form action={moderationAction}>
+                            <input
+                              name="rawCommentId"
+                              type="hidden"
+                              value={item.rawCommentId}
+                            />
+                            <button
+                              className="button button-danger"
+                              name="action"
+                              type="submit"
+                              value="delete"
+                            >
+                              내 댓글 영구 삭제
+                            </button>
+                          </form>
+                        ) : null}
+                      </div>
                     ) : null}
                   </div>
                 </article>

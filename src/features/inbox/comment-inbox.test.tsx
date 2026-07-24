@@ -20,6 +20,7 @@ const item = {
   normalizedQuestion: null,
   analysisState: "analyzed" as const,
   actionState: null,
+  deleteEligible: false,
 };
 
 describe("CommentInbox", () => {
@@ -27,6 +28,7 @@ describe("CommentInbox", () => {
     render(
       <CommentInbox
         correctionAction={vi.fn()}
+        moderationAction={vi.fn()}
         data={{ items: [item], total: 1 }}
         filters={{ reviewLevels: ["caution", "risk"] }}
         videos={[{ id: "video-1", title: "새 영상" }]}
@@ -64,6 +66,7 @@ describe("CommentInbox", () => {
     render(
       <CommentInbox
         correctionAction={vi.fn()}
+        moderationAction={vi.fn()}
         data={{ items: [], total: 0 }}
         filters={{ reviewLevels: ["caution", "risk"] }}
         videos={[]}
@@ -79,6 +82,7 @@ describe("CommentInbox", () => {
     render(
       <CommentInbox
         correctionAction={vi.fn()}
+        moderationAction={vi.fn()}
         data={{ items: [item], total: 30 }}
         filters={{
           reviewLevels: ["caution", "risk"],
@@ -96,5 +100,47 @@ describe("CommentInbox", () => {
         /\/app\/inbox\?.*levels=caution.*levels=risk.*category=toxic_but_actionable.*page=2/,
       ),
     );
+  });
+
+  it("shows exact moderation actions and only exposes delete when eligible", () => {
+    const { rerender } = render(
+      <CommentInbox
+        correctionAction={vi.fn()}
+        moderationAction={vi.fn()}
+        data={{ items: [item], total: 1 }}
+        filters={{ reviewLevels: ["caution", "risk"] }}
+        videos={[]}
+      />,
+    );
+
+    expect(
+      screen.getByRole("button", { name: "검토 대기로 이동" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "게시 승인" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "거절하여 숨기기" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "내 댓글 영구 삭제" }),
+    ).not.toBeInTheDocument();
+
+    rerender(
+      <CommentInbox
+        correctionAction={vi.fn()}
+        moderationAction={vi.fn()}
+        data={{
+          items: [{ ...item, deleteEligible: true }],
+          total: 1,
+        }}
+        filters={{ reviewLevels: ["caution", "risk"] }}
+        videos={[]}
+      />,
+    );
+
+    expect(
+      screen.getByRole("button", { name: "내 댓글 영구 삭제" }),
+    ).toBeInTheDocument();
   });
 });
