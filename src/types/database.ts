@@ -1830,6 +1830,16 @@ export type Database = {
         Returns: undefined
       }
       ensure_owner_workspace: { Args: never; Returns: string }
+      get_acknowledged_comment_source: {
+        Args: { target_raw_comment_id: string; target_workspace_id: string }
+        Returns: {
+          author_avatar_url: string
+          author_display_name: string
+          captured_at: string
+          published_at: string
+          text_display: string
+        }[]
+      }
       get_dashboard_summary: {
         Args: { target_workspace_id: string }
         Returns: {
@@ -1893,6 +1903,7 @@ export type Database = {
           raw_comment_id: string
           recommended_action: Database["public"]["Enums"]["recommended_action"]
           review_level: Database["public"]["Enums"]["review_level"]
+          safe_source_text: string
           source_available: boolean
           source_import_job_id: string
           source_kind: Database["public"]["Enums"]["comment_source_kind"]

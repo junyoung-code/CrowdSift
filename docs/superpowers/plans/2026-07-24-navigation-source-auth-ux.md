@@ -212,7 +212,7 @@ git commit -m "fix: track active product navigation"
 - Produces: `get_acknowledged_comment_source(target_workspace_id uuid, target_raw_comment_id uuid)`.
 - Guarantees: protected comments never return source through `get_inbox_page`; direct `raw_comments` access remains revoked.
 
-- [ ] **Step 1: Extend the DB test fixture with safe, caution, risk, and foreign-workspace comments**
+- [x] **Step 1: Extend the DB test fixture with safe, caution, risk, and foreign-workspace comments**
 
 Add analyzed source rows and plan assertions that prove:
 
@@ -275,7 +275,7 @@ select throws_ok(
 );
 ```
 
-- [ ] **Step 2: Run the DB test and confirm failure**
+- [x] **Step 2: Run the DB test and confirm failure**
 
 Run:
 
@@ -285,7 +285,7 @@ npm run db:test
 
 Expected: FAIL because `safe_source_text` and `get_acknowledged_comment_source` do not exist.
 
-- [ ] **Step 3: Recreate `get_inbox_page` with safe-only source**
+- [x] **Step 3: Recreate `get_inbox_page` with safe-only source**
 
 In the migration, drop the current exact function signature, recreate the function from `202607240025_source_aware_read_models.sql`, and make these exact additions:
 
@@ -328,7 +328,7 @@ end as safe_source_text
 
 Return `ir.safe_source_text` in the final select immediately after `ir.source_available`. Keep all filters, ordering, page-size bounds, membership checks, grants, and revocations identical to the current function.
 
-- [ ] **Step 4: Add the protected source RPC**
+- [x] **Step 4: Add the protected source RPC**
 
 Append:
 
@@ -377,7 +377,7 @@ grant execute on function public.get_acknowledged_comment_source(uuid, uuid)
   to authenticated, service_role;
 ```
 
-- [ ] **Step 5: Reset DB, regenerate types, and run DB tests**
+- [x] **Step 5: Reset DB, regenerate types, and run DB tests**
 
 Run:
 
@@ -389,7 +389,7 @@ npm run db:test
 
 Expected: migrations apply and all DB tests PASS.
 
-- [ ] **Step 6: Commit Task 2**
+- [x] **Step 6: Commit Task 2**
 
 ```bash
 git add supabase/migrations/202607240027_navigation_source_auth_ux.sql supabase/tests/inbox.sql src/types/database.ts
