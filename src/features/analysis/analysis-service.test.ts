@@ -146,4 +146,59 @@ describe("analysis service", () => {
     );
     expect(repository.insertAnalysis).not.toHaveBeenCalled();
   });
+
+  it("does not retrieve creator examples for a clean stage-one result", async () => {
+    const provider = createProvider();
+    vi.mocked(provider.classifyStage1).mockResolvedValue({
+      ...stage1ModelResult,
+      output: {
+        ...stage1ModelResult.output,
+        category: "question",
+        confidence: 0.95,
+        reviewLevel: "safe",
+        toxicity: 0,
+        actionableFeedback: false,
+        needsSecondPass: false,
+        secondPassReasons: [],
+        recommendedAction: "none",
+      },
+    });
+    const repository = createRepository();
+    vi.mocked(repository.claimPendingItems).mockResolvedValue({
+      job: {
+        id: "job-1",
+        workspaceId: "workspace-1",
+        status: "pending",
+        total: 1,
+        completed: 0,
+        failed: 0,
+      },
+      items: [
+        {
+          ...workItem,
+          threadContext: [...workItem.threadContext],
+          policy: {
+            ...workItem.policy,
+            phraseRules: [...workItem.policy.phraseRules],
+          },
+          phraseRules: [],
+        },
+      ],
+    });
+    repository.insertStageTwoAnalysis = vi.fn();
+    repository.insertSanitizedFeedback = vi.fn();
+    const retrieveCreatorExamples = vi.fn().mockResolvedValue([]);
+    const service = createAnalysisService({
+      provider,
+      repository,
+      modelVersion: "configured-model",
+      retryBaseDelayMs: 0,
+      retrieveCreatorExamples,
+    });
+
+    await service.processAnalysisChunk("job-1", 1);
+
+    expect(retrieveCreatorExamples).not.toHaveBeenCalled();
+    expect(provider.classifyStage2).not.toHaveBeenCalled();
+  });
 });

@@ -65,7 +65,8 @@ describe("OpenAI analysis provider", () => {
         responses: { parse },
         embeddings: { create: vi.fn() },
       },
-      model: "configured-model",
+      stageOneModel: "stage-one-model",
+      stageTwoModel: "stage-two-model",
       embeddingModel: "embedding-model",
     });
 
@@ -73,7 +74,7 @@ describe("OpenAI analysis provider", () => {
 
     expect(parse).toHaveBeenCalledWith(
       expect.objectContaining({
-        model: "configured-model",
+        model: "stage-one-model",
         input: expect.arrayContaining([
           expect.objectContaining({ role: "system" }),
           expect.objectContaining({ role: "user" }),
@@ -98,6 +99,65 @@ describe("OpenAI analysis provider", () => {
     });
   });
 
+  it("uses the separate stage-two model", async () => {
+    const parse = vi.fn().mockResolvedValue({
+      id: "resp-2",
+      model: "stage-two-model",
+      output_parsed: {
+        category: "constructive_feedback",
+        confidence: 0.92,
+        reviewLevel: "caution",
+        toxicity: 0.1,
+        spam: 0,
+        phishing: 0,
+        actionableFeedback: true,
+        recommendedAction: "review",
+        explanation: "Useful feedback.",
+        sanitizedFeedback: "영상 밝기를 높여 달라는 요청",
+        normalizedQuestion: null,
+        manualReview: true,
+        evidenceReview: false,
+      },
+      usage: {
+        input_tokens: 80,
+        output_tokens: 30,
+        total_tokens: 110,
+      },
+    });
+    const provider = createOpenAIAnalysisProvider({
+      client: {
+        responses: { parse },
+        embeddings: { create: vi.fn() },
+      },
+      stageOneModel: "stage-one-model",
+      stageTwoModel: "stage-two-model",
+      embeddingModel: "embedding-model",
+    });
+
+    await provider.classifyStage2({
+      ...stage1Input,
+      stage1: {
+        category: "constructive_feedback",
+        confidence: 0.8,
+        reviewLevel: "caution",
+        toxicity: 0.1,
+        spam: 0,
+        phishing: 0,
+        actionableFeedback: true,
+        needsSecondPass: true,
+        secondPassReasons: ["low confidence"],
+        recommendedAction: "review",
+        explanation: "Potential feedback.",
+      },
+      retrievedFeedback: [],
+      triggerReasons: ["low_confidence"],
+    });
+
+    expect(parse).toHaveBeenCalledWith(
+      expect.objectContaining({ model: "stage-two-model" }),
+    );
+  });
+
   it("throws a schema error when parsed output is missing", async () => {
     const provider = createOpenAIAnalysisProvider({
       client: {
@@ -111,7 +171,8 @@ describe("OpenAI analysis provider", () => {
         },
         embeddings: { create: vi.fn() },
       },
-      model: "configured-model",
+      stageOneModel: "stage-one-model",
+      stageTwoModel: "stage-two-model",
       embeddingModel: "embedding-model",
     });
 

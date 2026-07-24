@@ -4,6 +4,7 @@ import {
   toSanitizedFeedbackRow,
   toStageTwoAnalysisRow,
 } from "./analysis-storage";
+import type { AnalysisWorkItem } from "./analysis-service";
 
 const item = {
   id: "item-1",
@@ -23,7 +24,7 @@ const item = {
     phraseRules: [],
   },
   phraseRules: [],
-} as const;
+} satisfies AnalysisWorkItem;
 
 describe("analysis storage rows", () => {
   it("links stage two to stage one and preserves RAG provenance", () => {

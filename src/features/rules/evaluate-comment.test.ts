@@ -73,4 +73,15 @@ describe("applyReviewFloor", () => {
       ]),
     ).toBe("risk");
   });
+
+  it.each(["allowed_phrase", "context_exception"] as const)(
+    "does not raise review level for %s provenance alone",
+    (kind) => {
+      expect(
+        applyReviewFloor("safe", [
+          { kind, ruleId: "rule-1", severity: 0 },
+        ]),
+      ).toBe("safe");
+    },
+  );
 });

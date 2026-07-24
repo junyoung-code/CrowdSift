@@ -48,6 +48,22 @@ describe("shouldRunSecondPass", () => {
     ).toMatchObject({ run: true });
   });
 
+  it("runs when stage one explicitly requests deeper review", () => {
+    expect(
+      decide({
+        stage1: { ...safeHighConfidence, needsSecondPass: true },
+      }),
+    ).toMatchObject({ run: true });
+  });
+
+  it("runs when stage one cannot determine a category", () => {
+    expect(
+      decide({
+        stage1: { ...safeHighConfidence, category: "uncertain" },
+      }),
+    ).toMatchObject({ run: true });
+  });
+
   it("runs when a phrase rule signal matched", () => {
     expect(
       decide({
@@ -79,5 +95,20 @@ describe("shouldRunSecondPass", () => {
 
   it("skips a safe, confident, signal-free comment below threshold", () => {
     expect(decide()).toEqual({ run: false, reasons: [] });
+  });
+
+  it("does not run for allowed/context provenance by itself", () => {
+    expect(
+      decide({
+        ruleSignals: [
+          { kind: "allowed_phrase", ruleId: "allowed-1", severity: 0 },
+          {
+            kind: "context_exception",
+            ruleId: "context-1",
+            severity: 0,
+          },
+        ],
+      }),
+    ).toEqual({ run: false, reasons: [] });
   });
 });

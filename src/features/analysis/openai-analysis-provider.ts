@@ -43,6 +43,10 @@ type ParsedResponse = {
 
 type EmbeddingResponse = {
   data: Array<{ embedding: number[] }>;
+  usage?: {
+    prompt_tokens: number;
+    total_tokens: number;
+  };
 };
 
 export type OpenAIAnalysisClient = {
@@ -72,14 +76,25 @@ const parseOutput = <T>(schema: z.ZodType<T>, value: unknown): T => {
 
 export const createOpenAIAnalysisProvider = (options?: {
   client?: OpenAIAnalysisClient;
-  model?: string;
+  stageOneModel?: string;
+  stageTwoModel?: string;
   embeddingModel?: string;
 }) => {
   const environment =
-    options?.client && options.model && options.embeddingModel
+    options?.client &&
+    options.stageOneModel &&
+    options.stageTwoModel &&
+    options.embeddingModel
       ? null
       : getServerEnv();
-  const model = options?.model ?? environment?.OPENAI_ANALYSIS_MODEL;
+  const stageOneModel =
+    options?.stageOneModel ??
+    environment?.OPENAI_STAGE1_MODEL ??
+    environment?.OPENAI_ANALYSIS_MODEL;
+  const stageTwoModel =
+    options?.stageTwoModel ??
+    environment?.OPENAI_STAGE2_MODEL ??
+    environment?.OPENAI_ANALYSIS_MODEL;
   const embeddingModel =
     options?.embeddingModel ?? environment?.OPENAI_EMBEDDING_MODEL;
   const client =
@@ -88,18 +103,20 @@ export const createOpenAIAnalysisProvider = (options?: {
       apiKey: environment?.OPENAI_API_KEY,
     }) as unknown as OpenAIAnalysisClient);
 
-  if (!model || !embeddingModel) {
+  if (!stageOneModel || !stageTwoModel || !embeddingModel) {
     throw new Error("OpenAI model configuration is required");
   }
 
   const runStructured = async <T>({
     input,
     name,
+    model,
     prompt,
     schema,
   }: {
     input: unknown;
     name: string;
+    model: string;
     prompt: string;
     schema: z.ZodType<T>;
   }): Promise<ModelResult<T>> => {
@@ -134,6 +151,7 @@ export const createOpenAIAnalysisProvider = (options?: {
       return runStructured<Stage1Output>({
         input,
         name: "comment_stage_1",
+        model: stageOneModel,
         prompt: STAGE_1_SYSTEM_PROMPT,
         schema: Stage1OutputSchema,
       });
@@ -142,6 +160,7 @@ export const createOpenAIAnalysisProvider = (options?: {
       return runStructured<Stage2Output>({
         input,
         name: "comment_stage_2",
+        model: stageTwoModel,
         prompt: STAGE_2_SYSTEM_PROMPT,
         schema: Stage2OutputSchema,
       });
@@ -158,7 +177,14 @@ export const createOpenAIAnalysisProvider = (options?: {
         throw new Error("OpenAI embedding response was empty");
       }
 
-      return { vector, model: embeddingModel };
+      return {
+        vector,
+        model: embeddingModel,
+        usage: {
+          inputTokens: response.usage?.prompt_tokens ?? 0,
+          totalTokens: response.usage?.total_tokens ?? 0,
+        },
+      };
     },
     summarizeDashboard(input: {
       analysisCount: number;
@@ -168,6 +194,7 @@ export const createOpenAIAnalysisProvider = (options?: {
       return runStructured<DashboardSummaryOutput>({
         input,
         name: "dashboard_summary",
+        model: stageTwoModel,
         prompt: DASHBOARD_SUMMARY_SYSTEM_PROMPT,
         schema: DashboardSummaryOutputSchema,
       });

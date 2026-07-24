@@ -5,10 +5,28 @@ import type { Stage1Output } from "./contracts";
 export type SecondPassReason =
   | "review_level"
   | "low_confidence"
+  | "model_requested"
+  | "uncertain"
   | "rule_signal"
   | "creator_similarity"
   | "toxic_but_actionable"
+  | "sensitive_category"
   | "context_sensitive";
+
+const secondPassRuleKinds = new Set<
+  RuleEvaluation["signals"][number]["kind"]
+>([
+  "blocked_phrase",
+  "repetition",
+  "suspicious_url",
+  "phishing_pattern",
+]);
+
+const directSafeCategories = new Set<Stage1Output["category"]>([
+  "positive",
+  "neutral",
+  "question",
+]);
 
 export const shouldRunSecondPass = ({
   bestSimilarity,
@@ -29,7 +47,17 @@ export const shouldRunSecondPass = ({
   if (stage1.confidence < 0.85) {
     reasons.push("low_confidence");
   }
-  if (ruleSignals.length > 0) {
+  if (stage1.needsSecondPass) {
+    reasons.push("model_requested");
+  }
+  if (stage1.category === "uncertain") {
+    reasons.push("uncertain");
+  }
+  if (
+    ruleSignals.some((signal) =>
+      secondPassRuleKinds.has(signal.kind),
+    )
+  ) {
     reasons.push("rule_signal");
   }
   if (bestSimilarity !== null && bestSimilarity >= 0.78) {
@@ -37,6 +65,8 @@ export const shouldRunSecondPass = ({
   }
   if (stage1.category === "toxic_but_actionable") {
     reasons.push("toxic_but_actionable");
+  } else if (!directSafeCategories.has(stage1.category)) {
+    reasons.push("sensitive_category");
   }
   if (contextSensitive) {
     reasons.push("context_sensitive");

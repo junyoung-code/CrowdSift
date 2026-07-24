@@ -66,3 +66,12 @@ export type ModelResult<T> = {
   latencyMs: number;
   usage: Record<string, number>;
 };
+
+export type EmbeddingResult = {
+  vector: number[];
+  model: string;
+  usage: {
+    inputTokens: number;
+    totalTokens: number;
+  };
+};

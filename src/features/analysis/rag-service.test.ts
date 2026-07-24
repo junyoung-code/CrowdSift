@@ -13,6 +13,7 @@ describe("creator feedback RAG", () => {
     const embed = vi.fn().mockResolvedValue({
       vector,
       model: "text-embedding-3-small",
+      usage: { inputTokens: 8, totalTokens: 8 },
     });
     const repository: CreatorFeedbackSearchRepository = {
       search: vi.fn().mockResolvedValue(
@@ -56,6 +57,7 @@ describe("creator feedback RAG", () => {
         embed: vi.fn().mockResolvedValue({
           vector,
           model: "text-embedding-3-small",
+          usage: { inputTokens: 2, totalTokens: 2 },
         }),
       },
       repository: {
@@ -89,6 +91,7 @@ describe("creator feedback RAG", () => {
         embed: vi.fn().mockResolvedValue({
           vector: [0.1, 0.2],
           model: "wrong",
+          usage: { inputTokens: 1, totalTokens: 1 },
         }),
       },
       repository: { search: vi.fn() },

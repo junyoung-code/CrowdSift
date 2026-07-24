@@ -1,5 +1,6 @@
 import type {
   CommentCategory,
+  EmbeddingResult,
   RetrievedFeedback,
   ReviewLevel,
 } from "./contracts";
@@ -32,11 +33,11 @@ export const createRagService = ({
   repository,
 }: {
   embeddingProvider: {
-    embed(text: string): Promise<{ vector: number[]; model: string }>;
+    embed(text: string): Promise<EmbeddingResult>;
   };
   repository: CreatorFeedbackSearchRepository;
-}) => ({
-  async retrieveCreatorExamples({
+}) => {
+  const retrieveWithUsage = async ({
     limit = 5,
     text,
     threshold = 0.78,
@@ -46,7 +47,13 @@ export const createRagService = ({
     text: string;
     threshold?: number;
     limit?: number;
-  }): Promise<RetrievedFeedback[]> {
+  }): Promise<{
+    examples: RetrievedFeedback[];
+    embeddingUsage: {
+      inputTokens: number;
+      model: string;
+    };
+  }> => {
     const normalizedText = text.replaceAll("\n", " ");
     const embedding = await embeddingProvider.embed(normalizedText);
 
@@ -68,7 +75,7 @@ export const createRagService = ({
       throw new Error("rag_workspace_scope_mismatch");
     }
 
-    return rows
+    const examples = rows
       .filter((row) => row.similarity >= threshold)
       .sort((left, right) => right.similarity - left.similarity)
       .slice(0, boundedLimit)
@@ -80,5 +87,22 @@ export const createRagService = ({
         correctedReviewLevel: row.correctedReviewLevel,
         editedSanitizedFeedback: row.editedSanitizedFeedback,
       }));
-  },
-});
+
+    return {
+      examples,
+      embeddingUsage: {
+        inputTokens: embedding.usage.inputTokens,
+        model: embedding.model,
+      },
+    };
+  };
+
+  return {
+    retrieveCreatorExamplesWithUsage: retrieveWithUsage,
+    async retrieveCreatorExamples(
+      input: Parameters<typeof retrieveWithUsage>[0],
+    ): Promise<RetrievedFeedback[]> {
+      return (await retrieveWithUsage(input)).examples;
+    },
+  };
+};

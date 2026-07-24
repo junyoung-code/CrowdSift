@@ -11,17 +11,152 @@ import {
   type AnalysisJobProgress,
   type AnalysisRepository,
 } from "./analysis-service";
+import { createAnalysisProvider } from "./analysis-provider";
+import {
+  DEFAULT_PRICING,
+  calculateObservedCost,
+  estimateAnalysisCost,
+  summarizeStoredModelUsage,
+} from "./cost-estimator";
 import {
   toSanitizedFeedbackRow,
   toStageTwoAnalysisRow,
 } from "./analysis-storage";
 import { buildAnalysisWorkItems } from "./analysis-work-item";
-import { createOpenAIAnalysisProvider } from "./openai-analysis-provider";
 import { createRagService } from "./rag-service";
 import { createSupabaseRagRepository } from "./supabase-rag-repository";
 
 const isUniqueViolation = (error: { code?: string } | null) =>
   error?.code === "23505";
+
+const getAnalysisModels = (environment: ReturnType<typeof getServerEnv>) => ({
+  stageOne:
+    environment.OPENAI_STAGE1_MODEL ??
+    environment.OPENAI_ANALYSIS_MODEL,
+  stageTwo:
+    environment.OPENAI_STAGE2_MODEL ??
+    environment.OPENAI_ANALYSIS_MODEL,
+  embedding: environment.OPENAI_EMBEDDING_MODEL,
+});
+
+const ensureAnalysisCostEstimate = async ({
+  admin,
+  environment,
+  jobId,
+}: {
+  admin: ReturnType<typeof createAdminSupabaseClient>;
+  environment: ReturnType<typeof getServerEnv>;
+  jobId: string;
+}) => {
+  const { data: job, error } = await admin
+    .from("analysis_jobs")
+    .select("id, workspace_id, total_count")
+    .eq("id", jobId)
+    .single();
+
+  if (error || !job) {
+    throw error ?? new Error("Analysis job cost source was not loaded");
+  }
+
+  const estimate = estimateAnalysisCost({
+    commentCount: job.total_count,
+  });
+  const models = getAnalysisModels(environment);
+  const { error: costError } = await admin
+    .from("analysis_job_costs")
+    .upsert(
+      {
+        analysis_job_id: job.id,
+        workspace_id: job.workspace_id,
+        pricing_version: DEFAULT_PRICING.version,
+        pricing_effective_at: DEFAULT_PRICING.effectiveAt,
+        currency: DEFAULT_PRICING.currency,
+        stage_one_model: models.stageOne,
+        stage_two_model: models.stageTwo,
+        embedding_model: models.embedding,
+        stage_one_input_per_million:
+          DEFAULT_PRICING.stageOne.inputPerMillion,
+        stage_one_output_per_million:
+          DEFAULT_PRICING.stageOne.outputPerMillion,
+        stage_two_input_per_million:
+          DEFAULT_PRICING.stageTwo.inputPerMillion,
+        stage_two_output_per_million:
+          DEFAULT_PRICING.stageTwo.outputPerMillion,
+        embedding_input_per_million:
+          DEFAULT_PRICING.embedding.inputPerMillion,
+        estimated_input_tokens_low:
+          estimate.estimatedInputTokensLow,
+        estimated_input_tokens_high:
+          estimate.estimatedInputTokensHigh,
+        estimated_output_tokens_low:
+          estimate.estimatedOutputTokensLow,
+        estimated_output_tokens_high:
+          estimate.estimatedOutputTokensHigh,
+        estimated_cost_low: estimate.estimatedCostLow,
+        estimated_cost_high: estimate.estimatedCostHigh,
+        estimated_at: new Date().toISOString(),
+      },
+      {
+        onConflict: "analysis_job_id,pricing_version",
+      },
+    );
+
+  if (costError) {
+    throw costError;
+  }
+};
+
+const refreshObservedAnalysisCost = async ({
+  admin,
+  jobId,
+}: {
+  admin: ReturnType<typeof createAdminSupabaseClient>;
+  jobId: string;
+}) => {
+  const { data: items, error: itemsError } = await admin
+    .from("analysis_job_items")
+    .select("id")
+    .eq("analysis_job_id", jobId);
+
+  if (itemsError) {
+    throw itemsError;
+  }
+
+  const itemIds = (items ?? []).map((item) => item.id);
+  const { data: runs, error: runsError } =
+    itemIds.length === 0
+      ? { data: [], error: null }
+      : await admin
+          .from("model_runs")
+          .select("stage, usage")
+          .in("analysis_job_item_id", itemIds)
+          .eq("status", "succeeded");
+
+  if (runsError) {
+    throw runsError;
+  }
+
+  const usage = summarizeStoredModelUsage(runs ?? []);
+  const observed = calculateObservedCost(usage);
+  const { error: updateError } = await admin
+    .from("analysis_job_costs")
+    .update({
+      actual_stage_one_input_tokens: observed.stageOneInputTokens,
+      actual_stage_one_output_tokens: observed.stageOneOutputTokens,
+      actual_stage_two_input_tokens: observed.stageTwoInputTokens,
+      actual_stage_two_output_tokens: observed.stageTwoOutputTokens,
+      actual_embedding_input_tokens: observed.embeddingInputTokens,
+      actual_calculated_cost: observed.calculatedCost,
+      calculated_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("analysis_job_id", jobId)
+    .eq("pricing_version", observed.pricingVersion);
+
+  if (updateError) {
+    throw updateError;
+  }
+};
 
 export const processAnalysisChunk = async (
   jobId: string,
@@ -29,7 +164,8 @@ export const processAnalysisChunk = async (
 ): Promise<AnalysisJobProgress> => {
   const admin = createAdminSupabaseClient();
   const environment = getServerEnv();
-  const provider = createOpenAIAnalysisProvider();
+  const models = getAnalysisModels(environment);
+  const provider = createAnalysisProvider();
   const ragService = createRagService({
     embeddingProvider: provider,
     repository: createSupabaseRagRepository({
@@ -300,7 +436,8 @@ export const processAnalysisChunk = async (
         analysis_job_item_id: input.item.id,
         stage: input.stage,
         provider: "openai",
-        model_identifier: environment.OPENAI_ANALYSIS_MODEL,
+        model_identifier:
+          input.stage === 1 ? models.stageOne : models.stageTwo,
         idempotency_key: input.idempotencyKey,
         prompt_version: input.promptVersion,
         schema_version: input.schemaVersion,
@@ -455,13 +592,16 @@ export const processAnalysisChunk = async (
     },
   };
 
+  await ensureAnalysisCostEstimate({ admin, environment, jobId });
   const progress = await createAnalysisService({
     provider,
     repository,
-    modelVersion: environment.OPENAI_ANALYSIS_MODEL,
+    modelVersion: models.stageOne,
+    stageTwoModelVersion: models.stageTwo,
     retrieveCreatorExamples: (input) =>
-      ragService.retrieveCreatorExamples(input),
+      ragService.retrieveCreatorExamplesWithUsage(input),
   }).processAnalysisChunk(jobId, maxItems);
+  await refreshObservedAnalysisCost({ admin, jobId });
 
   return triggerDashboardSummaryWhenComplete({
     jobId,

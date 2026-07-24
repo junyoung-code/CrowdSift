@@ -1,6 +1,5 @@
 import { withRetry } from "@/lib/retry";
 import { evaluateComment } from "@/features/rules/evaluate-comment";
-import { applyReviewFloor } from "@/features/rules/route-review-level";
 import type { PhraseRule, RuleEvaluation } from "@/features/rules/types";
 
 import type { AnalysisProvider } from "./analysis-provider";
@@ -22,6 +21,10 @@ import {
   detectContextSensitivePattern,
   shouldRunSecondPass,
 } from "./second-pass";
+import {
+  enforceReviewLevelFloor,
+  routeStageOne,
+} from "./stage-one-routing";
 
 export type AnalysisJobStatus =
   | "pending"
@@ -199,17 +202,28 @@ export const createAnalysisService = ({
   repository,
   retryBaseDelayMs = 200,
   retrieveCreatorExamples,
+  stageTwoModelVersion = modelVersion,
 }: {
   provider: AnalysisProvider;
   repository: AnalysisRepository;
   modelVersion: string;
+  stageTwoModelVersion?: string;
   retryBaseDelayMs?: number;
   retrieveCreatorExamples?: (input: {
     workspaceId: string;
     text: string;
     threshold: number;
     limit: number;
-  }) => Promise<RetrievedFeedback[]>;
+  }) => Promise<
+    | RetrievedFeedback[]
+    | {
+        examples: RetrievedFeedback[];
+        embeddingUsage: {
+          inputTokens: number;
+          model: string;
+        };
+      }
+  >;
 }) => ({
   async processAnalysisChunk(
     jobId: string,
@@ -260,10 +274,15 @@ export const createAnalysisService = ({
           operation: () => provider.classifyStage1(stage1Input),
           retryBaseDelayMs,
         });
-        const reviewLevel = applyReviewFloor(
-          result.output.reviewLevel,
-          evaluation.signals,
-        );
+        const contextSensitive = detectContextSensitivePattern({
+          sourceText: item.sourceText,
+          threadContext: item.threadContext,
+        });
+        const route = routeStageOne({
+          stageOne: result.output,
+          ruleSignals: evaluation.signals,
+          contextSensitive,
+        });
         const modelRunId = await repository.insertModelRun({
           item,
           result,
@@ -281,14 +300,14 @@ export const createAnalysisService = ({
           stage: 1,
           category: result.output.category,
           confidence: result.output.confidence,
-          reviewLevel,
+          reviewLevel: route.finalReviewLevel,
           toxicity: result.output.toxicity,
           spam: result.output.spam,
           phishing: result.output.phishing,
           actionableFeedback: result.output.actionableFeedback,
           recommendedAction: result.output.recommendedAction,
-          manualReview: result.output.needsSecondPass,
-          evidenceReview: reviewLevel === "risk",
+          manualReview: route.runSecondPass,
+          evidenceReview: route.finalReviewLevel === "risk",
           explanation: result.output.explanation,
           policyVersion: item.policy.version,
           provenance: {
@@ -301,14 +320,15 @@ export const createAnalysisService = ({
         if (
           retrieveCreatorExamples &&
           repository.insertStageTwoAnalysis &&
-          repository.insertSanitizedFeedback
+          repository.insertSanitizedFeedback &&
+          route.runSecondPass
         ) {
           const stageTwoIdempotencyKey =
             buildAnalysisIdempotencyKey({
               rawCommentId: item.rawCommentId,
               policyVersion: item.policy.version,
               promptVersion: STAGE_2_PROMPT_VERSION,
-              modelVersion,
+              modelVersion: stageTwoModelVersion,
               schemaVersion: COMMENT_ANALYSIS_SCHEMA_VERSION,
             });
           failureContext = {
@@ -316,29 +336,34 @@ export const createAnalysisService = ({
             promptVersion: STAGE_2_PROMPT_VERSION,
             stage: 2,
           };
+          const retrieval = await retrieveCreatorExamples({
+            workspaceId: item.workspaceId,
+            text: item.sourceText,
+            threshold: 0.78,
+            limit: 5,
+          });
           const retrievedFeedback = (
-            await retrieveCreatorExamples({
-              workspaceId: item.workspaceId,
-              text: item.sourceText,
-              threshold: 0.78,
-              limit: 5,
-            })
+            Array.isArray(retrieval) ? retrieval : retrieval.examples
           ).slice(0, 5);
+          const embeddingInputTokens = Array.isArray(retrieval)
+            ? 0
+            : retrieval.embeddingUsage.inputTokens;
           const secondPass = shouldRunSecondPass({
             stage1: result.output,
             ruleSignals: evaluation.signals,
             bestSimilarity: retrievedFeedback[0]?.similarity ?? null,
-            contextSensitive: detectContextSensitivePattern({
-              sourceText: item.sourceText,
-              threadContext: item.threadContext,
-            }),
+            contextSensitive,
           });
 
           if (secondPass.run) {
             const triggerReasons = [
               ...secondPass.reasons,
+              ...route.reasons,
               ...result.output.secondPassReasons,
-            ].slice(0, 8);
+            ].filter(
+              (reason, index, allReasons) =>
+                allReasons.indexOf(reason) === index,
+            ).slice(0, 8);
             const stageTwoResult = await callWithSchemaRetry({
               operation: () =>
                 provider.classifyStage2({
@@ -349,14 +374,21 @@ export const createAnalysisService = ({
                 }),
               retryBaseDelayMs,
             });
-            const stageTwoReviewLevel = applyReviewFloor(
+            const storedStageTwoResult = {
+              ...stageTwoResult,
+              usage: {
+                ...stageTwoResult.usage,
+                embeddingInputTokens,
+              },
+            };
+            const stageTwoReviewLevel = enforceReviewLevelFloor(
               stageTwoResult.output.reviewLevel,
-              evaluation.signals,
+              route.minimumReviewLevel,
             );
             const stageTwoModelRunId =
               await repository.insertModelRun({
                 item,
-                result: stageTwoResult,
+                result: storedStageTwoResult,
                 idempotencyKey: stageTwoIdempotencyKey,
                 promptVersion: STAGE_2_PROMPT_VERSION,
                 schemaVersion: COMMENT_ANALYSIS_SCHEMA_VERSION,
