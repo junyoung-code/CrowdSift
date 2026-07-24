@@ -18,6 +18,23 @@ describe("SourceReveal", () => {
     ).toBeInTheDocument();
   });
 
+  it("moves focus into the warning and restores it when Escape closes", async () => {
+    const user = userEvent.setup();
+    render(<SourceReveal commentId="comment-1" />);
+
+    const revealButton = screen.getByRole("button", { name: "원문 확인" });
+    await user.click(revealButton);
+
+    expect(
+      screen.getByRole("button", { name: "경고를 확인하고 원문 보기" }),
+    ).toHaveFocus();
+
+    await user.keyboard("{Escape}");
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(revealButton).toHaveFocus();
+  });
+
   it("requests source only after the warning is acknowledged", async () => {
     const user = userEvent.setup();
     const fetchMock = vi.fn().mockResolvedValue({

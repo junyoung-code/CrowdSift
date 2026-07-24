@@ -377,7 +377,22 @@ values (
   'Foreign inbox workspace'
 );
 
-select plan(7);
+select plan(8);
+
+set local role anon;
+
+select throws_ok(
+  $$
+    select *
+    from public.get_acknowledged_comment_source(
+      '33333333-3333-3333-3333-333333333333',
+      '88888888-8888-4888-8888-888888888888'
+    )
+  $$,
+  '42501',
+  null,
+  'anonymous users cannot request comment source'
+);
 
 set local role authenticated;
 select set_config(

@@ -60,4 +60,18 @@ describe("SignOutButton", () => {
     expect(mockReplace).not.toHaveBeenCalled();
     expect(screen.getByRole("button", { name: "로그아웃" })).toBeEnabled();
   });
+
+  it("recovers when the auth client throws", async () => {
+    const user = userEvent.setup();
+    mockSignOut.mockRejectedValue(new Error("network secret"));
+    render(<SignOutButton />);
+
+    await user.click(screen.getByRole("button", { name: "로그아웃" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "로그아웃하지 못했습니다",
+    );
+    expect(screen.getByRole("button", { name: "로그아웃" })).toBeEnabled();
+    expect(mockReplace).not.toHaveBeenCalled();
+  });
 });

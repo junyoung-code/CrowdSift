@@ -1,7 +1,7 @@
 "use client";
 
 import { CaretUp, Eye, WarningCircle, X } from "@phosphor-icons/react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import type { CommentSource } from "./source-service";
 import { CommentSourceBlock } from "./comment-source-block";
@@ -11,6 +11,40 @@ export function SourceReveal({ commentId }: { commentId: string }) {
   const [source, setSource] = useState<CommentSource | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const revealButtonRef = useRef<HTMLButtonElement>(null);
+  const warningDialogRef = useRef<HTMLElement>(null);
+  const confirmButtonRef = useRef<HTMLButtonElement>(null);
+  const restoreFocusAfterCloseRef = useRef(false);
+
+  const closeWarning = () => {
+    restoreFocusAfterCloseRef.current = true;
+    setWarningOpen(false);
+  };
+
+  useEffect(() => {
+    if (warningOpen) {
+      if (confirmButtonRef.current) {
+        confirmButtonRef.current.focus();
+      } else {
+        warningDialogRef.current?.focus();
+      }
+
+      const closeOnEscape = (event: KeyboardEvent) => {
+        if (event.key !== "Escape") return;
+
+        event.preventDefault();
+        closeWarning();
+      };
+
+      document.addEventListener("keydown", closeOnEscape);
+      return () => document.removeEventListener("keydown", closeOnEscape);
+    }
+
+    if (restoreFocusAfterCloseRef.current) {
+      restoreFocusAfterCloseRef.current = false;
+      revealButtonRef.current?.focus();
+    }
+  }, [warningOpen]);
 
   const revealSource = async () => {
     setLoading(true);
@@ -69,6 +103,7 @@ export function SourceReveal({ commentId }: { commentId: string }) {
     <>
       <button
         className="button button-secondary source-reveal-button"
+        ref={revealButtonRef}
         type="button"
         onClick={() => setWarningOpen(true)}
       >
@@ -82,12 +117,14 @@ export function SourceReveal({ commentId }: { commentId: string }) {
             aria-labelledby={`source-warning-title-${commentId}`}
             aria-modal="true"
             className="source-warning-dialog"
+            ref={warningDialogRef}
             role="dialog"
+            tabIndex={-1}
           >
             <button
               aria-label="원문 경고 닫기"
               className="source-warning-close"
-              onClick={() => setWarningOpen(false)}
+              onClick={closeWarning}
               type="button"
             >
               <X aria-hidden="true" />
@@ -106,7 +143,7 @@ export function SourceReveal({ commentId }: { commentId: string }) {
             <div className="source-warning-actions">
               <button
                 className="button button-secondary"
-                onClick={() => setWarningOpen(false)}
+                onClick={closeWarning}
                 type="button"
               >
                 취소
@@ -115,6 +152,7 @@ export function SourceReveal({ commentId }: { commentId: string }) {
                 className="button button-primary"
                 disabled={loading}
                 onClick={revealSource}
+                ref={confirmButtonRef}
                 type="button"
               >
                 {loading

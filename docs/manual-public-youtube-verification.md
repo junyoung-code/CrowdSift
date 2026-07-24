@@ -6,6 +6,33 @@
 
 관련 설계: `docs/superpowers/specs/2026-07-24-public-youtube-read-only-dev-mode-design.md`
 
+## 로그인 방식과 로컬 Google 설정
+
+CommentHawk의 기본 로그인은 Supabase Auth를 통한 Google 로그인이다. 로그인용 Google OAuth는 CommentHawk 사용자 신원을 확인하는 용도이고, YouTube OAuth는 채널 조회·댓글 조치 권한을 받는 용도다. 두 흐름의 토큰과 환경 변수, callback을 서로 섞지 않는다.
+
+Google Cloud의 로그인용 OAuth 2.0 웹 클라이언트에는 다음 로컬 값을 등록한다.
+
+| 항목 | 로컬 값 |
+|---|---|
+| 앱 origin | `http://localhost:3000` |
+| Google Authorized JavaScript origin | `http://localhost:3000` |
+| Google Authorized redirect URI | `http://127.0.0.1:54321/auth/v1/callback` |
+| Supabase Auth 이후 앱 callback | `http://localhost:3000/auth/callback` |
+
+PKCE 검증 쿠키는 로그인을 시작한 브라우저 호스트에 묶인다. 따라서 앱은 `localhost`에서 시작한 로그인은 `localhost` callback으로, `127.0.0.1`에서 시작한 로그인은 `127.0.0.1` callback으로 완료한다. callback Route는 설정된 `APP_ORIGIN`과 같은 origin 또는 포트가 같은 로컬 `localhost/127.0.0.1` 쌍만 허용하며, 그 밖의 호스트는 `APP_ORIGIN`으로 되돌린다.
+
+로컬 Supabase를 시작하는 셸에 로그인 전용 값을 서버 환경 변수로 전달한다. 실제 값은 터미널 기록, 문서, Git에 남기지 않는다.
+
+```bash
+SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID=<login-client-id> \
+SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_SECRET=<login-client-secret> \
+npm run db:start
+```
+
+Google 설정 없이 결정적인 로컬 테스트만 실행할 때는 로그인 화면의 `다른 방법으로 로그인`을 열어 Magic Link를 사용한다. 로컬 메일은 Gmail이 아니라 Mailpit(`http://127.0.0.1:54324`)에서 확인한다.
+
+로그인에 성공하면 Supabase refresh token과 Next.js proxy가 세션을 갱신한다. 별도 시간 제한을 두지 않았으므로 같은 브라우저에서는 사용자가 `로그아웃`을 누르거나 보안상 세션이 폐기될 때까지 로그인 상태가 유지된다.
+
 ## 이 모드가 하는 일
 
 CommentHawk에 로그인한 개발자가 공개 YouTube 영상 URL을 입력하면, 해당 영상의 공개 댓글을 OAuth 없이 읽어 기존 분류 파이프라인과 Comment Inbox에서 확인한다.
@@ -34,7 +61,8 @@ ENABLE_PUBLIC_YOUTUBE_DEV_MODE=true
 
 - [ ] `npm run db:start`로 로컬 Supabase를 시작한다.
 - [ ] `npm run dev`로 앱을 시작한다.
-- [ ] `/auth/sign-in`에서 테스트 이메일로 로그인 링크를 요청한다.
+- [ ] `/auth/sign-in`에서 `Google로 계속하기`가 기본 로그인으로 보이는지 확인한다.
+- [ ] `다른 방법으로 로그인`을 열고 테스트 이메일로 로그인 링크를 요청한다.
 - [ ] `http://127.0.0.1:54324`의 Mailpit에서 링크를 연다.
 - [ ] `/app/connect/youtube`에서 `TEST FIXTURE`를 확인한다.
 - [ ] `https://www.youtube.com/watch?v=fixture0001`을 입력한다.
@@ -42,7 +70,9 @@ ENABLE_PUBLIC_YOUTUBE_DEV_MODE=true
 - [ ] `영상 확인` 후 fixture 영상과 `공개 URL · 읽기 전용` 표시를 확인한다.
 - [ ] `댓글 가져오기 및 분석 시작`을 누른다.
 - [ ] 확인 20개, 최상위 16개, 답글 4개로 완료되는지 확인한다.
-- [ ] Comment Inbox에서 안전·주의·위험 결과와 가려진 원문을 확인한다.
+- [ ] Comment Inbox에서 안전 댓글은 원문과 작성자 정보가 바로 보이는지 확인한다.
+- [ ] 주의·위험 댓글은 순화 요약만 먼저 보이고, 경고 확인 후 원문이 아래에 펼쳐지는지 확인한다.
+- [ ] 펼친 원문을 `원문 접기`로 다시 숨길 수 있는지 확인한다.
 - [ ] 공개 URL 카드에 YouTube 숨김·삭제 버튼이 없는지 확인한다.
 
 자동 검증:
@@ -160,6 +190,8 @@ YouTube 요청량은 댓글 개수만이 아니라 필요한 API 페이지와 �
 | 분석 실패 | OpenAI Key, 승인 모델명, schema 재시도 기록 |
 | 일부 댓글만 저장 | job의 실패 수, 페이지 token, 답글 조회 오류 |
 | 로그인 링크가 Gmail에 없음 | 로컬에서는 Mailpit을 보는 것이 정상 |
+| Google 로그인을 시작할 수 없음 | 로그인용 Google client ID/secret, `http://127.0.0.1:54321/auth/v1/callback`, Supabase 재시작 여부 |
+| Google 로그인 후 원래 화면으로 돌아오지 않음 | `APP_ORIGIN`, `/auth/callback` allow-list, `next`가 `/app` 내부 경로인지 확인 |
 | 숨김·삭제 버튼이 없음 | 공개 URL은 읽기 전용이므로 정상 |
 
 ## 6. 완료 기준
@@ -169,4 +201,6 @@ YouTube 요청량은 댓글 개수만이 아니라 필요한 API 페이지와 �
 - [ ] 답글 없는 최상위 댓글이 누락되지 않는다.
 - [ ] 저장된 모든 답글에 같은 작업 안의 부모 댓글이 있다.
 - [ ] 공개 URL 결과에서 개인화·학습 opt-in과 moderation이 차단된다.
+- [ ] 안전 댓글 원문은 즉시 보이고 주의·위험 원문은 확인 전 HTML에 포함되지 않는다.
+- [ ] 새로고침 후에도 로그인 상태가 유지되고 로그아웃 후 `/auth/sign-in`으로 이동한다.
 - [ ] production 환경에서는 공개 URL 개발 모드와 fixture provider가 활성화되지 않는다.

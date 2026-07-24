@@ -15,9 +15,13 @@ export function SignOutButton() {
     setPending(true);
     setError(null);
 
-    const supabase = createBrowserSupabaseClient();
-    const { error: authError } = await supabase.auth.signOut();
-    if (authError) {
+    try {
+      const supabase = createBrowserSupabaseClient();
+      const { error: authError } = await supabase.auth.signOut();
+      if (authError) {
+        throw authError;
+      }
+    } catch {
       setPending(false);
       setError("로그아웃하지 못했습니다. 다시 시도해 주세요.");
       return;

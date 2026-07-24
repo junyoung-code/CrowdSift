@@ -29,14 +29,17 @@ const item: InboxItem = {
 
 const renderInbox = (
   inboxItem: InboxItem,
-  reviewLevels = ["caution", "risk"] as const,
+  reviewLevels: Array<NonNullable<InboxItem["reviewLevel"]>> = [
+    "caution",
+    "risk",
+  ],
 ) =>
   render(
     <CommentInbox
       correctionAction={vi.fn()}
       moderationAction={vi.fn()}
       data={{ items: [inboxItem], total: 1 }}
-      filters={{ reviewLevels: [...reviewLevels] }}
+      filters={{ reviewLevels }}
       videos={[{ id: "video-1", title: "새 영상" }]}
     />,
   );

@@ -12,20 +12,24 @@ export function GoogleSignInButton({ nextPath }: { nextPath: string }) {
     setPending(true);
     setError(null);
 
-    const callback = new URL("/auth/callback", window.location.origin);
-    callback.searchParams.set("next", nextPath);
-    const supabase = createBrowserSupabaseClient();
-    const { error: authError } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: callback.toString(),
-      },
-    });
+    try {
+      const callback = new URL("/auth/callback", window.location.origin);
+      callback.searchParams.set("next", nextPath);
+      const supabase = createBrowserSupabaseClient();
+      const { error: authError } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: callback.toString(),
+        },
+      });
 
-    if (authError) {
-      setPending(false);
-      setError("Google 로그인을 시작하지 못했습니다. 다시 시도해 주세요.");
+      if (!authError) return;
+    } catch {
+      // Keep provider and transport details out of the browser UI.
     }
+
+    setPending(false);
+    setError("Google 로그인을 시작하지 못했습니다. 다시 시도해 주세요.");
   };
 
   return (

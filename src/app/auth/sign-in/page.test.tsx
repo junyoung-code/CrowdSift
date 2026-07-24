@@ -5,7 +5,6 @@ vi.mock("server-only", () => ({}));
 vi.mock("./actions", () => ({
   requestMagicLink: vi.fn(async () => undefined),
 }));
-
 import SignInPage from "./page";
 
 describe("SignInPage", () => {

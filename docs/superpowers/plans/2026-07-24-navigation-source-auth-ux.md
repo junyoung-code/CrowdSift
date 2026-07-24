@@ -898,7 +898,7 @@ git commit -m "feat: add persistent Google sign in"
 - Consumes: Tasks 1–5.
 - Produces: documented local Google setup, retained Magic Link E2E fallback, and checked completion boxes.
 
-- [ ] **Step 1: Add failing E2E assertions**
+- [x] **Step 1: Add failing E2E assertions**
 
 Using the existing Mailpit login helper as the deterministic CI fallback:
 
@@ -913,17 +913,22 @@ const protectedCard = page.locator(".inbox-comment-card").filter({
   hasText: "원문에서 보존할 만한",
 }).first();
 await expect(protectedCard.getByText("source harmful text"))
-  .not.toBeVisible();
+  .toHaveCount(0);
 await protectedCard.getByRole("button", { name: "원문 확인" }).click();
 await protectedCard.getByRole("button", {
   name: "경고를 확인하고 원문 보기",
 }).click();
 await expect(protectedCard.getByText("source harmful text")).toBeVisible();
+
+await page.getByRole("button", { name: "로그아웃" }).click();
+await expect(page).toHaveURL(/\/auth\/sign-in$/);
+await page.goto("/app");
+await expect(page).toHaveURL(/\/auth\/sign-in\?next=%2Fapp$/);
 ```
 
 Also assert the login page visibly offers `Google로 계속하기` while the fixture test chooses the Magic Link fallback.
 
-- [ ] **Step 2: Run E2E and confirm any missing behavior**
+- [x] **Step 2: Run E2E and confirm any missing behavior**
 
 Run:
 
@@ -933,7 +938,7 @@ npm run test:e2e
 
 Expected before all integration is complete: FAIL at the new navigation/source/auth assertions.
 
-- [ ] **Step 3: Complete integration-only corrections**
+- [x] **Step 3: Complete integration-only corrections**
 
 Only correct wiring exposed by E2E:
 
@@ -946,7 +951,7 @@ Only correct wiring exposed by E2E:
 
 Do not weaken assertions or expose protected source in fixture HTML to make E2E pass.
 
-- [ ] **Step 4: Update documentation**
+- [x] **Step 4: Update documentation**
 
 Document:
 
@@ -958,7 +963,7 @@ Document:
 - caution/risk sources require acknowledgement;
 - same-browser session persists until logout.
 
-- [ ] **Step 5: Run the complete verification suite**
+- [x] **Step 5: Run the complete verification suite**
 
 Run:
 
@@ -981,7 +986,7 @@ Expected:
 - E2E PASS, except any previously documented intentionally skipped viewport;
 - lint, type-check, production build, and diff check PASS.
 
-- [ ] **Step 6: Perform security and scope checks**
+- [x] **Step 6: Perform security and scope checks**
 
 Run:
 
@@ -997,27 +1002,27 @@ Expected:
 - `src/app/globals 2.css` remains untracked and unstaged;
 - only files in this plan are changed.
 
-- [ ] **Step 7: Check all Plan boxes and commit Task 6**
+- [x] **Step 7: Check all Plan boxes and commit Task 6**
 
 ```bash
-git add e2e/public-youtube-read-only.spec.ts docs/manual-public-youtube-verification.md docs/product-context.md docs/superpowers/plans/2026-07-24-navigation-source-auth-ux.md
+git add -u docs e2e src supabase
 git commit -m "test: verify navigation source and auth UX"
 ```
 
 ## Final Acceptance Checklist
 
-- [ ] Exactly one sidebar item remains active after every product navigation.
-- [ ] Safe comments show author metadata and source text immediately.
-- [ ] Safe comments do not show the source warning flow.
-- [ ] Caution, risk, pending, failed, and unclassified comments omit source text from initial data.
-- [ ] Acknowledgement reveals author metadata and source below the sanitized summary.
-- [ ] Protected source can be collapsed and resets after refresh.
-- [ ] Cross-workspace and anonymous source reads are denied.
-- [ ] `authenticated` still lacks direct `raw_comments` select privilege.
-- [ ] Google is the primary sign-in method.
-- [ ] Magic Link remains available under `다른 방법으로 로그인`.
-- [ ] Login Google scopes remain separate from YouTube scopes.
-- [ ] The browser session refreshes until explicit logout.
-- [ ] Logout clears the Supabase session and returns to sign-in.
-- [ ] No populated secret is committed.
-- [ ] Full verification suite passes.
+- [x] Exactly one sidebar item remains active after every product navigation.
+- [x] Safe comments show author metadata and source text immediately.
+- [x] Safe comments do not show the source warning flow.
+- [x] Caution, risk, pending, failed, and unclassified comments omit source text from initial data.
+- [x] Acknowledgement reveals author metadata and source below the sanitized summary.
+- [x] Protected source can be collapsed and resets after refresh.
+- [x] Cross-workspace and anonymous source reads are denied.
+- [x] `authenticated` still lacks direct `raw_comments` select privilege.
+- [x] Google is the primary sign-in method.
+- [x] Magic Link remains available under `다른 방법으로 로그인`.
+- [x] Login Google scopes remain separate from YouTube scopes.
+- [x] The browser session refreshes until explicit logout.
+- [x] Logout clears the Supabase session and returns to sign-in.
+- [x] No populated secret is committed.
+- [x] Full verification suite passes.

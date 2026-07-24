@@ -325,6 +325,9 @@ export function CommentInbox({
                 item.reviewLevel === "safe" &&
                 item.sourceAvailable &&
                 item.safeSourceText !== null;
+              const safeSourceText = showSafeSource
+                ? item.safeSourceText
+                : null;
 
               return (
                 <article
@@ -374,12 +377,12 @@ export function CommentInbox({
                       </div>
                     </div>
 
-                    {showSafeSource ? (
+                    {safeSourceText !== null ? (
                       <CommentSourceBlock
                         authorAvatarUrl={item.authorAvatarUrl}
                         authorDisplayName={item.authorDisplayName}
                         publishedAt={item.publishedAt}
-                        textDisplay={item.safeSourceText}
+                        textDisplay={safeSourceText}
                       />
                     ) : (
                       <>

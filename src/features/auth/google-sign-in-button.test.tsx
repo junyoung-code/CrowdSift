@@ -60,4 +60,21 @@ describe("GoogleSignInButton", () => {
       screen.getByRole("button", { name: "Google로 계속하기" }),
     ).toBeEnabled();
   });
+
+  it("recovers when the OAuth client throws", async () => {
+    const user = userEvent.setup();
+    mockSignInWithOAuth.mockRejectedValue(new Error("network secret"));
+    render(<GoogleSignInButton nextPath="/app" />);
+
+    await user.click(
+      screen.getByRole("button", { name: "Google로 계속하기" }),
+    );
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Google 로그인을 시작하지 못했습니다",
+    );
+    expect(
+      screen.getByRole("button", { name: "Google로 계속하기" }),
+    ).toBeEnabled();
+  });
 });

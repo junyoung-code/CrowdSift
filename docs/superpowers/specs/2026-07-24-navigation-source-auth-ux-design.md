@@ -297,6 +297,8 @@ Authorized redirect URI:
 http://127.0.0.1:54321/auth/v1/callback
 ```
 
+애플리케이션 callback은 Google 로그인을 시작한 브라우저 origin으로 만든다. callback Route는 요청 origin이 설정된 `APP_ORIGIN`과 같거나, HTTP·포트가 동일한 로컬 `localhost/127.0.0.1` 쌍일 때만 같은 origin에서 코드 교환과 최종 이동을 완료한다. 이 방식으로 PKCE 검증 쿠키와 세션 쿠키를 같은 호스트에 유지한다. 그 밖의 요청 origin은 `APP_ORIGIN`으로 제한한다.
+
 비밀 값은 `.env.local` 또는 로컬 shell 환경에만 저장하고 커밋하지 않는다. `.env.example`에는 변수명만 추가한다.
 
 ### 배포

@@ -95,6 +95,13 @@ export const requestAndOpenMagicLink = async (
   recipient: string,
 ) => {
   const requestedAt = new Date(Date.now() - 1_000);
+  const alternative = page.getByText("다른 방법으로 로그인", {
+    exact: true,
+  });
+  const details = alternative.locator("xpath=ancestor::details");
+  if ((await details.getAttribute("open")) === null) {
+    await alternative.click();
+  }
   await page.getByLabel("이메일").fill(recipient);
   await page.getByRole("button", { name: "로그인 링크 받기" }).click();
   await page.getByText("로그인 링크를 이메일로 보냈습니다.").waitFor();

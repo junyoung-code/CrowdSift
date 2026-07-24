@@ -24,7 +24,7 @@ describe("GET /auth/callback", () => {
     mockExchangeCodeForSession.mockResolvedValue({ error: null });
   });
 
-  it("exchanges a valid code behind a proxy and redirects to APP_ORIGIN", async () => {
+  it("keeps a local PKCE callback on the initiating host", async () => {
     const response = await GET(
       new Request(
         "http://127.0.0.1:3000/auth/callback?code=valid-code&next=/app",
@@ -32,7 +32,7 @@ describe("GET /auth/callback", () => {
     );
 
     expect(mockExchangeCodeForSession).toHaveBeenCalledWith("valid-code");
-    expect(response.headers.get("location")).toBe("http://localhost:3000/app");
+    expect(response.headers.get("location")).toBe("http://127.0.0.1:3000/app");
   });
 
   it("rejects an external next target while keeping the configured origin", async () => {
@@ -43,7 +43,7 @@ describe("GET /auth/callback", () => {
     );
 
     expect(mockExchangeCodeForSession).toHaveBeenCalledWith("valid-code");
-    expect(response.headers.get("location")).toBe("http://localhost:3000/app");
+    expect(response.headers.get("location")).toBe("http://127.0.0.1:3000/app");
   });
 
   it.each([
@@ -58,7 +58,7 @@ describe("GET /auth/callback", () => {
     );
 
     expect(mockExchangeCodeForSession).toHaveBeenCalledWith("valid-code");
-    expect(response.headers.get("location")).toBe("http://localhost:3000/app");
+    expect(response.headers.get("location")).toBe("http://127.0.0.1:3000/app");
   });
 
   it("preserves a valid internal query string", async () => {
@@ -69,7 +69,18 @@ describe("GET /auth/callback", () => {
     );
 
     expect(response.headers.get("location")).toBe(
-      "http://localhost:3000/app/inbox?levels=risk",
+      "http://127.0.0.1:3000/app/inbox?levels=risk",
     );
+  });
+
+  it("falls back to APP_ORIGIN for an unapproved request origin", async () => {
+    const response = await GET(
+      new Request(
+        "https://evil.example/auth/callback?code=valid-code&next=/app",
+      ),
+    );
+
+    expect(mockExchangeCodeForSession).toHaveBeenCalledWith("valid-code");
+    expect(response.headers.get("location")).toBe("http://localhost:3000/app");
   });
 });
