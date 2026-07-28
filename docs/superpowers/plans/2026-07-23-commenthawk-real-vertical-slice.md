@@ -1696,7 +1696,7 @@ interface CommentImportService {
 
 - Consumes: selected channel/token, `comment_import_jobs`, immutable source tables.
 
-- [ ] **Step 1: mapping·pagination·중복·부분 실패 테스트를 작성한다**
+- [x] **Step 1: mapping·pagination·중복·부분 실패 테스트를 작성한다**
 
 테스트 fixture는 top-level 2개, 첫 댓글 inline reply 1개, `totalReplyCount=3`, 중복 comment ID 1개, 저장 실패 1개를 포함한다. 기대값은 top-level limit을 reply가 소비하지 않고, 누락 reply를 `comments.list(parentId)`로 추가 조회하며, 한 item 실패가 성공 item을 rollback하지 않는 것이다.
 
@@ -1713,17 +1713,17 @@ expect(repository.upsertSource).toHaveBeenCalledWith(
 );
 ```
 
-- [ ] **Step 2: 실패를 확인한다**
+- [x] **Step 2: 실패를 확인한다**
 
 Run: `npm test -- src/features/ingestion`
 
 Expected: FAIL because import modules do not exist.
 
-- [ ] **Step 3: 영상 목록과 import job 생성을 구현한다**
+- [x] **Step 3: 영상 목록과 import job 생성을 구현한다**
 
 최신 영상은 uploads playlist를 조회해 `youtube_videos`에 upsert한다. form schema는 video ID 하나와 `z.coerce.number().int().min(20).max(50)`만 허용한다. action은 membership과 selected channel ownership을 다시 확인한 뒤 `pending` job 하나를 생성한다.
 
-- [ ] **Step 4: YouTube 수집 adapter를 구현한다**
+- [x] **Step 4: YouTube 수집 adapter를 구현한다**
 
 top-level은:
 
@@ -1752,17 +1752,17 @@ youtube.comments.list({
 
 을 page token이 끝날 때까지 호출한다. `textOriginal`이 provider response에 없으면 `null`로 저장하고 `textDisplay`를 원문이라고 거짓 표기하지 않는다.
 
-- [ ] **Step 5: item별 transaction과 idempotency를 구현한다**
+- [x] **Step 5: item별 transaction과 idempotency를 구현한다**
 
 각 comment는 `(workspace_id, youtube_comment_id)`에 `insert ... on conflict do nothing`을 사용해 기존 source column을 덮어쓰지 않는다. 신규이면 payload를 함께 insert하고 성공 item을 기록한다. 기존이면 duplicate item을 기록한다. 실패하면 해당 item만 `failed`로 기록하고 다음 item을 계속한다. job 최종 상태는 `failed_count=0 → succeeded`, 성공과 실패가 함께 있으면 `partially_succeeded`, 성공 0이면 `failed`다.
 
 import가 terminal 상태가 되면 이 job에서 성공·중복으로 확인된 모든 raw comment 중 현재 `policy/prompt/model/schema` idempotency key의 분석이 없는 comment를 대상으로 `analysis_jobs` 하나와 `analysis_job_items`를 생성한다. `configuration_key`는 현재 policy/prompt/model/schema 조합의 SHA-256이다. 같은 import job을 다시 처리해도 `(import_job_id, configuration_key)`, `(analysis_job_id, raw_comment_id)`, model-run idempotency constraint 때문에 중복 job/item/run이 생기지 않는다.
 
-- [ ] **Step 6: progress UI와 retry 상태를 구현한다**
+- [x] **Step 6: progress UI와 retry 상태를 구현한다**
 
 영상 화면은 requested/fetched/stored/duplicate/failed를 분리해 표시한다. `commentsDisabled`, `quotaExceeded`, revoked permission을 서로 다른 한국어 상태로 보여준다. route handler는 membership과 job workspace를 확인하고 이미 `succeeded`면 같은 summary를 반환한다.
 
-- [ ] **Step 7: tests를 실행한다**
+- [x] **Step 7: tests를 실행한다**
 
 Run:
 
@@ -1773,7 +1773,7 @@ npm run lint
 
 Expected: pagination, replies, idempotency, partial failure tests PASS.
 
-- [ ] **Step 8: 커밋한다**
+- [x] **Step 8: 커밋한다**
 
 ```bash
 git add src/features/ingestion src/features/youtube/video-service.ts "src/app/(product)/app/videos" src/app/api/import-jobs
@@ -1840,7 +1840,7 @@ applyReviewFloor(
 
 - Consumes: versioned policies/phrase rules.
 
-- [ ] **Step 1: 한국어 변형과 정책 충돌 실패 테스트를 작성한다**
+- [x] **Step 1: 한국어 변형과 정책 충돌 실패 테스트를 작성한다**
 
 ```ts
 it.each([
@@ -1872,23 +1872,23 @@ it("does not allow a model to downgrade a phishing rule to safe", () => {
 });
 ```
 
-- [ ] **Step 2: 실패를 확인한다**
+- [x] **Step 2: 실패를 확인한다**
 
 Run: `npm test -- src/features/rules`
 
 Expected: FAIL because rule modules do not exist.
 
-- [ ] **Step 3: 정규화·신호·초기 routing을 구현한다**
+- [x] **Step 3: 정규화·신호·초기 routing을 구현한다**
 
 정규화는 표시용 원문을 절대 변경하지 않고 matching용 문자열만 생성한다. 순서는 `NFKC → lowercase → URL canonical marker → 한글/영문 반복 3회 초과를 2회로 축약 → matching copy에서만 공백 제거`다. exact URL, 반복 광고, credential 요청/단축 URL 조합은 신호로 저장한다.
 
 blocked phrase만으로 `risk`를 확정하지 않는다. phishing pattern은 `risk`, blocked phrase는 `caution`, allowed/context exception은 최소 `caution` Stage 2 경로로 보낸다. `applyReviewFloor`는 `safe=0, caution=1, risk=2` 순위를 사용해 model level과 deterministic floor 중 높은 값을 반환한다. Stage 1과 Stage 2 저장 직전에 모두 이 함수를 적용한다.
 
-- [ ] **Step 4: versioned 정책 편집 UI를 구현한다**
+- [x] **Step 4: versioned 정책 편집 UI를 구현한다**
 
 정책 저장 시 기존 row update가 아니라 `max(version)+1`의 새 `creator_policies`와 해당 버전의 phrase rules를 transaction으로 생성한다. form은 `blocked`, `allowed`, `context_exception`, 민감도, 추천 조치를 분리하고 “금지어 일치만으로 자동 삭제하지 않음”을 명시한다.
 
-- [ ] **Step 5: 테스트와 커밋을 수행한다**
+- [x] **Step 5: 테스트와 커밋을 수행한다**
 
 Run:
 
@@ -1918,7 +1918,7 @@ Expected: rules/policy tests PASS, commit succeeds.
 - Produces: `Stage1Output`, `Stage2Output`, `AnalysisProvider`, `buildAnalysisIdempotencyKey`.
 - Consumes: Task 7 `RuleEvaluation`.
 
-- [ ] **Step 1: schema와 key 실패 테스트를 작성한다**
+- [x] **Step 1: schema와 key 실패 테스트를 작성한다**
 
 ```ts
 it("rejects a confidence outside 0..1", () => {
@@ -1944,13 +1944,13 @@ it("changes the key when policy version changes", () => {
 });
 ```
 
-- [ ] **Step 2: 실패를 확인한다**
+- [x] **Step 2: 실패를 확인한다**
 
 Run: `npm test -- src/features/analysis/schemas.test.ts src/features/analysis/idempotency.test.ts`
 
 Expected: FAIL because analysis contracts do not exist.
 
-- [ ] **Step 3: exact category·level·output schema를 구현한다**
+- [x] **Step 3: exact category·level·output schema를 구현한다**
 
 ```ts
 export const CommentCategorySchema = z.enum([
@@ -1992,7 +1992,7 @@ export const DashboardSummaryOutputSchema = z.object({
 });
 ```
 
-- [ ] **Step 4: provider와 idempotency 계약을 구현한다**
+- [x] **Step 4: provider와 idempotency 계약을 구현한다**
 
 ```ts
 export type Stage1Input = {
@@ -2054,7 +2054,7 @@ export function buildAnalysisIdempotencyKey(input: {
 
 prompt 파일은 영어로 작성하고 다음 불변식을 명시한다: 원문을 고치지 않음, 욕설만 있고 유용한 신호가 없으면 sanitized feedback을 만들지 않음, `safe`를 법적 안전으로 표현하지 않음, category enum 밖의 값을 생성하지 않음. prompt version은 Stage 1 `commenthawk-stage1-v1`, Stage 2 `commenthawk-stage2-v1`로 분리한다.
 
-- [ ] **Step 5: 테스트와 커밋을 수행한다**
+- [x] **Step 5: 테스트와 커밋을 수행한다**
 
 Run:
 
@@ -2081,7 +2081,7 @@ Expected: schema/key tests PASS.
 - Produces: `processAnalysisChunk(jobId: string, maxItems = 5): Promise<AnalysisJobProgress>`.
 - Consumes: `AnalysisProvider`, raw source, rule evaluation, current policy, job tables.
 
-- [ ] **Step 1: structured response·retry·run preservation 실패 테스트를 작성한다**
+- [x] **Step 1: structured response·retry·run preservation 실패 테스트를 작성한다**
 
 ```ts
 it("persists the model run and stage-one analysis separately", async () => {
@@ -2106,13 +2106,13 @@ it("retries one schema failure then records a per-item failure", async () => {
 });
 ```
 
-- [ ] **Step 2: 실패를 확인한다**
+- [x] **Step 2: 실패를 확인한다**
 
 Run: `npm test -- src/features/analysis/openai-analysis-provider.test.ts src/features/analysis/analysis-service.test.ts`
 
 Expected: FAIL because provider/service do not exist.
 
-- [ ] **Step 3: OpenAI Structured Outputs adapter를 구현한다**
+- [x] **Step 3: OpenAI Structured Outputs adapter를 구현한다**
 
 공식 SDK 형태를 그대로 사용한다.
 
@@ -2136,11 +2136,11 @@ if (!response.output_parsed) {
 
 raw comment를 logger에 포함하지 않는다. `response.id`, model, usage, latency, refusal/schema error만 model run에 기록한다.
 
-- [ ] **Step 4: chunk orchestration과 상태 전이를 구현한다**
+- [x] **Step 4: chunk orchestration과 상태 전이를 구현한다**
 
 한 요청에서 pending item 최대 5개를 claim한다. 각 item은 source 보존 확인 → 규칙 평가 저장 → current policy 조회 → Stage 1 실행 → `applyReviewFloor` 적용 → model run 저장 → analysis 저장 순서다. Stage 1의 `manual_review`는 `needsSecondPass`, `evidence_review`는 final review level이 `risk`인지로 저장한다. schema failure는 정확히 1회 다시 호출하고, 429/5xx는 Task 1 `withRetry`로 전체 최대 3회다. item들이 일부 성공하면 job은 `partially_succeeded`, pending이 남으면 `running`, 전부 성공하면 `succeeded`다.
 
-- [ ] **Step 5: route authorization과 polling response를 구현한다**
+- [x] **Step 5: route authorization과 polling response를 구현한다**
 
 `POST /api/analysis-jobs/[jobId]/process`는 `requireViewer()`와 job workspace 일치를 검사한다. 반환값:
 
@@ -2154,7 +2154,7 @@ type AnalysisJobProgress = {
 };
 ```
 
-- [ ] **Step 6: tests와 커밋을 수행한다**
+- [x] **Step 6: tests와 커밋을 수행한다**
 
 Run:
 
@@ -2201,7 +2201,7 @@ retrieveCreatorExamples(input: {
 
 - Consumes: pgvector RPC, `AnalysisProvider.embed`, Stage 1 result.
 
-- [ ] **Step 1: 여섯 trigger와 tenant isolation 테스트를 작성한다**
+- [x] **Step 1: 여섯 trigger와 tenant isolation 테스트를 작성한다**
 
 각 조건을 독립 test case로 만든다: `caution/risk`, confidence `0.849`, phrase signal, similarity `0.78`, `toxic_but_actionable`, context-sensitive pattern. `safe`, confidence `0.95`, signal 없음, similarity `0.77`은 false여야 한다.
 
@@ -2218,13 +2218,13 @@ expect(
 
 RAG mock repository가 다른 workspace row를 반환하면 service가 방어적으로 reject하도록 테스트한다.
 
-- [ ] **Step 2: 실패를 확인한다**
+- [x] **Step 2: 실패를 확인한다**
 
 Run: `npm test -- src/features/analysis/second-pass.test.ts src/features/analysis/rag-service.test.ts`
 
 Expected: FAIL because modules do not exist.
 
-- [ ] **Step 3: embedding과 retrieval을 구현한다**
+- [x] **Step 3: embedding과 retrieval을 구현한다**
 
 ```ts
 const { OPENAI_EMBEDDING_MODEL } = getServerEnv();
@@ -2237,13 +2237,13 @@ const embedding = await client.embeddings.create({
 
 vector 길이가 1536이 아니면 저장하지 않고 명시적 schema error를 반환한다. RPC에는 authenticated workspace ID, threshold `0.78`, limit `5`를 전달한다. 반환 예시마다 feedback ID와 similarity를 Stage 2 provenance에 저장한다.
 
-- [ ] **Step 4: Stage 2 Structured Output과 최종 결과 저장을 구현한다**
+- [x] **Step 4: Stage 2 Structured Output과 최종 결과 저장을 구현한다**
 
 Stage 2 input은 source, thread/video context, Stage 1, rule signals, policy version, 최대 5개 retrieved examples만 포함한다. provider는 `Stage2OutputSchema`와 `zodTextFormat(..., "comment_stage_2")`를 사용한다. 응답 review level에는 다시 `applyReviewFloor`를 적용한다. Stage 1 row를 update하지 않고 새 stage-2 `model_runs`, `comment_analyses`, `sanitized_feedback` row를 만든다.
 
 pure abuse가 `abusive_no_signal`이면 `sanitizedFeedback=null`; 유용한 의미가 확인된 경우만 neutral text를 저장한다.
 
-- [ ] **Step 5: tests와 커밋을 수행한다**
+- [x] **Step 5: tests와 커밋을 수행한다**
 
 Run:
 
@@ -2276,7 +2276,7 @@ Expected: all trigger, top-5, threshold, tenant isolation, Stage 1 preservation 
 - Produces: `getInboxPage(filters)`, `saveCreatorCorrection(input)`, protected source endpoint.
 - Consumes: final analysis, sanitized feedback, raw source, embedding provider.
 
-- [ ] **Step 1: default filter·hidden source·append-only correction 실패 테스트를 작성한다**
+- [x] **Step 1: default filter·hidden source·append-only correction 실패 테스트를 작성한다**
 
 ```ts
 it("defaults to caution and risk", async () => {
@@ -2300,25 +2300,25 @@ it("inserts feedback without changing historical analysis", async () => {
 });
 ```
 
-- [ ] **Step 2: 실패를 확인한다**
+- [x] **Step 2: 실패를 확인한다**
 
 Run: `npm test -- src/features/inbox src/features/feedback`
 
 Expected: FAIL because inbox/feedback modules do not exist.
 
-- [ ] **Step 3: URL 기반 Inbox query와 화면을 구현한다**
+- [x] **Step 3: URL 기반 Inbox query와 화면을 구현한다**
 
 허용 filter는 review level, category, video, analysis state, action state, confidence range, search다. `current_comment_analyses` view를 사용해 Stage 2가 있으면 Stage 2, 없으면 최신 Stage 1을 comment의 현재 결과로 사용한다. search param 누락 시 levels는 `caution,risk`. list row에는 sanitized feedback, level text+icon, category, confidence, recommendation을 표시하고 source text는 HTML에 포함하지 않는다.
 
-- [ ] **Step 4: 경고 후 source를 요청하는 endpoint를 구현한다**
+- [x] **Step 4: 경고 후 source를 요청하는 endpoint를 구현한다**
 
 `POST /api/comments/[commentId]/source`만 제공한다. route는 `requireViewer`, comment workspace, `acknowledged=true` body를 검증하고 `{ textDisplay, textOriginal, capturedAt }`를 반환한다. client는 경고 dialog에서 “유해한 표현이 포함될 수 있습니다”를 보여주고 사용자가 확인한 뒤에만 POST한다.
 
-- [ ] **Step 5: correction·personalization을 구현한다**
+- [x] **Step 5: correction·personalization을 구현한다**
 
 correction form은 category, review level, recommended action, sanitized feedback, `use_for_personalization`, `use_for_training`을 분리한다. feedback row insert 후 personalization=true인 경우에만 `source comment text + creator decision + corrected category/level + edited sanitized feedback`으로 retrieval document를 만들고 embedding해 `feedback_embeddings`에 저장한다. 이 document는 OpenAI request 외의 log에 남기지 않고 DB에는 vector와 model ID만 저장한다. training=true는 표시만 저장하고 어떤 training API도 호출하지 않는다.
 
-- [ ] **Step 6: tests, accessibility query, commit을 수행한다**
+- [x] **Step 6: tests, accessibility query, commit을 수행한다**
 
 Run:
 
@@ -2373,7 +2373,7 @@ type DashboardData =
 
 - Consumes: persisted Supabase data only.
 
-- [ ] **Step 1: fake metric 방지 실패 테스트를 작성한다**
+- [x] **Step 1: fake metric 방지 실패 테스트를 작성한다**
 
 ```tsx
 it("shows no metrics when disconnected", () => {
@@ -2414,27 +2414,27 @@ it("stores a model-backed summary from real derived signals", async () => {
 });
 ```
 
-- [ ] **Step 2: 실패를 확인한다**
+- [x] **Step 2: 실패를 확인한다**
 
 Run: `npm test -- src/features/dashboard`
 
 Expected: FAIL because dashboard modules do not exist.
 
-- [ ] **Step 3: 실제 derived data만 사용하는 AI summary를 구현한다**
+- [x] **Step 3: 실제 derived data만 사용하는 AI summary를 구현한다**
 
 analysis job이 terminal 상태가 된 뒤 final analysis가 10개 이상이고 해당 job summary가 없을 때만 `summarizeDashboard`를 호출한다. 입력은 `safe/caution/risk` count와 `sanitized_feedback.neutral_text` 최대 20개이며 raw harmful source는 보내지 않는다. Structured Output은 `DashboardSummaryOutputSchema`, prompt version은 `commenthawk-dashboard-summary-v1`이다. provider/model/response/prompt/schema/usage를 `workspace_analysis_summaries`에 함께 저장한다.
 
 final analysis가 10개 미만이면 provider 호출 없이 `null`을 반환한다. 같은 `analysis_job_id` 재호출은 unique constraint로 기존 summary를 반환한다.
 
-- [ ] **Step 4: 한 RPC read model과 dashboard states를 구현한다**
+- [x] **Step 4: 한 RPC read model과 dashboard states를 구현한다**
 
 `get_dashboard_summary(workspace_id)`는 RLS membership을 확인하고 `current_comment_analyses` 기준 imported/analyzed/caution/risk, latest jobs, selected channel/video를 같은 persisted snapshot에서 반환한다. AI summary는 final analyses가 10개 이상일 때만 생성·저장된 summary를 사용하며 즉석에서 임의 문장을 만들지 않는다. 10개 미만이면 `null`과 “분석이 더 쌓이면 요약이 표시됩니다”를 렌더한다.
 
-- [ ] **Step 5: BrandBastion 느낌의 실제 dashboard를 구현한다**
+- [x] **Step 5: BrandBastion 느낌의 실제 dashboard를 구현한다**
 
 브라우저형 landing preview와 달리 app dashboard는 조밀한 4개 metric card, channel health, selected video, import/analysis progress, 안전·주의·위험 분포, priority comments, recent corrections/actions, Inbox CTA를 렌더한다. 모든 card에는 실제 query result만 전달한다.
 
-- [ ] **Step 6: tests와 커밋을 수행한다**
+- [x] **Step 6: tests와 커밋을 수행한다**
 
 Run:
 

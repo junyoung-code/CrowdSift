@@ -1,0 +1,2 @@
+-- Local seed data is intentionally empty.
+-- Automated database tests create isolated fixtures inside transactions.

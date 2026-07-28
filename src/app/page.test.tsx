@@ -4,24 +4,17 @@ import { describe, expect, it } from "vitest";
 import Home from "./page";
 
 describe("Home", () => {
-  it("renders only the customer landing content", () => {
+  it("renders the complete customer landing page", () => {
     render(<Home />);
 
     expect(
       screen.getByRole("heading", {
-        name: "중요한 댓글은 놓치지 않고,악성 댓글에는 끌려가지 않도록.",
+        name: "댓글의 소음은 줄이고,중요한 목소리는 더 선명하게.",
       }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "YouTube 연결하기" }),
-    ).toBeDisabled();
+    expect(screen.getByRole("region", { name: "제품 예시 화면" })).toBeInTheDocument();
     expect(
       screen.queryByRole("region", { name: "CommentHawk 개발 지도" }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("heading", {
-        name: "우리가 해야 할 일을, 하나의 지도로 봅니다.",
-      }),
     ).not.toBeInTheDocument();
   });
 });
