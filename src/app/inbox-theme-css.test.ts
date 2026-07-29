@@ -38,4 +38,14 @@ describe("Comment Inbox theme surfaces", () => {
       "var(--inbox-panel-raised)",
     );
   });
+
+  it("derives AI correction controls from theme tokens", () => {
+    const controls = declarationsFor(
+      ".inbox-page .feedback-correction select",
+    );
+
+    expect(controls).toContain("var(--inbox-panel-raised)");
+    expect(controls).toContain("var(--inbox-text-soft)");
+    expect(controls).not.toContain("#090e16");
+  });
 });

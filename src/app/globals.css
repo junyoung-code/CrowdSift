@@ -5624,7 +5624,7 @@ a {
 .inbox-page .feedback-correction select,
 .inbox-page .feedback-correction textarea {
   border-color: var(--inbox-line);
-  background: #090e16;
+  background: var(--inbox-panel-raised);
   color: var(--inbox-text-soft);
 }
 
@@ -6570,6 +6570,12 @@ a {
   ) {
   border-color: var(--inbox-line);
   background: var(--inbox-panel-raised);
+}
+
+.inbox-page .feedback-correction select {
+  border-color: var(--inbox-line);
+  background: var(--inbox-panel-raised);
+  color: var(--inbox-text-soft);
 }
 
 .inbox-page .inbox-queue-item:hover {
