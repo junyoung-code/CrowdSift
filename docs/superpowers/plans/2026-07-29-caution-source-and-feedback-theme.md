@@ -471,10 +471,163 @@ git add docs/product-context.md
 git commit -m "docs: update inbox source visibility policy"
 ```
 
+---
+
+### Task 5: Show safe and caution source text in the Inbox queue
+
+**Files:**
+- Modify: `src/features/inbox/comment-inbox.test.tsx:84-122`
+- Modify: `src/features/inbox/comment-inbox.tsx:95-113`
+- Modify: `src/features/inbox/comment-inbox.tsx:601-605`
+- Modify: `docs/product-context.md:55`
+
+**Interfaces:**
+- Consumes: `InboxItem.reviewLevel`, `InboxItem.sourceAvailable`, `InboxItem.safeSourceText`, and the existing `getPrimarySummary(item)` fallback.
+- Produces: `getQueuePreview(item: InboxItem): string`, which returns source text only for available safe/caution source and otherwise returns the existing sanitized summary.
+
+- [ ] **Step 1: Change the caution queue test and verify its selector targets only the list preview**
+
+Replace the first test name and its queue-preview assertion with:
+
+```tsx
+it("shows caution source text in the queue preview", () => {
+  renderInbox(item);
+
+  expect(
+    screen.getByText("주의 댓글 원문", {
+      selector: ".inbox-sanitized-feedback",
+    }),
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByText("자막 크기를 키워 달라는 요청", {
+      selector: ".inbox-sanitized-feedback",
+    }),
+  ).not.toBeInTheDocument();
+});
+```
+
+The production mutation this catches is replacing the queue policy with unconditional `getPrimarySummary(item)`.
+
+- [ ] **Step 2: Add risk and unavailable-source queue tests**
+
+Add these independent behavior tests:
+
+```tsx
+it("keeps risk source text out of the queue preview", () => {
+  renderInbox({
+    ...item,
+    reviewLevel: "risk",
+    safeSourceText: "위험 댓글 원문",
+    neutralText: "위험 댓글 요약",
+  });
+
+  expect(
+    screen.getByText("위험 댓글 요약", {
+      selector: ".inbox-sanitized-feedback",
+    }),
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByText("위험 댓글 원문", {
+      selector: ".inbox-sanitized-feedback",
+    }),
+  ).not.toBeInTheDocument();
+});
+
+it("falls back to the summary when caution source text is unavailable", () => {
+  renderInbox({
+    ...item,
+    sourceAvailable: false,
+    safeSourceText: null,
+    neutralText: "원문을 사용할 수 없는 주의 댓글 요약",
+  });
+
+  expect(
+    screen.getByText("원문을 사용할 수 없는 주의 댓글 요약", {
+      selector: ".inbox-sanitized-feedback",
+    }),
+  ).toBeInTheDocument();
+});
+```
+
+The risk fixture deliberately contains `safeSourceText` so the test protects the renderer even if an upstream caller accidentally supplies risk source.
+
+- [ ] **Step 3: Run the focused component test and verify RED**
+
+Run:
+
+```bash
+npm test -- src/features/inbox/comment-inbox.test.tsx
+```
+
+Expected: the caution queue assertion fails because the list still renders `자막 크기를 키워 달라는 요청`; the risk and unavailable-source assertions remain safe.
+
+- [ ] **Step 4: Implement the minimal queue preview policy**
+
+Add directly after `isInitiallyVisibleSource`:
+
+```ts
+const getQueuePreview = (item: InboxItem) =>
+  isInitiallyVisibleSource(item.reviewLevel) &&
+  item.sourceAvailable &&
+  item.safeSourceText
+    ? item.safeSourceText
+    : getPrimarySummary(item);
+```
+
+Change only the list preview expression:
+
+```tsx
+<p className="inbox-sanitized-feedback">{getQueuePreview(item)}</p>
+```
+
+Keep the class name and all detail-view, reply, risk-reveal, filter, and pagination behavior unchanged.
+
+- [ ] **Step 5: Run the focused test and verify GREEN**
+
+Run:
+
+```bash
+npm test -- src/features/inbox/comment-inbox.test.tsx
+```
+
+Expected: all Comment Inbox component tests pass with no warnings.
+
+- [ ] **Step 6: Clarify the product source of truth**
+
+Change the safe/caution policy bullet to:
+
+```markdown
+- 안전·주의 댓글은 Inbox 목록과 선택한 대화에서 작성자 정보와 원문을 바로 보여준다.
+```
+
+- [ ] **Step 7: Run complete verification**
+
+Run:
+
+```bash
+npm test
+npm run db:test
+npm run lint
+npx tsc --noEmit
+npm run build
+git diff --check
+```
+
+Expected: Vitest, pgTAP, ESLint, TypeScript, and the production build pass; the diff has no whitespace errors.
+
+- [ ] **Step 8: Commit the queue policy**
+
+```bash
+git add src/features/inbox/comment-inbox.tsx src/features/inbox/comment-inbox.test.tsx docs/product-context.md docs/superpowers/plans/2026-07-29-caution-source-and-feedback-theme.md
+git commit -m "fix: show caution source in inbox queue"
+```
+
 ## Completion Criteria
 
 - Safe and caution top-level comments show stored source immediately.
 - Safe and caution replies show stored source immediately.
+- Safe and caution queue previews show stored source when it is available.
+- Risk and unavailable-source queue previews keep using sanitized summaries.
 - Risk top-level comments and replies do not include source text in the initial response or DOM.
 - Risk source remains available only after acknowledgment and can be collapsed again.
 - AI judgment correction selects and textarea use active theme tokens in light and dark modes.
