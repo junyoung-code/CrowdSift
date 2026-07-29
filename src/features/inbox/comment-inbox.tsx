@@ -694,7 +694,10 @@ export function CommentInbox({
                         </span>
                         <p>{getPrimarySummary(selectedItem)}</p>
                         {selectedItem.sourceAvailable ? (
-                          <SourceReveal commentId={selectedItem.rawCommentId} />
+                          <SourceReveal
+                            commentId={selectedItem.rawCommentId}
+                            key={selectedItem.rawCommentId}
+                          />
                         ) : (
                           <p className="source-unavailable">
                             YouTube에서 더 이상 원문을 확인할 수 없습니다.

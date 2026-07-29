@@ -5757,6 +5757,15 @@ a {
   gap: 10px;
 }
 
+/* Stretch the author link over the whole row. The selected state already spans the
+   card, so limiting the hit area to the author line makes the card look clickable
+   where it is not. Nesting a second <a> inside would be invalid, hence the overlay. */
+.inbox-queue-select::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+
 .inbox-queue-select > span:last-child {
   display: flex;
   min-width: 0;
@@ -5876,6 +5885,8 @@ a {
 
 .inbox-reply-disclosure {
   display: inline-flex;
+  position: relative;
+  z-index: 1;
   align-items: center;
   gap: 5px;
   margin: 12px 0 0 45px;

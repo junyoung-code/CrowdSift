@@ -82,6 +82,40 @@ describe("SourceReveal", () => {
     ).toBeInTheDocument();
   });
 
+  it("drops a revealed source when the comment changes", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: vi.fn().mockResolvedValue({
+          authorDisplayName: "첫 번째 작성자",
+          authorAvatarUrl: null,
+          publishedAt: "2026-07-23T00:00:00.000Z",
+          textDisplay: "첫 번째 댓글 원문",
+          capturedAt: "2026-07-23T00:01:00.000Z",
+        }),
+      }),
+    );
+
+    const { rerender } = render(<SourceReveal commentId="comment-1" />);
+
+    await user.click(screen.getByRole("button", { name: "원문 확인" }));
+    await user.click(
+      screen.getByRole("button", { name: "경고를 확인하고 원문 보기" }),
+    );
+    expect(await screen.findByText("첫 번째 댓글 원문")).toBeInTheDocument();
+
+    // Selecting another comment must not leave the previous source on screen, or the
+    // reader would weigh one comment's words against another comment's controls.
+    rerender(<SourceReveal commentId="comment-2" />);
+
+    expect(screen.queryByText("첫 번째 댓글 원문")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "원문 확인" }),
+    ).toBeInTheDocument();
+  });
+
   it("keeps the sanitized summary visible after revealing source", async () => {
     const user = userEvent.setup();
     vi.stubGlobal(
