@@ -87,7 +87,7 @@ const renderInbox = (
   );
 
 describe("CommentInbox", () => {
-  it("shows sanitized feedback and never embeds source text in the list", () => {
+  it("shows caution source text in the queue preview", () => {
     render(
       <CommentInbox
         correctionAction={vi.fn()}
@@ -99,17 +99,26 @@ describe("CommentInbox", () => {
     );
 
     expect(
-      screen.getByText("자막 크기를 키워 달라는 요청", {
+      screen.getByText("주의 댓글 원문", {
         selector: ".inbox-sanitized-feedback",
       }),
     ).toBeInTheDocument();
+    expect(
+      screen.queryByText("자막 크기를 키워 달라는 요청", {
+        selector: ".inbox-sanitized-feedback",
+      }),
+    ).not.toBeInTheDocument();
     expect(
       screen.getAllByText("주의", { selector: ".review-level" }),
     ).not.toHaveLength(0);
     expect(
       screen.getByText("유해하지만 참고할 내용 있음", { selector: "dd" }),
     ).toBeInTheDocument();
-    expect(screen.getByText("주의 댓글 원문")).toBeInTheDocument();
+    expect(
+      screen.getByText("주의 댓글 원문", {
+        selector: ".comment-source-text",
+      }),
+    ).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "원문 확인" }),
     ).not.toBeInTheDocument();
@@ -121,6 +130,41 @@ describe("CommentInbox", () => {
     expect(
       screen.getByRole("checkbox", {
         name: /^향후 공통 모델 학습 후보로 표시/,
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it("keeps risk source text out of the queue preview", () => {
+    renderInbox({
+      ...item,
+      reviewLevel: "risk",
+      safeSourceText: "위험 댓글 원문",
+      neutralText: "위험 댓글 요약",
+    });
+
+    expect(
+      screen.getByText("위험 댓글 요약", {
+        selector: ".inbox-sanitized-feedback",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText("위험 댓글 원문", {
+        selector: ".inbox-sanitized-feedback",
+      }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("falls back to the summary when caution source text is unavailable", () => {
+    renderInbox({
+      ...item,
+      sourceAvailable: false,
+      safeSourceText: null,
+      neutralText: "원문을 사용할 수 없는 주의 댓글 요약",
+    });
+
+    expect(
+      screen.getByText("원문을 사용할 수 없는 주의 댓글 요약", {
+        selector: ".inbox-sanitized-feedback",
       }),
     ).toBeInTheDocument();
   });
@@ -177,7 +221,11 @@ describe("CommentInbox", () => {
       ["safe"],
     );
 
-    expect(screen.getByText("오늘 영상도 잘 봤어요.")).toBeInTheDocument();
+    expect(
+      screen.getByText("오늘 영상도 잘 봤어요.", {
+        selector: ".comment-source-text",
+      }),
+    ).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "원문 확인" }),
     ).not.toBeInTheDocument();
@@ -189,7 +237,11 @@ describe("CommentInbox", () => {
       safeSourceText: "주의 댓글 원문",
     });
 
-    expect(screen.getByText("주의 댓글 원문")).toBeInTheDocument();
+    expect(
+      screen.getByText("주의 댓글 원문", {
+        selector: ".comment-source-text",
+      }),
+    ).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "원문 확인" }),
     ).not.toBeInTheDocument();

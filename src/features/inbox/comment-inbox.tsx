@@ -113,6 +113,13 @@ const getReplySummary = (reply: InboxReply) =>
 const isInitiallyVisibleSource = (level: ReviewLevel | null) =>
   level === "safe" || level === "caution";
 
+const getQueuePreview = (item: InboxItem) =>
+  isInitiallyVisibleSource(item.reviewLevel) &&
+  item.sourceAvailable &&
+  item.safeSourceText
+    ? item.safeSourceText
+    : getPrimarySummary(item);
+
 const getInitial = (name: string | null) =>
   (name?.trim().charAt(0) || "?").toLocaleUpperCase("ko-KR");
 
@@ -600,7 +607,7 @@ export function CommentInbox({
                       </span>
                     </Link>
                     <p className="inbox-sanitized-feedback">
-                      {getPrimarySummary(item)}
+                      {getQueuePreview(item)}
                     </p>
                     <div className="inbox-queue-item-meta">
                       <span>
