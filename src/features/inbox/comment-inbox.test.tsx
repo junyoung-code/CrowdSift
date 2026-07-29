@@ -16,7 +16,7 @@ const item: InboxItem = {
   publishedAt: "2026-07-23T00:00:00.000Z",
   likeCount: 12,
   sourceAvailable: true,
-  safeSourceText: null,
+  safeSourceText: "주의 댓글 원문",
   analysisId: "analysis-1",
   category: "toxic_but_actionable",
   reviewLevel: "caution",
@@ -28,7 +28,7 @@ const item: InboxItem = {
   analysisState: "analyzed",
   actionState: null,
   deleteEligible: false,
-  replyCount: 2,
+  replyCount: 3,
   replies: [
     {
       rawCommentId: "reply-1",
@@ -50,8 +50,20 @@ const item: InboxItem = {
       likeCount: 0,
       reviewLevel: "caution",
       sourceAvailable: true,
-      safeSourceText: null,
+      safeSourceText: "주의 답글 원문",
       neutralText: "같은 개선 요청",
+      normalizedQuestion: null,
+    },
+    {
+      rawCommentId: "reply-3",
+      authorDisplayName: "보호 대상 시청자",
+      authorAvatarUrl: null,
+      publishedAt: "2026-07-23T00:30:00.000Z",
+      likeCount: 0,
+      reviewLevel: "risk",
+      sourceAvailable: true,
+      safeSourceText: null,
+      neutralText: "위험 답글 요약",
       normalizedQuestion: null,
     },
   ],
@@ -97,10 +109,10 @@ describe("CommentInbox", () => {
     expect(
       screen.getByText("유해하지만 참고할 내용 있음", { selector: "dd" }),
     ).toBeInTheDocument();
-    expect(screen.queryByText("원문에만 있는 유해 표현")).not.toBeInTheDocument();
+    expect(screen.getByText("주의 댓글 원문")).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "원문 확인" }),
-    ).toBeInTheDocument();
+      screen.queryByRole("button", { name: "원문 확인" }),
+    ).not.toBeInTheDocument();
     expect(
       screen.getByRole("checkbox", {
         name: /^내 기준 개인화에 사용/,
@@ -117,7 +129,7 @@ describe("CommentInbox", () => {
     renderInbox(item);
 
     expect(
-      screen.getByRole("link", { name: "답글 2개 보기" }),
+      screen.getByRole("link", { name: "답글 3개 보기" }),
     ).toHaveAttribute("href", expect.stringContaining("selected=comment-1"));
     expect(
       screen.getByRole("heading", { name: "댓글 대화" }),
@@ -125,7 +137,12 @@ describe("CommentInbox", () => {
     expect(
       screen.getByText("확인해서 다음 영상에 반영할게요."),
     ).toBeInTheDocument();
-    expect(screen.getByText("같은 개선 요청")).toBeInTheDocument();
+    expect(screen.getByText("주의 답글 원문")).toBeInTheDocument();
+    expect(screen.getByText("위험 답글 요약")).toBeInTheDocument();
+    expect(screen.queryByText("위험 답글 원문")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "위험 답글 원문 확인" }),
+    ).toBeInTheDocument();
     expect(
       screen.getByText(
         "답글 작성은 YouTube 게시·증거 저장 구현 후 사용할 수 있습니다.",
@@ -166,23 +183,31 @@ describe("CommentInbox", () => {
     ).not.toBeInTheDocument();
   });
 
-  it.each(["caution", "risk"] as const)(
-    "does not embed %s source in the initial card",
-    (reviewLevel) => {
-      renderInbox({
-        ...item,
-        reviewLevel,
-        safeSourceText: null,
-      });
+  it("shows caution source immediately without a reveal button", () => {
+    renderInbox({
+      ...item,
+      safeSourceText: "주의 댓글 원문",
+    });
 
-      expect(
-        screen.queryByText("원문에만 있는 표현"),
-      ).not.toBeInTheDocument();
-      expect(
-        screen.getByRole("button", { name: "원문 확인" }),
-      ).toBeInTheDocument();
-    },
-  );
+    expect(screen.getByText("주의 댓글 원문")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "원문 확인" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("keeps risk source out of the initial card and offers acknowledgment", () => {
+    renderInbox({
+      ...item,
+      reviewLevel: "risk",
+      safeSourceText: null,
+      neutralText: "위험 댓글 요약",
+    });
+
+    expect(screen.queryByText("위험 댓글 원문")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "원문 확인" }),
+    ).toBeInTheDocument();
+  });
 
   it("explains why no numbers are shown when the queue is empty", () => {
     render(

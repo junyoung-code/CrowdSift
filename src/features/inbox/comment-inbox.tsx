@@ -110,6 +110,9 @@ const getReplySummary = (reply: InboxReply) =>
   reply.normalizedQuestion ??
   "안전 검토 전까지 답글 원문을 표시하지 않습니다.";
 
+const isInitiallyVisibleSource = (level: ReviewLevel | null) =>
+  level === "safe" || level === "caution";
+
 const getInitial = (name: string | null) =>
   (name?.trim().charAt(0) || "?").toLocaleUpperCase("ko-KR");
 
@@ -667,7 +670,7 @@ export function CommentInbox({
                       <ReviewBadge level={selectedItem.reviewLevel} />
                     </div>
 
-                    {selectedItem.reviewLevel === "safe" &&
+                    {isInitiallyVisibleSource(selectedItem.reviewLevel) &&
                     selectedItem.sourceAvailable &&
                     selectedItem.safeSourceText ? (
                       <CommentSourceBlock
@@ -727,7 +730,22 @@ export function CommentInbox({
                               </strong>
                               <span>{getRelativeDate(reply.publishedAt)}</span>
                             </header>
-                            <p>{getReplySummary(reply)}</p>
+                            {isInitiallyVisibleSource(reply.reviewLevel) &&
+                            reply.sourceAvailable &&
+                            reply.safeSourceText ? (
+                              <p>{reply.safeSourceText}</p>
+                            ) : (
+                              <>
+                                <p>{getReplySummary(reply)}</p>
+                                {reply.reviewLevel === "risk" &&
+                                reply.sourceAvailable ? (
+                                  <SourceReveal
+                                    commentId={reply.rawCommentId}
+                                    label="위험 답글 원문 확인"
+                                  />
+                                ) : null}
+                              </>
+                            )}
                             <span className="inbox-reply-like">
                               <Heart aria-hidden="true" />
                               {reply.likeCount}

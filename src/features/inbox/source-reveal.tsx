@@ -6,7 +6,15 @@ import { useEffect, useRef, useState } from "react";
 import type { CommentSource } from "./source-service";
 import { CommentSourceBlock } from "./comment-source-block";
 
-export function SourceReveal({ commentId }: { commentId: string }) {
+type SourceRevealProps = {
+  commentId: string;
+  label?: string;
+};
+
+export function SourceReveal({
+  commentId,
+  label = "원문 확인",
+}: SourceRevealProps) {
   const [warningOpen, setWarningOpen] = useState(false);
   const [source, setSource] = useState<CommentSource | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -108,7 +116,7 @@ export function SourceReveal({ commentId }: { commentId: string }) {
         onClick={() => setWarningOpen(true)}
       >
         <Eye aria-hidden="true" weight="bold" />
-        원문 확인
+        {label}
       </button>
 
       {warningOpen ? (
