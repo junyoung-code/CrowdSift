@@ -115,9 +115,21 @@ values
     'reply-caution',
     'parent-conversation',
     'climb_diary',
-    '숨겨야 하는 위험 답글 원문',
+    '주의 답글 원문',
     3,
     '2026-07-28T10:20:00Z',
+    'a0300000-0000-4000-8000-000000000003'
+  ),
+  (
+    'a0300000-0000-4000-8000-000000000013',
+    'a0300000-0000-4000-8000-000000000002',
+    'video-conversation',
+    'reply-risk',
+    'parent-conversation',
+    'blocked_viewer',
+    '위험 답글 원문',
+    1,
+    '2026-07-28T10:30:00Z',
     'a0300000-0000-4000-8000-000000000003'
   );
 
@@ -148,6 +160,13 @@ values
     'a0300000-0000-4000-8000-000000000002',
     'reply-caution',
     'a0300000-0000-4000-8000-000000000006',
+    'succeeded'
+  ),
+  (
+    'a0300000-0000-4000-8000-000000000003',
+    'a0300000-0000-4000-8000-000000000002',
+    'reply-risk',
+    'a0300000-0000-4000-8000-000000000013',
     'succeeded'
   );
 
@@ -199,6 +218,19 @@ values
     'fixture',
     'fixture-model',
     'conversation-caution-reply-run',
+    'fixture-v1',
+    'fixture-v1',
+    1,
+    'succeeded'
+  ),
+  (
+    'a0300000-0000-4000-8000-000000000014',
+    'a0300000-0000-4000-8000-000000000002',
+    'a0300000-0000-4000-8000-000000000013',
+    1,
+    'fixture',
+    'fixture-model',
+    'conversation-risk-reply-run',
     'fixture-v1',
     'fixture-v1',
     1,
@@ -285,6 +317,26 @@ values
     '주의가 필요한 답글',
     1,
     '{}'
+  ),
+  (
+    'a0300000-0000-4000-8000-000000000015',
+    'a0300000-0000-4000-8000-000000000002',
+    'a0300000-0000-4000-8000-000000000013',
+    'a0300000-0000-4000-8000-000000000014',
+    1,
+    'abusive_no_signal',
+    0.96,
+    'risk',
+    0.95,
+    0.01,
+    0.01,
+    false,
+    'reject',
+    true,
+    true,
+    '원문 보호가 필요한 답글',
+    1,
+    '{}'
   );
 
 insert into public.sanitized_feedback (
@@ -317,7 +369,7 @@ values
     false
   );
 
-select plan(4);
+select plan(6);
 
 set local role authenticated;
 select set_config(
@@ -345,8 +397,19 @@ select is(
       target_workspace_id => 'a0300000-0000-4000-8000-000000000002'
     )
   ),
-  2::bigint,
+  3::bigint,
   'conversation rows count stored replies'
+);
+
+select is(
+  (
+    select safe_source_text
+    from public.get_inbox_conversation_page(
+      target_workspace_id => 'a0300000-0000-4000-8000-000000000002'
+    )
+  ),
+  '3:20 구간 설명이 이해가 안 돼요.',
+  'caution top-level source is available in the conversation'
 );
 
 select is(
@@ -367,8 +430,19 @@ select is(
       target_workspace_id => 'a0300000-0000-4000-8000-000000000002'
     )
   ),
+  '주의 답글 원문',
+  'caution reply source is available in the conversation'
+);
+
+select is(
+  (
+    select replies -> 2 ->> 'safeSourceText'
+    from public.get_inbox_conversation_page(
+      target_workspace_id => 'a0300000-0000-4000-8000-000000000002'
+    )
+  ),
   null,
-  'caution reply source is omitted from the conversation read model'
+  'risk reply source is omitted from the conversation'
 );
 
 select * from finish();
