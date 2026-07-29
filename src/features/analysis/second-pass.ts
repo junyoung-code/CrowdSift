@@ -117,12 +117,12 @@ export const shouldRunSecondPass = ({
 const contextSensitivePattern =
   /(비꼬|반어|진짜\s+잘도|참\s+잘|\^\^|눈치|우리끼리)/iu;
 
+// Thread context is already part of the stage 1 input, so a reply existing is not by
+// itself a reason to distrust the stage 1 answer — the model read the thread and still
+// reached its verdict. What does warrant the deeper pass is wording whose literal
+// reading is likely to mislead, which the pattern above looks for.
 export const detectContextSensitivePattern = ({
   sourceText,
-  threadContext,
 }: {
   sourceText: string;
-  threadContext: string[];
-}) =>
-  threadContext.length > 0 ||
-  contextSensitivePattern.test(sourceText.normalize("NFKC"));
+}) => contextSensitivePattern.test(sourceText.normalize("NFKC"));

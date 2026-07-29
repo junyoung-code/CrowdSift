@@ -117,7 +117,7 @@ describe.skipIf(!process.env.LIVE_EVAL)("LIVE pipeline measurement", () => {
             console.error(`STAGE1 FAIL ${c.id}: ${(e as Error).message}`);
             continue;
           }
-          const contextSensitive = detectContextSensitivePattern({ sourceText: c.text, threadContext: [] });
+          const contextSensitive = detectContextSensitivePattern({ sourceText: c.text });
           const route = routeStageOne({ stageOne: stage1, ruleSignals: ruleEval.signals, contextSensitive });
 
           let finalCategory = stage1.category as string;

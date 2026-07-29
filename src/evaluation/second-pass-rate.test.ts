@@ -121,27 +121,24 @@ describe.skipIf(!process.env.SECOND_PASS_RATE)(
             needsSecondPass: false,
           } as Stage1Output;
 
-          const evaluate = (threadContext: string[]) =>
+          const evaluate = (contextSensitive: boolean) =>
             shouldRunSecondPass({
               stage1,
               ruleSignals: ruleEvaluation.signals,
               bestSimilarity: null,
-              contextSensitive: detectContextSensitivePattern({
-                sourceText: evaluationCase.text,
-                threadContext,
-              }),
+              contextSensitive,
             }).reasons;
 
-          const reasons = evaluate([]);
+          const contextSensitive = detectContextSensitivePattern({
+            sourceText: evaluationCase.text,
+          });
+          const reasons = evaluate(contextSensitive);
           // Review level the pipeline lands on, whether or not stage 2 runs: the floor
           // from rules + category is applied to the model answer either way.
           const route = routeStageOne({
             stageOne: stage1,
             ruleSignals: ruleEvaluation.signals,
-            contextSensitive: detectContextSensitivePattern({
-              sourceText: evaluationCase.text,
-              threadContext: [],
-            }),
+            contextSensitive,
           });
 
           rows.push({
@@ -149,7 +146,8 @@ describe.skipIf(!process.env.SECOND_PASS_RATE)(
             cohort: group.cohort,
             text: evaluationCase.text,
             reasons,
-            reasonsWithReplies: evaluate(["대댓글 1개"]),
+            // What the old rule did: any reply forced contextSensitive to true.
+            reasonsWithReplies: evaluate(true),
             finalReviewLevel: route.finalReviewLevel,
             reviewLevelSafe: !evaluationCase.forbiddenReviewLevels.includes(
               route.finalReviewLevel,
@@ -234,32 +232,20 @@ describe.skipIf(!process.env.SECOND_PASS_RATE)(
       const withReplies = rows.filter(
         (row) => row.reasonsWithReplies.length > 0,
       ).length;
-      console.log("\n=== 대댓글이 달린 경우 (threadContext 있음) ===");
+      console.log("\n=== 대댓글이 달린 댓글의 처리 ===");
       console.log(
-        `  2차 실행: ${withReplies}/${total} (${((withReplies / total) * 100).toFixed(1)}%)`,
+        `  이전 동작(답글 있으면 무조건 2차): ${withReplies}/${total} (${((withReplies / total) * 100).toFixed(1)}%)`,
       );
-      const flipped = rows.filter(
+      console.log(
+        `  현재 동작(답글은 1차 입력으로만):   ${triggered.length}/${total} (${(share * 100).toFixed(1)}%)`,
+      );
+      const spared = rows.filter(
         (row) => row.reasons.length === 0 && row.reasonsWithReplies.length > 0,
       );
-      console.log(
-        `  → 대댓글 때문에 추가로 2차를 타게 된 건: ${flipped.length}건`,
-      );
-      for (const row of flipped.slice(0, 5)) {
+      console.log(`  → 2차를 면하게 된 건: ${spared.length}건`);
+      for (const row of spared.slice(0, 5)) {
         console.log(`      ${row.id} "${row.text.slice(0, 30)}..."`);
       }
-
-      // ---- simulation only: not applied to production code ----
-      // If thread presence stopped forcing the second pass (stage 1 already receives
-      // threadContext in its input), how many of the flipped cases would stay 1-pass?
-      const sarcasmOnly = rows.filter(
-        (row) =>
-          row.reasonsWithReplies.filter(
-            (reason) => reason !== "context_sensitive",
-          ).length > 0,
-      ).length;
-      console.log(
-        `  [시뮬레이션] 대댓글만으로는 2차를 강제하지 않을 경우: ${sarcasmOnly}/${total} (${((sarcasmOnly / total) * 100).toFixed(1)}%)`,
-      );
 
       // ---- safety: skipping stage 2 must not weaken the outcome ----
       console.log("\n=== 🔒 안전성 검증 ===");
@@ -285,10 +271,10 @@ describe.skipIf(!process.env.SECOND_PASS_RATE)(
       // ---- cost projection ----
       console.log("\n=== 댓글 10,000개 기준 예상 비용 ===");
       const scenarios: Array<[string, number]> = [
-        ["측정된 현재 비율", share],
-        ["전부 대댓글 있는 경우", withReplies / total],
-        ["참고: 추정 최저(15%)", 0.15],
-        ["참고: 추정 최고(50%)", 0.5],
+        ["현재 (답글 유무 무관)", share],
+        ["이전 동작 (답글=2차 강제)", withReplies / total],
+        ["참고: UI 추정 최저(15%)", 0.15],
+        ["참고: UI 추정 최고(50%)", 0.5],
       ];
       for (const [label, scenarioShare] of scenarios) {
         const cost = costFor(10_000, scenarioShare);

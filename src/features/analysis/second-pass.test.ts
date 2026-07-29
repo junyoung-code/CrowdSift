@@ -117,15 +117,16 @@ describe("shouldRunSecondPass", () => {
 });
 
 describe("detectContextSensitivePattern", () => {
-  const detect = (sourceText: string, threadContext: string[] = []) =>
-    detectContextSensitivePattern({ sourceText, threadContext });
+  const detect = (sourceText: string) =>
+    detectContextSensitivePattern({ sourceText });
 
   it("flags an explicit irony marker", () => {
     expect(detect("이건 완전 반어법이네요")).toBe(true);
   });
 
-  it("flags a comment that has any thread context", () => {
-    expect(detect("좋아요", ["부모 댓글"])).toBe(true);
+  it("does not flag a benign reply just for sitting in a thread", () => {
+    // Stage 1 already receives threadContext, so the reply itself adds nothing here.
+    expect(detect("좋아요")).toBe(false);
   });
 
   it("does not flag laughter alone (ㅋㅋ appears in friendly and mocking alike)", () => {

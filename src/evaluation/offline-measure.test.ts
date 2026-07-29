@@ -52,7 +52,7 @@ describe.skipIf(!process.env.OFFLINE_EVAL)("OFFLINE deterministic safety-net mea
         const ruleEval = evaluateComment({ text: c.text, phraseRules: [], engineVersion: "rules-v1" });
         const signalKinds = ruleEval.signals.map((s) => s.kind);
         const ruleFloor = getRuleReviewFloor(ruleEval.signals);
-        const contextSensitive = detectContextSensitivePattern({ sourceText: c.text, threadContext: [] });
+        const contextSensitive = detectContextSensitivePattern({ sourceText: c.text });
         const hasSecondPassRule = ruleEval.signals.some((s) => secondPassRuleKinds.has(s.kind));
         const guaranteedSecondPass = contextSensitive || hasSecondPassRule;
         // does ANYTHING other than the model push this case above "safe" / into review?
