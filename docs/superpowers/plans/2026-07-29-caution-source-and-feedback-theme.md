@@ -60,7 +60,7 @@ Rename the existing caution reply text from `숨겨야 하는 위험 답글 원�
 
 - [ ] **Step 2: Write failing read-model assertions**
 
-Change `select plan(4)` to `select plan(7)` and add these assertions:
+Change `select plan(4)` to `select plan(6)` and add these assertions:
 
 ```sql
 select is(
@@ -150,7 +150,7 @@ npm run db:reset
 npm run db:test -- supabase/tests/inbox_conversation_workspace.sql
 ```
 
-Expected: all seven pgTAP assertions pass.
+Expected: all six pgTAP assertions pass.
 
 - [ ] **Step 6: Commit the read-model policy**
 
@@ -438,7 +438,7 @@ Run:
 npm run db:test
 ```
 
-Expected: all pgTAP suites pass, including the seven conversation visibility assertions.
+Expected: all pgTAP suites pass, including the six conversation visibility assertions.
 
 - [ ] **Step 4: Run static and production checks**
 
@@ -480,4 +480,3 @@ git commit -m "docs: update inbox source visibility policy"
 - AI judgment correction selects and textarea use active theme tokens in light and dark modes.
 - Product context matches the implemented policy.
 - Focused tests, full Vitest, pgTAP, lint, TypeScript, and production build all pass.
-

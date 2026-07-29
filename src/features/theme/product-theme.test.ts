@@ -42,7 +42,7 @@ describe("product theme", () => {
       setItem() {
         throw new Error("storage unavailable");
       },
-    } as Storage;
+    } as unknown as Storage;
 
     expect(() =>
       applyProductTheme("dark", document.documentElement, unavailableStorage),
