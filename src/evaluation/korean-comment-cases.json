@@ -1,6 +1,6 @@
 {
   "schemaVersion": "korean-comment-evaluation-v1",
-  "promptVersion": "commenthawk-stage2-v1",
+  "promptVersion": "crowdsift-stage2-v2",
   "source": "synthetic",
   "groups": [
     {

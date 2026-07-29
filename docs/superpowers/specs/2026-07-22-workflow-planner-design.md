@@ -1,8 +1,8 @@
-# CommentHawk Four-Part Development Map Design
+# CrowdSift Four-Part Development Map Design
 
 ## Goal
 
-Add one large Mermaid-style flowchart that answers a practical question at a glance: "CommentHawk를 만들기 위해 우리가 무엇을 해야 하는가?"
+Add one large Mermaid-style flowchart that answers a practical question at a glance: "CrowdSift를 만들기 위해 우리가 무엇을 해야 하는가?"
 
 The map separates the work into four implementation parts—Frontend, Backend, AI, and Security—then shows the concrete tasks that belong to each part. Users can add, rename, and delete detailed tasks, and the flowchart redraws immediately without requiring a backend.
 
@@ -76,7 +76,7 @@ YouTube 연결 → 영상 선택 → 댓글 20–50개 수집
 
 ## Persistence and data model
 
-Plans are stored under the versioned browser key `commenthawk.development-map.v1`.
+Plans are stored under the versioned browser key `crowdsift.development-map.v1`.
 
 ```ts
 type DevelopmentPartId = "frontend" | "backend" | "ai" | "security";

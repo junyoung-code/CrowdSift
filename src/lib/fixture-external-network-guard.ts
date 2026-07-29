@@ -3,7 +3,7 @@ type FetchTarget = {
   [key: symbol]: unknown;
 };
 
-const guardStateKey = Symbol.for("commenthawk.fixtureExternalNetworkGuard");
+const guardStateKey = Symbol.for("crowdsift.fixtureExternalNetworkGuard");
 const blockedProviderHosts = ["googleapis.com", "openai.com"] as const;
 
 type GuardState = {

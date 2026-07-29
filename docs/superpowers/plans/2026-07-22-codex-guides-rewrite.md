@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
-**Goal:** Rewrite the CommentHawk 1-8 Codex guides into clear Korean documentation with copy-ready English prompts and the approved six-layer personalization architecture.
+**Goal:** Rewrite the CrowdSift 1-8 Codex guides into clear Korean documentation with copy-ready English prompts and the approved six-layer personalization architecture.
 
 **Architecture:** Keep product truth in `docs/product-context.md`, navigation in `docs/codex-guides/README.md`, preparation guidance in documents 1-3, copy-ready workflow prompts in documents 4-7, and durable guardrails in document 8. The runtime design uses one shared model, creator policies, creator-specific feedback retrieval, deterministic rules, explicit confirmation, and optional future shared fine-tuning.
 
-**Tech Stack:** Markdown, CommentHawk product documentation, shell-based content verification, npm project validation.
+**Tech Stack:** Markdown, CrowdSift product documentation, shell-based content verification, npm project validation.
 
 ## Global Constraints
 

@@ -14,7 +14,7 @@ type GuardState = {
 };
 
 const guardStateKey = Symbol.for(
-  "commenthawk.fixtureNodeExternalNetworkGuard",
+  "crowdsift.fixtureNodeExternalNetworkGuard",
 );
 const blockedProviderHosts = ["googleapis.com", "openai.com"] as const;
 

@@ -1,4 +1,4 @@
-export const WORKSPACE_DELETION_CONFIRMATION = "COMMENTHAWK 데이터 삭제";
+export const WORKSPACE_DELETION_CONFIRMATION = "CROWDSIFT 데이터 삭제";
 
 export type WorkspaceDeletionInput = {
   userId: string;

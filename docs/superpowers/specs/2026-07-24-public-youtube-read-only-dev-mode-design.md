@@ -1,17 +1,17 @@
-# CommentHawk 공개 YouTube URL 읽기 전용 개발 모드 설계
+# CrowdSift 공개 YouTube URL 읽기 전용 개발 모드 설계
 
 **상태:** 승인됨
 **작성일:** 2026-07-24
 **적용 범위:** 로컬 개발 환경 전용
-**기준 문서:** `docs/product-context.md`, `docs/CommentHawk_Project_Context_v0.1.pdf`, `docs/superpowers/specs/2026-07-23-commenthawk-real-vertical-slice-design.md`
+**기준 문서:** `docs/product-context.md`, `docs/CrowdSift_Project_Context_v1.0.pdf`, `docs/superpowers/specs/2026-07-23-crowdsift-real-vertical-slice-design.md`
 
 ## 1. 결정 요약
 
-CommentHawk에 YouTube OAuth 연결 없이 공개 영상 URL의 실제 댓글을 가져와 기존 분석 파이프라인과 Comment Inbox에서 확인할 수 있는 개발 모드를 추가한다.
+CrowdSift에 YouTube OAuth 연결 없이 공개 영상 URL의 실제 댓글을 가져와 기존 분석 파이프라인과 Comment Inbox에서 확인할 수 있는 개발 모드를 추가한다.
 
 이 기능은 다음 원칙을 따른다.
 
-- CommentHawk 로그인과 워크스페이스는 필요하지만 YouTube 계정 인증은 필요하지 않다.
+- CrowdSift 로그인과 워크스페이스는 필요하지만 YouTube 계정 인증은 필요하지 않다.
 - 서버 전용 YouTube Data API Key로 공개 영상과 공개 댓글만 읽는다.
 - 기존 OAuth 기반 본인 채널 연결과 공개 URL 읽기를 별도 Provider로 분리한다.
 - 공개 URL로 가져온 데이터는 항상 `공개 URL · 읽기 전용` 출처로 다룬다.

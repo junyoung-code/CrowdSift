@@ -7,7 +7,7 @@ describe("LandingPage", () => {
   it("renders the complete product story and clearly labels example data", () => {
     render(<LandingPage />);
 
-    expect(screen.getByRole("banner")).toHaveTextContent("CommentHawk");
+    expect(screen.getByRole("banner")).toHaveTextContent("CrowdSift");
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
       "댓글의 소음은 줄이고",
     );

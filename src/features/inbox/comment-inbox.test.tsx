@@ -9,9 +9,12 @@ const item: InboxItem = {
   sourceImportJobId: "import-1",
   sourceKind: "owned_oauth",
   youtubeVideoId: "video-1",
+  videoTitle: "새 영상",
+  videoThumbnailUrl: null,
   authorDisplayName: "시청자",
   authorAvatarUrl: null,
   publishedAt: "2026-07-23T00:00:00.000Z",
+  likeCount: 12,
   sourceAvailable: true,
   safeSourceText: null,
   analysisId: "analysis-1",
@@ -25,6 +28,33 @@ const item: InboxItem = {
   analysisState: "analyzed",
   actionState: null,
   deleteEligible: false,
+  replyCount: 2,
+  replies: [
+    {
+      rawCommentId: "reply-1",
+      authorDisplayName: "채널 운영자",
+      authorAvatarUrl: null,
+      publishedAt: "2026-07-23T00:10:00.000Z",
+      likeCount: 3,
+      reviewLevel: "safe",
+      sourceAvailable: true,
+      safeSourceText: "확인해서 다음 영상에 반영할게요.",
+      neutralText: null,
+      normalizedQuestion: null,
+    },
+    {
+      rawCommentId: "reply-2",
+      authorDisplayName: "다른 시청자",
+      authorAvatarUrl: null,
+      publishedAt: "2026-07-23T00:20:00.000Z",
+      likeCount: 0,
+      reviewLevel: "caution",
+      sourceAvailable: true,
+      safeSourceText: null,
+      neutralText: "같은 개선 요청",
+      normalizedQuestion: null,
+    },
+  ],
 };
 
 const renderInbox = (
@@ -62,8 +92,8 @@ describe("CommentInbox", () => {
       }),
     ).toBeInTheDocument();
     expect(
-      screen.getByText("주의", { selector: ".review-level" }),
-    ).toBeInTheDocument();
+      screen.getAllByText("주의", { selector: ".review-level" }),
+    ).not.toHaveLength(0);
     expect(
       screen.getByText("유해하지만 참고할 내용 있음", { selector: "dd" }),
     ).toBeInTheDocument();
@@ -80,6 +110,42 @@ describe("CommentInbox", () => {
       screen.getByRole("checkbox", {
         name: /^향후 공통 모델 학습 후보로 표시/,
       }),
+    ).toBeInTheDocument();
+  });
+
+  it("shows the selected conversation with reply disclosure and an honest locked composer", () => {
+    renderInbox(item);
+
+    expect(
+      screen.getByRole("link", { name: "답글 2개 보기" }),
+    ).toHaveAttribute("href", expect.stringContaining("selected=comment-1"));
+    expect(
+      screen.getByRole("heading", { name: "댓글 대화" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("확인해서 다음 영상에 반영할게요."),
+    ).toBeInTheDocument();
+    expect(screen.getByText("같은 개선 요청")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "답글 작성은 YouTube 게시·증거 저장 구현 후 사용할 수 있습니다.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "답글 보내기" })).toBeDisabled();
+  });
+
+  it("uses stored profile and video images when the source provides them", () => {
+    renderInbox({
+      ...item,
+      authorAvatarUrl: "https://example.com/viewer.jpg",
+      videoThumbnailUrl: "https://example.com/video.jpg",
+    });
+
+    expect(
+      screen.getAllByRole("img", { name: "시청자 프로필" }),
+    ).not.toHaveLength(0);
+    expect(
+      screen.getByRole("img", { name: "새 영상 썸네일" }),
     ).toBeInTheDocument();
   });
 

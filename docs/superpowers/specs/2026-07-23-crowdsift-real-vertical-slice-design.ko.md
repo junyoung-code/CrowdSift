@@ -1,17 +1,17 @@
-# CommentHawk 첫 실제 수직 슬라이스 설계
+# CrowdSift 첫 실제 수직 슬라이스 설계
 
 - **상태:** 승인된 설계
 - **작성일:** 2026-07-23
 - **우선 대상:** 데스크톱 웹
-- **영문 원본:** [2026-07-23-commenthawk-real-vertical-slice-design.md](./2026-07-23-commenthawk-real-vertical-slice-design.md)
+- **영문 원본:** [2026-07-23-crowdsift-real-vertical-slice-design.md](./2026-07-23-crowdsift-real-vertical-slice-design.md)
 
 ## 1. 목표
 
-CommentHawk의 첫 실제 제품 흐름을 구현한다.
+CrowdSift의 첫 실제 제품 흐름을 구현한다.
 
 ```text
 BrandBastion을 참고한 랜딩 페이지
-→ CommentHawk 로그인
+→ CrowdSift 로그인
 → 크리에이터가 소유한 YouTube 채널 하나 연결
 → 영상 하나 선택
 → 실제 댓글 20~50개를 초기 검증용으로 가져오기
@@ -28,7 +28,7 @@ BrandBastion을 참고한 랜딩 페이지
 요구사항이 충돌하면 다음 순서를 따른다.
 
 1. `docs/product-context.md`
-2. `docs/CommentHawk_Project_Context_v0.1.pdf`
+2. `docs/CrowdSift_Project_Context_v1.0.pdf`
 3. `AGENTS.md`
 4. `docs/codex-guides/`
 5. `references/brandbastion/`
@@ -39,8 +39,8 @@ BrandBastion을 참고한 랜딩 페이지
 
 ### 포함
 
-- CommentHawk 고유 브랜딩과 BrandBastion을 참고한 시각 완성도를 갖춘 데스크톱 랜딩 페이지
-- CommentHawk 앱 세션을 위한 Supabase 이메일 매직 링크 인증
+- CrowdSift 고유 브랜딩과 BrandBastion을 참고한 시각 완성도를 갖춘 데스크톱 랜딩 페이지
+- CrowdSift 앱 세션을 위한 Supabase 이메일 매직 링크 인증
 - 앱 로그인과 분리된 YouTube 접근용 Google OAuth
 - 연결할 수 있는 채널이 여러 개일 때 크리에이터가 소유한 YouTube 채널 하나 선택
 - 연결된 채널에서 영상 하나 선택
@@ -94,8 +94,8 @@ BrandBastion을 참고한 랜딩 페이지
 
 섹션 구성:
 
-1. CommentHawk 아이덴티티, 제품 내비게이션, 로그인과 주요 CTA가 있는 헤더
-2. `references/brandbastion/09-dashboard-hero-detail.png`를 참고한 브라우저형 CommentHawk 제품 미리보기와 큰 한국어 Hero 문구
+1. CrowdSift 아이덴티티, 제품 내비게이션, 로그인과 주요 CTA가 있는 헤더
+2. `references/brandbastion/09-dashboard-hero-detail.png`를 참고한 브라우저형 CrowdSift 제품 미리보기와 큰 한국어 Hero 문구
 3. 가져온 댓글, 분석 완료, `주의`, `위험`과 AI 요약을 보여주는 플로팅 미리보기 카드
 4. 악성 원문 노출, 유용한 피드백 유실과 일관성 없는 수동 판단을 설명하는 문제 카드 3개
 5. 안전한 1차 분류, 크리에이터별 관리와 유용한 피드백 보존을 설명하는 솔루션 3개
@@ -106,11 +106,11 @@ BrandBastion을 참고한 랜딩 페이지
 
 Hero 안의 대시보드는 `제품 예시 화면`이라고 명확히 표시한다. 예시 값은 인증된 실제 대시보드 데이터 경로와 완전히 분리한다.
 
-### 5.2 CommentHawk 로그인
+### 5.2 CrowdSift 로그인
 
 경로: `/auth/sign-in`
 
-앱 세션은 Supabase 이메일 매직 링크 인증을 사용한다. YouTube 권한 부여는 별도 단계로 유지한다. 사용자는 YouTube 권한을 제공하지 않아도 CommentHawk에 로그인할 수 있고, CommentHawk 계정을 잃지 않고도 YouTube 연결을 해제할 수 있어야 한다.
+앱 세션은 Supabase 이메일 매직 링크 인증을 사용한다. YouTube 권한 부여는 별도 단계로 유지한다. 사용자는 YouTube 권한을 제공하지 않아도 CrowdSift에 로그인할 수 있고, CrowdSift 계정을 잃지 않고도 YouTube 연결을 해제할 수 있어야 한다.
 
 ### 5.3 YouTube 연결
 
@@ -120,10 +120,10 @@ Hero 안의 대시보드는 `제품 예시 화면`이라고 명확히 표시한�
 
 1. 로그인한 사용자가 Google OAuth를 시작한다.
 2. 서버가 OAuth `state`를 검증하고 인증 코드를 토큰으로 교환한다.
-3. CommentHawk가 인증된 Google 사용자에게 연결 가능한 크리에이터 소유 채널을 불러온다.
+3. CrowdSift가 인증된 Google 사용자에게 연결 가능한 크리에이터 소유 채널을 불러온다.
 4. 채널이 하나면 미리 선택한 후 사용자에게 확인받는다.
 5. 채널이 여러 개면 사용자가 정확히 하나를 선택한다.
-6. CommentHawk가 채널 메타데이터와 암호화된 토큰을 저장한다.
+6. CrowdSift가 채널 메타데이터와 암호화된 토큰을 저장한다.
 7. 사용자는 연결 해제, 재연결과 만료·철회된 권한 복구를 할 수 있다.
 
 초기 댓글 가져오기는 최소 읽기 권한만 요청한다. 사용자가 실제 숨김·거절·삭제 조치를 처음 선택할 때 점진적 권한 부여를 통해 필요한 댓글 관리 권한을 추가로 요청한다.

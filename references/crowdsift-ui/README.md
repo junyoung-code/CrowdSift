@@ -1,4 +1,4 @@
-# CommentHawk UI Visual References
+# CrowdSift UI Visual References
 
 ## Selected direction
 
@@ -6,7 +6,7 @@
 - **Selected:** 2026-07-28
 - **Direction:** 대화 중심 워크스페이스
 
-이 이미지는 CommentHawk Comment Inbox의 정보 구조와 시각 위계를 정하기 위한 Product Design 목업이다.
+이 이미지는 CrowdSift Comment Inbox의 정보 구조와 시각 위계를 정하기 위한 Product Design 목업이다.
 
 생성된 이미지 파일은 `1487 × 1058`이지만 구현 기준 viewport는 `1440 × 1024`다. 픽셀을 그대로 복제하지 않고 동일한 정보 위계가 자연스럽게 맞도록 재배치한다.
 

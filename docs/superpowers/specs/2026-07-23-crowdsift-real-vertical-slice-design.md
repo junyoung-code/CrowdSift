@@ -1,17 +1,17 @@
-# CommentHawk Real Vertical Slice Design
+# CrowdSift Real Vertical Slice Design
 
 - **Status:** Approved design
 - **Date:** 2026-07-23
 - **Primary target:** Desktop web
-- **Korean version:** [2026-07-23-commenthawk-real-vertical-slice-design.ko.md](./2026-07-23-commenthawk-real-vertical-slice-design.ko.md)
+- **Korean version:** [2026-07-23-crowdsift-real-vertical-slice-design.ko.md](./2026-07-23-crowdsift-real-vertical-slice-design.ko.md)
 
 ## 1. Goal
 
-Build the first real CommentHawk product slice:
+Build the first real CrowdSift product slice:
 
 ```text
 BrandBastion-inspired landing page
-→ CommentHawk sign-in
+→ CrowdSift sign-in
 → connect one creator-owned YouTube channel
 → choose one video
 → import an initial batch of 20-50 real comments
@@ -28,7 +28,7 @@ The initial 20-50 comments are a validation batch, not a product limit. The impo
 When requirements conflict, use this order:
 
 1. `docs/product-context.md`
-2. `docs/CommentHawk_Project_Context_v0.1.pdf`
+2. `docs/CrowdSift_Project_Context_v1.0.pdf`
 3. `AGENTS.md`
 4. `docs/codex-guides/`
 5. `references/brandbastion/`
@@ -39,8 +39,8 @@ The concise product context and repository rules override the broader PDF MVP. Q
 
 ### Included
 
-- A complete desktop landing page with original CommentHawk branding and a visual standard inspired by BrandBastion.
-- Supabase email magic-link authentication for the CommentHawk application session.
+- A complete desktop landing page with original CrowdSift branding and a visual standard inspired by BrandBastion.
+- Supabase email magic-link authentication for the CrowdSift application session.
 - A separate Google OAuth flow for YouTube access.
 - Selection of one creator-owned YouTube channel when more than one eligible channel is available.
 - Selection of one video from the connected channel.
@@ -94,8 +94,8 @@ The page follows the information rhythm and visual quality of the saved BrandBas
 
 Sections:
 
-1. Header with CommentHawk identity, product navigation, sign-in, and primary CTA.
-2. Large Korean hero copy beside a browser-style CommentHawk product preview based on `references/brandbastion/09-dashboard-hero-detail.png`.
+1. Header with CrowdSift identity, product navigation, sign-in, and primary CTA.
+2. Large Korean hero copy beside a browser-style CrowdSift product preview based on `references/brandbastion/09-dashboard-hero-detail.png`.
 3. Floating preview cards for imported comments, completed analyses, `주의`, `위험`, and an AI summary.
 4. Three problem cards: creator exposure to harmful text, loss of useful feedback, and inconsistent manual decisions.
 5. Three solution areas: safe triage, creator-specific moderation, and preservation of actionable feedback.
@@ -106,11 +106,11 @@ Sections:
 
 The dashboard shown in the hero is explicitly labeled `제품 예시 화면`. Example values never share a production data path with authenticated dashboard data.
 
-### 5.2 CommentHawk sign-in
+### 5.2 CrowdSift sign-in
 
 Route: `/auth/sign-in`
 
-The application session uses Supabase email magic-link authentication. YouTube authorization remains a separate step so the user can sign in to CommentHawk without granting YouTube access and can revoke YouTube access without losing the CommentHawk account.
+The application session uses Supabase email magic-link authentication. YouTube authorization remains a separate step so the user can sign in to CrowdSift without granting YouTube access and can revoke YouTube access without losing the CrowdSift account.
 
 ### 5.3 YouTube connection
 
@@ -120,10 +120,10 @@ Flow:
 
 1. The signed-in user starts Google OAuth.
 2. The server validates OAuth state and exchanges the authorization code.
-3. CommentHawk loads creator-owned channels available to the authorized identity.
+3. CrowdSift loads creator-owned channels available to the authorized identity.
 4. If one channel is available, it is preselected and confirmed.
 5. If multiple channels are available, the user selects exactly one.
-6. CommentHawk stores channel metadata and encrypted tokens.
+6. CrowdSift stores channel metadata and encrypted tokens.
 7. The user can disconnect, reconnect, or recover from revoked access.
 
 Initial import uses the minimum read scope. When the user first chooses an actual hide, reject, or delete action, the product requests the additional moderation scope through incremental authorization.

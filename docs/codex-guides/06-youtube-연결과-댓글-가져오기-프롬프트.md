@@ -11,7 +11,7 @@
 ## 복사용 영문 프롬프트
 
 ```text
-Implement the approved YouTube connection and real comment-ingestion milestone for CommentHawk.
+Implement the approved YouTube connection and real comment-ingestion milestone for CrowdSift.
 
 Do not implement AI analysis or fine-tuning in this milestone. Preserve the established UI and domain boundaries. Use docs/product-context.md and AGENTS.md as the source of truth.
 
@@ -24,7 +24,7 @@ Before coding:
 
 Implement this exact user flow:
 
-1. Sign in to the CommentHawk application.
+1. Sign in to the CrowdSift application.
 2. Connect one owned YouTube channel through Google OAuth.
 3. Load the connected channel and a small list of its recent videos.
 4. Let the user select exactly one video.

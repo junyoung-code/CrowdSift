@@ -10,7 +10,7 @@
 
 ## Global Constraints
 
-- `docs/product-context.md` and `docs/CommentHawk_Project_Context_v0.1.pdf` remain the product source of truth.
+- `docs/product-context.md` and `docs/CrowdSift_Project_Context_v1.0.pdf` remain the product source of truth.
 - Follow `docs/superpowers/specs/2026-07-24-navigation-source-auth-ux-design.md` exactly.
 - Never grant `authenticated` direct `select` access to `raw_comments`.
 - Only comments with `review_level = 'safe'` and `source_deleted_at IS NULL` may include source text in the initial Inbox response.
@@ -147,7 +147,7 @@ export function AppNavigation() {
   const pathname = usePathname();
 
   return (
-    <nav className="product-navigation" aria-label="CommentHawk 메뉴">
+    <nav className="product-navigation" aria-label="CrowdSift 메뉴">
       {navigationItems.map(({ href, icon: Icon, label }) => {
         const active = isNavigationItemActive(pathname, href);
         return (

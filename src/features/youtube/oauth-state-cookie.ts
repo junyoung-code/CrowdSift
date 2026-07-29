@@ -8,7 +8,7 @@ import {
   verifyOAuthStatePayload,
 } from "./oauth-state";
 
-const OAUTH_STATE_COOKIE = "commenthawk_youtube_oauth_state";
+const OAUTH_STATE_COOKIE = "crowdsift_youtube_oauth_state";
 const OAUTH_STATE_MAX_AGE_SECONDS = 10 * 60;
 
 export const issueOAuthState = async ({

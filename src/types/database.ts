@@ -1911,6 +1911,49 @@ export type Database = {
           youtube_video_id: string
         }[]
       }
+      get_inbox_conversation_page: {
+        Args: {
+          action_state_filter?: Database["public"]["Enums"]["action_state"]
+          analysis_state_filter?: string
+          category_filter?: Database["public"]["Enums"]["comment_category"]
+          max_confidence?: number
+          min_confidence?: number
+          page_offset?: number
+          page_size?: number
+          review_levels?: Database["public"]["Enums"]["review_level"][]
+          search_query?: string
+          target_workspace_id: string
+          video_id?: string
+        }
+        Returns: {
+          action_state: Database["public"]["Enums"]["action_state"]
+          analysis_id: string
+          analysis_state: string
+          author_avatar_url: string
+          author_display_name: string
+          category: Database["public"]["Enums"]["comment_category"]
+          confidence: number
+          delete_eligible: boolean
+          like_count: number
+          manual_review: boolean
+          neutral_text: string
+          normalized_question: string
+          published_at: string
+          raw_comment_id: string
+          recommended_action: Database["public"]["Enums"]["recommended_action"]
+          replies: Json
+          reply_count: number
+          review_level: Database["public"]["Enums"]["review_level"]
+          safe_source_text: string
+          source_available: boolean
+          source_import_job_id: string
+          source_kind: Database["public"]["Enums"]["comment_source_kind"]
+          total_count: number
+          video_thumbnail_url: string
+          video_title: string
+          youtube_video_id: string
+        }[]
+      }
       get_retryable_dashboard_summary_jobs: {
         Args: { target_max_jobs: number }
         Returns: {

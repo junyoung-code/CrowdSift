@@ -112,7 +112,7 @@ export default async function YouTubeConnectionPage({
           <p>YOUTUBE CONNECTION</p>
           <h1>YouTube 채널 연결</h1>
           <span>
-            CommentHawk 로그인과 별도로, 크리에이터가 소유한 채널의 읽기 권한을
+            CrowdSift 로그인과 별도로, 크리에이터가 소유한 채널의 읽기 권한을
             연결합니다.
           </span>
         </div>
@@ -168,7 +168,7 @@ export default async function YouTubeConnectionPage({
             <p>채널 선택</p>
             <h2>관리할 채널 하나를 선택하세요</h2>
             <span>
-              하나의 CommentHawk workspace에는 한 번에 채널 하나만 연결합니다.
+              하나의 CrowdSift workspace에는 한 번에 채널 하나만 연결합니다.
             </span>
           </div>
           <form action={selectYouTubeChannelAction}>

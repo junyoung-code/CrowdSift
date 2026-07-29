@@ -223,7 +223,7 @@ describe("stage-two analysis integration", () => {
     expect(repository.insertFailedModelRun).toHaveBeenCalledWith(
       expect.objectContaining({
         stage: 2,
-        promptVersion: "commenthawk-stage2-v1",
+        promptVersion: "crowdsift-stage2-v2",
       }),
     );
     expect(repository.failItem).toHaveBeenCalledWith("item-1", "INTERNAL");

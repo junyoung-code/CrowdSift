@@ -1,77 +1,79 @@
-# CommentHawk Design QA
+# Comment Inbox Design QA
 
-이전 대시보드 QA 기록은 `design-qa-dashboard.md`에 보존했다.
+## Evidence
 
-## Comparison target
-
-- Source visual truth: `/var/folders/7h/pzbct4xn2zz74jxfyclfsn2w0000gn/T/codex-clipboard-24a99be4-1c26-4574-a3b5-8d1dd7706425.png`
-- Supporting BrandBastion references: the eight screenshots listed in the approved product context
-- Implementation route: `http://localhost:3000/app/connect/youtube`
-- Implementation screenshot: unavailable
-- Intended viewport: desktop, 1440 × 900 CSS pixels
-- Source pixels: 1430 × 1076 pixels
-- Implementation pixels: unavailable
-- Density normalization: not performed because the implementation screenshot could not be captured
-- State: authenticated local `TEST FIXTURE`, public video preview and import controls visible
-
-## Full-view comparison evidence
-
-Blocked. The in-app browser refused local URL capture under its URL security policy even though the server returned HTTP 200 and the automated fixture E2E completed the interaction flow. Build output, DOM tests, and source code are not substitutes for a browser-rendered visual comparison.
-
-## Focused region comparison evidence
-
-Blocked for the same reason. The required focused comparison would cover:
-
-- `TEST FIXTURE` top-bar status
-- public URL input, count selector, and video preview
-- quota and OpenAI cost estimate cards
-- progress state and Comment Inbox link
-- Inbox `공개 URL · 읽기 전용` badges and moderation-disabled notice
+- Source visual truth: `references/crowdsift-ui/2026-07-28-comment-inbox-dark-brandbastion.png`
+- Browser implementation: `references/crowdsift-ui/2026-07-28-comment-inbox-implementation.png`
+- Route: `http://localhost:3000/app/inbox?levels=caution&levels=risk&selected=b0300000-0000-4000-8000-000000000010&page=1`
+- State: authenticated local `TEST FIXTURE` workspace, caution comment selected, two stored replies open, harmful source still protected, reply composer disabled
+- Viewport: 1440 × 1024 CSS px
+- Device pixel ratio: 1
+- Source pixels: 1487 × 1058
+- Implementation pixels: 1440 × 1024
+- Density normalization: both full views and both focused workspace crops were normalized to 700 px width for combined visual comparison; no density-only differences were filed
 
 ## Findings
 
-- [P1] Browser-rendered implementation evidence is missing
-  - Location: authenticated public URL flow and Comment Inbox.
-  - Evidence: the source screenshot is available, but no same-viewport implementation capture can be opened and combined with it.
-  - Impact: typography, spacing, wrapping, colors, icon alignment, image treatment, responsiveness, and visual parity cannot be approved from code or automated behavior alone.
-  - Fix: reload `http://localhost:3000/app/connect/youtube` in the user’s in-app browser, sign in if needed, open the fixture preview state, and provide or allow capture of a 1440 × 900 screenshot. Compare it together with the source and repeat after any fixes.
+No actionable P0, P1, or P2 findings remain.
 
-## Required fidelity surfaces
+- Typography: the implementation preserves the source hierarchy with a restrained Korean system-sans stack, compact uppercase eyebrow labels, strong conversation summaries, and smaller operational metadata. Text remains legible without the brittle ultra-small density of the concept image.
+- Spacing and layout rhythm: the three-column queue / conversation / analysis structure, thin dividers, rounded dark surfaces, and compact filter row match the intended composition. The existing CrowdSift shell is preserved while adopting the source's full dark frame.
+- Colors and tokens: near-black canvas, blue selection, violet AI accents, amber caution, and rose risk states map consistently to the source. Contrast and disabled states remain visible.
+- Image quality and asset fidelity: stored author avatars and video thumbnails are rendered when their source URLs exist; initials are used only as a data-absence fallback. The QA fixture intentionally has no remote imagery and is labeled as non-production data.
+- Copy and content: Korean labels are concise and operational. The implementation does not claim reply posting exists; the composer explicitly states that YouTube publishing and evidence storage are required first.
+- Icons and affordances: one Phosphor icon family is used consistently. Selected rows, reply disclosure links, review badges, details controls, disabled composer, and moderation actions are distinguishable.
+- Accessibility and responsiveness: semantic regions, headings, labeled filters, disabled state, focus-visible styling, and protected-source disclosure are present. At 820 px and 390 px the workspace collapses to one column without document-level horizontal overflow.
 
-- Fonts and typography: blocked pending rendered evidence.
-- Spacing and layout rhythm: blocked pending rendered evidence.
-- Colors and visual tokens: blocked pending rendered evidence.
-- Image quality and asset fidelity: blocked pending rendered evidence.
-- Copy and content: automated tests cover labels and behavior, but visual wrapping and density remain blocked.
-- Icons and interactions: Phosphor icons and core interactions are implemented; visual alignment remains blocked.
-- Accessibility and responsiveness: semantic unit/E2E coverage exists; visual breakpoint inspection remains blocked.
+## Focused Region Comparison
 
-## Primary interactions tested
+The queue, selected thread, two-reply branch, AI summary, and moderation controls were compared in a combined focused image after matching the visible selected-comment state. This focused pass confirmed that the reply-count disclosure and central thread hierarchy remain readable at production density.
 
-- Local Mailpit login
-- public video URL validation
-- default 20-comment selection
-- fixture video preview
-- import and staged analysis completion
-- Comment Inbox navigation
-- read-only source labeling
-- absence of moderation buttons
-- browser-side and Next.js server-side Google/OpenAI request guards
+## Primary Interactions Tested
 
-## Console errors checked
+- Opened `답글 2개 보기` and confirmed the selected URL parameter, selected author, and both stored replies updated.
+- Confirmed caution/risk source text is absent initially and `원문 확인` remains the explicit reveal affordance.
+- Confirmed the reply composer explanation is visible and `답글 보내기` is disabled.
+- Confirmed desktop width has no horizontal overflow.
+- Confirmed 820 px tablet layout collapses to one workspace column.
+- Confirmed 390 px mobile layout has `document.scrollWidth === 390`, keeps two replies, and makes the product navigation independently horizontally scrollable.
+- Checked browser warning/error logs after the final render: none.
 
-Not checked in the in-app browser because local browser access was blocked. The Playwright E2E completed without a test failure, but this does not replace the required console inspection.
+## Comparison History
 
-## Comparison history
+1. First comparison
+   - [P2] The existing product shell remained light, weakening the requested black-background treatment.
+   - Fix: scoped the CrowdSift sidebar, top bar, main canvas, navigation, footer, and active state to the Inbox dark theme.
+   - Post-fix evidence: final 1440 × 1024 browser screenshot shows a continuous near-black application frame.
 
-No visual iteration could begin because the first implementation capture was blocked. No P0/P1/P2 visual fix has been claimed.
+2. Responsive comparison
+   - [P2] At 390 px, the existing five-column product navigation forced the document to 664 px wide.
+   - Fix: constrained the sidebar and converted the navigation to an independently scrollable flex row below 820 px.
+   - Post-fix evidence: `document.scrollWidth` and viewport width both measure 390 px.
 
-## Implementation checklist
+3. Asset fidelity comparison
+   - [P2] The first implementation always used initial-based avatar fallbacks and omitted stored video imagery.
+   - Fix: render stored author avatar and video thumbnail URLs with accessible alt text; retain initials only when source imagery is absent.
+   - Post-fix evidence: component test verifies both source-provided profile and thumbnail images render.
 
-- [ ] Capture the authenticated fixture preview at 1440 × 900.
-- [ ] Combine the source and implementation captures in one comparison input.
-- [ ] Inspect all required fidelity surfaces and focused regions.
-- [ ] Fix any P0/P1/P2 findings and recapture.
-- [ ] Change the final result to `passed` only after the comparison succeeds.
+## Open Questions
 
-final result: blocked
+- Reply publishing remains intentionally out of scope. When YouTube reply posting and evidence storage are implemented, the locked composer can be upgraded without changing the current thread layout.
+
+## Follow-up Polish
+
+- [P3] A production workspace with real avatar and thumbnail URLs will visually approach the concept image more closely than the intentionally image-free QA fixture.
+- [P3] The concept keeps a full reply composer above the fold; the implementation prioritizes truthful locked-state messaging until the backend capability exists.
+
+## Implementation Checklist
+
+- [x] Three-column desktop workspace
+- [x] Stored reply counts and reply thread
+- [x] Protected harmful source
+- [x] Real correction and moderation controls preserved
+- [x] Honest locked reply composer
+- [x] Full dark CrowdSift shell
+- [x] Tablet and mobile overflow checks
+- [x] Console error check
+- [x] Source-provided avatar and thumbnail support
+
+final result: passed

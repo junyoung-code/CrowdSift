@@ -35,13 +35,13 @@
 Create `docs/development-roadmap.md` with this content:
 
 ````markdown
-# CommentHawk 개발 로드맵
+# CrowdSift 개발 로드맵
 
-이 문서는 CommentHawk를 구현하기 위한 큰 개발 흐름을 보여줍니다. 각 노드는 계획이며 현재 완료 상태를 의미하지 않습니다.
+이 문서는 CrowdSift를 구현하기 위한 큰 개발 흐름을 보여줍니다. 각 노드는 계획이며 현재 완료 상태를 의미하지 않습니다.
 
 ```mermaid
 flowchart TD
-    ROOT["CommentHawk 구현 로드맵"]
+    ROOT["CrowdSift 구현 로드맵"]
     MVP["통합 MVP: 실제 댓글 수집 → AI 분석 → 사용자 검토·조치"]
 
     subgraph FRONTEND["1. Frontend"]
@@ -133,7 +133,7 @@ Change the repository-state paragraph to:
 현재 저장소는 첫 번째 Next.js 고객 화면까지 구성된 초기 단계입니다. YouTube OAuth, 댓글 수집, Supabase, AI 분류는 아직 연결되어 있지 않습니다.
 ```
 
-Delete the complete `## CommentHawk 개발 지도` section and its four bullets. Add this item under `## 프로젝트 문서`:
+Delete the complete `## CrowdSift 개발 지도` section and its four bullets. Add this item under `## 프로젝트 문서`:
 
 ```markdown
 - [개발 로드맵](docs/development-roadmap.md)
@@ -191,7 +191,7 @@ describe("Home", () => {
       screen.getByRole("button", { name: "YouTube 연결하기" }),
     ).toBeDisabled();
     expect(
-      screen.queryByRole("region", { name: "CommentHawk 개발 지도" }),
+      screen.queryByRole("region", { name: "CrowdSift 개발 지도" }),
     ).not.toBeInTheDocument();
     expect(
       screen.queryByRole("heading", {
@@ -210,7 +210,7 @@ Run:
 npm test -- page.test.tsx
 ```
 
-Expected: FAIL because `CommentHawk 개발 지도` is still rendered.
+Expected: FAIL because `CrowdSift 개발 지도` is still rendered.
 
 - [ ] **Step 3: Remove the development map from the page**
 

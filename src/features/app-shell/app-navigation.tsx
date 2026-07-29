@@ -35,7 +35,7 @@ export function AppNavigation() {
   const pathname = usePathname() ?? "/app";
 
   return (
-    <nav className="product-navigation" aria-label="CommentHawk 메뉴">
+    <nav className="product-navigation" aria-label="CrowdSift 메뉴">
       {navigationItems.map(({ href, icon: Icon, label }) => {
         const active = isNavigationItemActive(pathname, href);
 

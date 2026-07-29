@@ -14,7 +14,7 @@ describe("Home", () => {
     ).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "제품 예시 화면" })).toBeInTheDocument();
     expect(
-      screen.queryByRole("region", { name: "CommentHawk 개발 지도" }),
+      screen.queryByRole("region", { name: "CrowdSift 개발 지도" }),
     ).not.toBeInTheDocument();
   });
 });

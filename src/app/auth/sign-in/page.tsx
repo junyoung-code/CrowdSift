@@ -25,10 +25,10 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
           <span aria-hidden="true">
             <ShieldCheck weight="fill" />
           </span>
-          CommentHawk
+          CrowdSift
         </Link>
         <p className="auth-eyebrow">CREATOR SIGN IN</p>
-        <h1 id="sign-in-title">CommentHawk에 로그인</h1>
+        <h1 id="sign-in-title">CrowdSift에 로그인</h1>
         <p className="auth-description">
           Google 계정으로 간편하게 로그인합니다. 같은 브라우저에서는 직접
           로그아웃할 때까지 로그인 상태가 유지됩니다.

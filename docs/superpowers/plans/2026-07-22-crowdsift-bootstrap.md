@@ -1,8 +1,8 @@
-# CommentHawk Bootstrap Implementation Plan
+# CrowdSift Bootstrap Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build a minimal, runnable CommentHawk Next.js project in the current workspace and connect it to the empty GitHub repository.
+**Goal:** Build a minimal, runnable CrowdSift Next.js project in the current workspace and connect it to the empty GitHub repository.
 
 **Architecture:** A single Next.js App Router application owns the initial UI. Product decisions stay in `docs`, secrets are represented only by empty environment variable names, and the YouTube action remains a clearly disabled placeholder until OAuth is implemented.
 
@@ -10,7 +10,7 @@
 
 ## Global Constraints
 
-- Preserve `docs/CommentHawk_Project_Context_v0.1.pdf`.
+- Preserve `docs/CrowdSift_Project_Context_v1.0.pdf`.
 - Do not implement Google OAuth, Supabase, OpenAI, or YouTube API behavior in this bootstrap.
 - Do not display fake connected data or imply that the disabled YouTube action works.
 - Do not push to GitHub in this task.
@@ -39,7 +39,7 @@ Run:
 
 ```bash
 git init -b main
-git remote add origin https://github.com/junyoung-code/CommnetHawk.git
+git remote add origin https://github.com/junyoung-code/CrowdSift.git
 git remote -v
 ```
 
@@ -50,9 +50,9 @@ Expected: fetch and push URLs both point to the provided repository.
 Run:
 
 ```bash
-COMMENTHAWK_TMP=$(mktemp -d /tmp/commenthawk-next.XXXXXX)
-npx create-next-app@16.2.11 "$COMMENTHAWK_TMP/app" --typescript --tailwind --eslint --app --use-npm --import-alias "@/*" --yes
-rsync -a --exclude .git --exclude README.md "$COMMENTHAWK_TMP/app/" ./
+CROWDSIFT_TMP=$(mktemp -d /tmp/crowdsift-next.XXXXXX)
+npx create-next-app@16.2.11 "$CROWDSIFT_TMP/app" --typescript --tailwind --eslint --app --use-npm --import-alias "@/*" --yes
+rsync -a --exclude .git --exclude README.md "$CROWDSIFT_TMP/app/" ./
 ```
 
 Expected: `package.json`, configuration files, `app`, `public`, and `package-lock.json` exist while the existing `docs` directory remains in place.
@@ -68,7 +68,7 @@ npm ls --depth=0
 
 Expected: npm exits successfully with Next.js 16.2.11 and React 19.2.4 installed.
 
-### Task 2: Minimal CommentHawk screen
+### Task 2: Minimal CrowdSift screen
 
 **Files:**
 - Modify: `src/app/layout.tsx`
@@ -79,9 +79,9 @@ Expected: npm exits successfully with Next.js 16.2.11 and React 19.2.4 installed
 - Consumes: the generated App Router root layout and Tailwind CSS foundation.
 - Produces: a responsive Korean start screen with a disabled YouTube connection action.
 
-- [ ] **Step 1: Set CommentHawk metadata and language**
+- [ ] **Step 1: Set CrowdSift metadata and language**
 
-Use `lang="ko"`, title `CommentHawk`, and the description `크리에이터를 위한 AI 댓글 관리 도구` in `src/app/layout.tsx`.
+Use `lang="ko"`, title `CrowdSift`, and the description `크리에이터를 위한 AI 댓글 관리 도구` in `src/app/layout.tsx`.
 
 - [ ] **Step 2: Implement the minimal page**
 
@@ -110,7 +110,7 @@ Expected: ESLint exits with code 0 and reports no errors.
 - Create: `.env.example`
 
 **Interfaces:**
-- Consumes: the approved bootstrap design and `docs/CommentHawk_Project_Context_v0.1.pdf`.
+- Consumes: the approved bootstrap design and `docs/CrowdSift_Project_Context_v1.0.pdf`.
 - Produces: setup instructions, future-agent boundaries, concise product context, and non-secret integration variable names.
 
 - [ ] **Step 1: Document local setup and current scope**

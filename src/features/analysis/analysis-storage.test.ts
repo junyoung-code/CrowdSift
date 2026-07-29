@@ -57,7 +57,7 @@ describe("analysis storage rows", () => {
         },
       ],
       provenance: {
-        promptVersion: "commenthawk-stage2-v1",
+        promptVersion: "crowdsift-stage2-v2",
         schemaVersion: "comment-analysis-v1",
         ruleEngineVersion: "rules-v1",
         triggerReasons: ["review_level", "creator_similarity"],
@@ -76,7 +76,7 @@ describe("analysis storage rows", () => {
         },
       ],
       provenance: {
-        promptVersion: "commenthawk-stage2-v1",
+        promptVersion: "crowdsift-stage2-v2",
         triggerReasons: ["review_level", "creator_similarity"],
       },
     });

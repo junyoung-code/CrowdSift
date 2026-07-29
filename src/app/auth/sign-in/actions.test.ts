@@ -12,7 +12,7 @@ vi.mock("@/lib/supabase/server", () => ({
 
 vi.mock("@/lib/env", () => ({
   getServerEnv: vi.fn(() => ({
-    APP_ORIGIN: "https://commenthawk.example",
+    APP_ORIGIN: "https://crowdsift.example",
   })),
 }));
 
@@ -47,7 +47,7 @@ describe("requestMagicLink", () => {
       email: "creator@example.com",
       options: {
         emailRedirectTo:
-          "https://commenthawk.example/auth/callback?next=/app",
+          "https://crowdsift.example/auth/callback?next=/app",
       },
     });
   });

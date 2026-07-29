@@ -239,7 +239,7 @@ describe("Korean evaluation dataset", () => {
     expect(result.evaluationReport.passed).toBe(true);
     expect(result.validation.pendingHumanReviewIds).toHaveLength(60);
     expect(result.releasePassed).toBe(false);
-    expect(result.promptVersion).toBe("commenthawk-stage2-v1");
+    expect(result.promptVersion).toBe("crowdsift-stage2-v2");
     expect(result.modelIdentifiers).toEqual(["recorded-fixture"]);
   });
 

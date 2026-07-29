@@ -1,4 +1,4 @@
-# CommentHawk Landing Design QA
+# CrowdSift Landing Design QA
 
 ## Comparison Target
 
@@ -56,11 +56,11 @@
 
 - The source’s hero visual is a product interface, so the implementation uses real React interface components rather than a raster screenshot.
 - All visible interface icons use one consistent Phosphor icon family; no emoji, inline handcrafted SVG, or placeholder illustration is used.
-- BrandBastion logos, customer logos, customer claims, and promotional metrics were intentionally omitted because the approved specification requires original CommentHawk assets and copy.
+- BrandBastion logos, customer logos, customer claims, and promotional metrics were intentionally omitted because the approved specification requires original CrowdSift assets and copy.
 
 ### Copy and content
 
-- Every section explains CommentHawk’s approved behavior: YouTube first, 20–50 top-level threads, two-stage analysis, creator policy and feedback retrieval, source preservation, and confirmation before moderation.
+- Every section explains CrowdSift’s approved behavior: YouTube first, 20–50 top-level threads, two-stage analysis, creator policy and feedback retrieval, source preservation, and confirmation before moderation.
 - Example metrics are visibly labeled `제품 예시 화면` and are isolated inside the landing feature.
 - Unsupported platforms are not presented as available.
 

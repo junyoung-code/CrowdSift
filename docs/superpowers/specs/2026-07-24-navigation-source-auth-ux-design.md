@@ -1,4 +1,4 @@
-# CommentHawk 내비게이션·댓글 원문·Google 로그인 UX 설계
+# CrowdSift 내비게이션·댓글 원문·Google 로그인 UX 설계
 
 작성일: 2026-07-24
 
@@ -6,7 +6,7 @@
 
 ## 1. 목적
 
-현재 CommentHawk 수직 슬라이스에서 확인된 다음 네 가지 문제를 함께 해결한다.
+현재 CrowdSift 수직 슬라이스에서 확인된 다음 네 가지 문제를 함께 해결한다.
 
 1. 사이드바에서 이동한 메뉴가 선택 상태로 유지되지 않는다.
 2. 주의·위험 댓글의 `원문 확인` 요청이 실패한다.
@@ -263,7 +263,7 @@ YouTube 채널 연결용 OAuth:
 - `jwt_expiry = 3600`, refresh token rotation과 10초 reuse interval을 유지한다.
 - `[auth.sessions]`의 timebox와 inactivity timeout을 설정하지 않는다.
 - 따라서 동일 브라우저에서는 브라우저를 재시작해도 사용자가 로그아웃하거나 Supabase 세션이 보안상 폐기되기 전까지 로그인 상태를 유지한다.
-- Google provider token 장기 보관은 필요하지 않다. CommentHawk 로그인 유지에는 Supabase refresh token을 사용한다.
+- Google provider token 장기 보관은 필요하지 않다. CrowdSift 로그인 유지에는 Supabase refresh token을 사용한다.
 
 ### 9.4 로그아웃
 

@@ -8,7 +8,7 @@
 
 ## 로그인 방식과 로컬 Google 설정
 
-CommentHawk의 기본 로그인은 Supabase Auth를 통한 Google 로그인이다. 로그인용 Google OAuth는 CommentHawk 사용자 신원을 확인하는 용도이고, YouTube OAuth는 채널 조회·댓글 조치 권한을 받는 용도다. 두 흐름의 토큰과 환경 변수, callback을 서로 섞지 않는다.
+CrowdSift의 기본 로그인은 Supabase Auth를 통한 Google 로그인이다. 로그인용 Google OAuth는 CrowdSift 사용자 신원을 확인하는 용도이고, YouTube OAuth는 채널 조회·댓글 조치 권한을 받는 용도다. 두 흐름의 토큰과 환경 변수, callback을 서로 섞지 않는다.
 
 Google Cloud의 로그인용 OAuth 2.0 웹 클라이언트에는 다음 로컬 값을 등록한다.
 
@@ -35,7 +35,7 @@ Google 설정 없이 결정적인 로컬 테스트만 실행할 때는 로그인
 
 ## 이 모드가 하는 일
 
-CommentHawk에 로그인한 개발자가 공개 YouTube 영상 URL을 입력하면, 해당 영상의 공개 댓글을 OAuth 없이 읽어 기존 분류 파이프라인과 Comment Inbox에서 확인한다.
+CrowdSift에 로그인한 개발자가 공개 YouTube 영상 URL을 입력하면, 해당 영상의 공개 댓글을 OAuth 없이 읽어 기존 분류 파이프라인과 Comment Inbox에서 확인한다.
 
 - 영상 소유자의 계정 인증은 필요하지 않다.
 - 공개 상태이고 댓글이 활성화된 영상만 읽을 수 있다.

@@ -13,14 +13,30 @@ export type InboxActionState =
   | "failed"
   | "cancelled";
 
+export type InboxReply = {
+  rawCommentId: string;
+  authorDisplayName: string | null;
+  authorAvatarUrl: string | null;
+  publishedAt: string | null;
+  likeCount: number;
+  reviewLevel: ReviewLevel | null;
+  sourceAvailable: boolean;
+  safeSourceText: string | null;
+  neutralText: string | null;
+  normalizedQuestion: string | null;
+};
+
 export type InboxItem = {
   rawCommentId: string;
   sourceImportJobId: string;
   sourceKind: "owned_oauth" | "public_url";
   youtubeVideoId: string;
+  videoTitle: string | null;
+  videoThumbnailUrl: string | null;
   authorDisplayName: string | null;
   authorAvatarUrl: string | null;
   publishedAt: string | null;
+  likeCount: number;
   sourceAvailable: boolean;
   safeSourceText: string | null;
   analysisId: string | null;
@@ -34,6 +50,8 @@ export type InboxItem = {
   analysisState: InboxAnalysisState;
   actionState: InboxActionState | null;
   deleteEligible: boolean;
+  replyCount: number;
+  replies: InboxReply[];
 };
 
 export type InboxQueryInput = {

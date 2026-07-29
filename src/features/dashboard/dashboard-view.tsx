@@ -88,7 +88,7 @@ function DashboardEmptyState({
       <span>
         {connectedChannel
           ? `${connectedChannel} 채널의 실제 댓글을 가져오기 전에는 통계 수치를 표시하지 않습니다.`
-          : "CommentHawk 로그인과 YouTube 권한은 별도로 관리됩니다. 먼저 읽기 권한으로 크리에이터 소유 채널을 선택합니다."}
+          : "CrowdSift 로그인과 YouTube 권한은 별도로 관리됩니다. 먼저 읽기 권한으로 크리에이터 소유 채널을 선택합니다."}
       </span>
       <Link
         className="button button-primary"

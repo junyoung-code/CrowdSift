@@ -8,7 +8,7 @@ vi.mock("./actions", () => ({
 import SignInPage from "./page";
 
 describe("SignInPage", () => {
-  it("explains that CommentHawk login and YouTube access are separate", async () => {
+  it("explains that CrowdSift login and YouTube access are separate", async () => {
     const page = await SignInPage({
       searchParams: Promise.resolve({}),
     });
@@ -16,7 +16,7 @@ describe("SignInPage", () => {
     render(page);
 
     expect(
-      screen.getByRole("heading", { name: "CommentHawk에 로그인" }),
+      screen.getByRole("heading", { name: "CrowdSift에 로그인" }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Google로 계속하기" }),

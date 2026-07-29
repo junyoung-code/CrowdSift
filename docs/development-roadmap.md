@@ -1,10 +1,10 @@
-# CommentHawk 개발 로드맵
+# CrowdSift 개발 로드맵
 
-이 문서는 CommentHawk를 구현하기 위한 큰 개발 흐름을 보여줍니다. 각 노드는 계획이며 현재 완료 상태를 의미하지 않습니다.
+이 문서는 CrowdSift를 구현하기 위한 큰 개발 흐름을 보여줍니다. 각 노드는 계획이며 현재 완료 상태를 의미하지 않습니다.
 
 ```mermaid
 flowchart TD
-    ROOT["CommentHawk 구현 로드맵"]
+    ROOT["CrowdSift 구현 로드맵"]
     MVP["통합 MVP: 실제 댓글 수집 → AI 분석 → 사용자 검토·조치"]
 
     subgraph FRONTEND["1. Frontend"]

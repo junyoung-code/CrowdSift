@@ -25,11 +25,11 @@ export function LandingPage() {
   return (
     <main className="landing">
       <header className="landing-header" id="top">
-        <Link className="brand" href="/" aria-label="CommentHawk 홈">
+        <Link className="brand" href="/" aria-label="CrowdSift 홈">
           <span className="brand-mark" aria-hidden="true">
             <ShieldCheck weight="fill" />
           </span>
-          <strong>CommentHawk</strong>
+          <strong>CrowdSift</strong>
         </Link>
 
         <nav aria-label="제품 소개">
@@ -88,7 +88,7 @@ export function LandingPage() {
         <ProductPreview />
       </section>
 
-      <section className="landing-strip" aria-label="CommentHawk 핵심 원칙">
+      <section className="landing-strip" aria-label="CrowdSift 핵심 원칙">
         <p>AI가 대신 결정하지 않습니다</p>
         <ul>
           <li>
@@ -155,7 +155,7 @@ export function LandingPage() {
             <h2 id="solution-title">삭제보다 먼저, 이해하고 분리합니다</h2>
           </div>
           <p>
-            CommentHawk는 댓글을 없애는 도구가 아니라, 크리에이터가 더 나은
+            CrowdSift는 댓글을 없애는 도구가 아니라, 크리에이터가 더 나은
             판단을 할 수 있도록 검토 순서와 근거를 정리하는 도구입니다.
           </p>
         </div>
@@ -325,17 +325,17 @@ export function LandingPage() {
           않습니다.
         </p>
         <Link className="button button-primary" href="/auth/sign-in">
-          CommentHawk 시작하기
+          CrowdSift 시작하기
           <ArrowRight aria-hidden="true" weight="bold" />
         </Link>
       </section>
 
       <footer className="landing-footer">
-        <Link className="brand" href="/" aria-label="CommentHawk 홈">
+        <Link className="brand" href="/" aria-label="CrowdSift 홈">
           <span className="brand-mark" aria-hidden="true">
             <ShieldCheck weight="fill" />
           </span>
-          <strong>CommentHawk</strong>
+          <strong>CrowdSift</strong>
         </Link>
         <p>크리에이터를 위한 사람 중심의 AI 댓글 운영 도구</p>
         <a href="#top" aria-label="페이지 맨 위로">

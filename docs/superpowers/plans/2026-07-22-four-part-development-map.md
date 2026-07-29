@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Render one large, editable Mermaid flowchart that separates CommentHawk implementation work into Frontend, Backend, AI, and Security parts and converges on an integrated MVP.
+**Goal:** Render one large, editable Mermaid flowchart that separates CrowdSift implementation work into Frontend, Backend, AI, and Security parts and converges on an integrated MVP.
 
 **Architecture:** Immutable four-part metadata and seeded tasks feed a pure Mermaid-source builder. A client coordinator loads and saves task edits through a validated localStorage adapter, while a dedicated Mermaid canvas renders the SVG and owns copy and full-screen controls.
 
@@ -11,7 +11,7 @@
 ## Global Constraints
 
 - Keep the four part identifiers fixed as `frontend`, `backend`, `ai`, and `security`.
-- Persist only task items under `commenthawk.development-map.v1`.
+- Persist only task items under `crowdsift.development-map.v1`.
 - Use Mermaid `flowchart TD`, `securityLevel: "strict"`, and `htmlLabels: false`.
 - Generate node IDs internally; never derive Mermaid node IDs from user text.
 - Normalize and escape every user label before inserting it into Mermaid source.
@@ -113,7 +113,7 @@ Run `npm test -- build-mermaid-source.test.ts` and expect failures because the b
 
 ```text
 flowchart TD
-  ROOT["CommentHawk 구현 로드맵"]
+  ROOT["CrowdSift 구현 로드맵"]
   ROOT --> FRONTEND_ROOT
   ROOT --> BACKEND_ROOT
   ROOT --> AI_ROOT
@@ -270,5 +270,5 @@ At desktop width and 390 px width verify:
 
 ```bash
 git add src/app/page.tsx src/app/globals.css README.md
-git commit -m "feat: add four-part CommentHawk development map"
+git commit -m "feat: add four-part CrowdSift development map"
 ```

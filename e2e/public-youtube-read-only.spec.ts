@@ -129,7 +129,7 @@ test("imports and reviews 20 public comments without YouTube OAuth", async ({
   await page.goto("/app");
   await expect(page).toHaveURL(/\/auth\/sign-in\?next=%2Fapp$/);
   await expect(
-    page.getByRole("heading", { name: "CommentHawk에 로그인" }),
+    page.getByRole("heading", { name: "CrowdSift에 로그인" }),
   ).toBeVisible();
   expect(externalRequests).toEqual([]);
 });

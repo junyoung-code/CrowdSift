@@ -2,10 +2,10 @@
 
 ## 1. Goal
 
-Rename the active product from `CommentHawk` to `CrowdSift` across the
-application, tests, current documentation, generated product context, and
-newly-created technical identifiers without changing API credentials, deleting
-user data, or rewriting historical audit records.
+Complete the approved `CrowdSift` rebrand across the application, tests,
+current documentation, generated product context, and newly-created technical
+identifiers without changing API credentials, deleting user data, or rewriting
+historical audit records.
 
 ## 2. Canonical names
 
@@ -49,16 +49,17 @@ Change the product name inside active system prompts and introduce the three
 new `crowdsift-*-v2` prompt identifiers. Updating prompt text without advancing
 the version is forbidden.
 
-Existing database rows that contain `commenthawk-*-v1` remain immutable. They
-describe analyses that were actually produced by the old prompt. New model runs
-use the CrowdSift v2 identifiers.
+Existing database rows that contain the pre-rebrand v1 prompt identifiers
+remain immutable. They describe analyses that were actually produced by the
+earlier prompt. New model runs use the CrowdSift v2 identifiers.
 
 ### 3.4 Database defaults
 
 Do not edit an applied migration. Add a new migration that:
 
 1. changes the `workspaces.name` default to `내 CrowdSift`;
-2. updates existing rows only when the name is exactly `내 CommentHawk`;
+2. updates existing rows only when the name is exactly the former generated
+   default;
 3. leaves custom workspace names untouched.
 
 The migration does not delete comments, analyses, feedback, actions, evidence,
@@ -68,7 +69,7 @@ or audit logs.
 
 Update active Markdown documentation, Codex guides, specifications, plans,
 README links, and AGENTS instructions to use CrowdSift. Rename tracked files and
-folders whose paths contain `commenthawk`.
+folders whose paths contain the former product slug.
 
 Generate `docs/CrowdSift_Project_Context_v1.0.pdf` from the updated canonical
 product context and remove the old binary from the active tree. Its original
@@ -86,17 +87,16 @@ this pass to preserve the configured local Google login and current data.
 Changing it requires recreating the local Supabase stack and is a separate,
 explicitly destructive operation.
 
-The local root directory also remains
-`/Users/junyoung/Desktop/CommentHawk` during this Codex task because renaming the
-active workspace would invalidate open terminals and file links. It is renamed
-only after the task and development server are closed.
+The local root directory also remains unchanged during this Codex task because
+renaming the active workspace would invalidate open terminals and file links.
+It is renamed only after the task and development server are closed.
 
 ## 4. External services
 
 The following external changes cannot be inferred from local source and require
 the account owner to confirm them:
 
-- GitHub repository `CommnetHawk` to `CrowdSift`;
+- current GitHub repository display name and slug to `CrowdSift`;
 - Google OAuth consent-screen application name and logo;
 - Supabase cloud project display name, if a hosted project exists;
 - deployment project name and public domain when Vercel is connected.
@@ -119,9 +119,8 @@ The rebrand uses behavior-first tests:
    fail, then update the prompt implementation;
 4. add a pgTAP test for the new workspace default and exact legacy-name
    migration before adding the migration;
-5. run a tracked-file scan that rejects active `CommentHawk`, `commenthawk`, and
-   `CommnetHawk` strings except for the explicitly permitted local Supabase
-   project ID;
+5. run a tracked-file scan that rejects active former-brand strings except for
+   applied migrations and the explicitly preserved local Supabase project ID;
 6. run all unit tests, evaluation tests, database tests, end-to-end tests that
    do not require external mutation, lint, and the production build.
 
@@ -132,8 +131,9 @@ The rebrand uses behavior-first tests:
 - Existing comments, analyses, login configuration, and credentials still work.
 - The default workspace name is `내 CrowdSift`; custom names are unchanged.
 - Canonical tracked documentation and filenames use CrowdSift.
-- The only permitted tracked legacy string is the preserved local Supabase
-  Docker namespace, documented in this specification.
+- The only permitted tracked legacy strings are immutable applied migrations,
+  the exact-name conversion migration, and the preserved local Supabase Docker
+  namespace documented in this specification.
 - All required tests, lint, and build pass with fresh output.
 - Remaining account-owner actions are listed with exact console locations and
   expected values.

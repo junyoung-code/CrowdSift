@@ -110,7 +110,7 @@ describe("analysis service", () => {
     expect(repository.insertModelRun).toHaveBeenCalledWith(
       expect.objectContaining({
         stage: 1,
-        promptVersion: "commenthawk-stage1-v1",
+        promptVersion: "crowdsift-stage1-v2",
       }),
     );
     expect(repository.insertAnalysis).toHaveBeenCalledWith(

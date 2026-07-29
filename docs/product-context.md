@@ -1,8 +1,8 @@
-# CommentHawk Product Context
+# CrowdSift Product Context
 
 ## 제품 한 줄 설명
 
-CommentHawk는 한국의 YouTube 크리에이터가 댓글 속 유용한 신호를 발견하고 유해한 반응을 안전하게 관리하도록 돕는 AI 기반 댓글 운영 도구다.
+CrowdSift는 한국의 YouTube 크리에이터가 댓글 속 유용한 신호를 발견하고 유해한 반응을 안전하게 관리하도록 돕는 AI 기반 댓글 운영 도구다.
 
 ## 해결하려는 문제
 
@@ -28,7 +28,7 @@ YouTube 연결
 본인 채널 OAuth 연결 전에도 분류 품질과 저장 흐름을 시험할 수 있도록 로컬 개발 환경에 한해 공개 영상 URL 읽기 전용 경로를 제공한다.
 
 ```text
-CommentHawk 로그인
+CrowdSift 로그인
 → 공개 YouTube 영상 URL 확인
 → 댓글 총 20 / 50 / 100 / 1,000개 중 선택
 → 최상위 댓글과 답글을 함께 수집
@@ -60,8 +60,8 @@ CommentHawk 로그인
 
 ## 인증과 세션
 
-- CommentHawk 로그인은 Google을 기본 방식으로 사용하고, Magic Link는 `다른 방법으로 로그인` 안에 보조 방식으로 유지한다.
-- 로그인용 Google OAuth는 CommentHawk 사용자 인증만 담당한다. YouTube 채널 조회와 댓글 조치 권한을 위한 OAuth는 로그인 흐름과 별도로 연결한다.
+- CrowdSift 로그인은 Google을 기본 방식으로 사용하고, Magic Link는 `다른 방법으로 로그인` 안에 보조 방식으로 유지한다.
+- 로그인용 Google OAuth는 CrowdSift 사용자 인증만 담당한다. YouTube 채널 조회와 댓글 조치 권한을 위한 OAuth는 로그인 흐름과 별도로 연결한다.
 - 같은 브라우저의 Supabase 세션은 사용자가 명시적으로 로그아웃하거나 보안상 폐기될 때까지 refresh token으로 갱신한다.
 - 로컬 Magic Link 메일은 Gmail로 발송하지 않고 Mailpit에서만 확인한다. 프로덕션에서는 별도 SMTP를 설정한다.
 
@@ -82,7 +82,7 @@ CommentHawk 로그인
 
 ## 크리에이터별 AI 개인화
 
-CommentHawk는 크리에이터마다 별도 대형 모델을 만들지 않는다. 하나의 공통 분석 모델에 크리에이터별 정책과 과거 피드백을 결합한다.
+CrowdSift는 크리에이터마다 별도 대형 모델을 만들지 않는다. 하나의 공통 분석 모델에 크리에이터별 정책과 과거 피드백을 결합한다.
 
 1. **공통 OpenAI 모델**: 한국어 댓글의 의미, 욕설, 비꼼, 질문과 건설적 피드백을 구조화해 분석한다.
 2. **크리에이터별 정책**: 금지어, 허용어, 카테고리별 민감도와 선호 조치를 별도 저장한다.
@@ -113,4 +113,4 @@ CommentHawk는 크리에이터마다 별도 대형 모델을 만들지 않는다
 
 ## 기준 문서
 
-이 문서는 `CommentHawk_Project_Context_v0.1.pdf`의 구현 핵심을 요약한다. 이전의 목업 우선 프롬프트와 충돌할 경우 실제 YouTube 댓글을 사용하는 위의 첫 번째 흐름을 우선한다.
+이 문서는 `CrowdSift_Project_Context_v1.0.pdf`의 구현 핵심을 요약한다. 이전의 목업 우선 프롬프트와 충돌할 경우 실제 YouTube 댓글을 사용하는 위의 첫 번째 흐름을 우선한다.

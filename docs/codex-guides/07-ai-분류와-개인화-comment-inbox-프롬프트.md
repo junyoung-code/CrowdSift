@@ -24,7 +24,7 @@
 ## 복사용 영문 프롬프트
 
 ```text
-Implement the approved AI classification, creator personalization, feedback retrieval, and real Comment Inbox milestone for CommentHawk.
+Implement the approved AI classification, creator personalization, feedback retrieval, and real Comment Inbox milestone for CrowdSift.
 
 Use the official OpenAI JavaScript/TypeScript SDK through a server-only service boundary. Verify current official model and API guidance at implementation time instead of hard-coding an undocumented or deprecated model. Do not implement model fine-tuning in this milestone.
 

@@ -80,6 +80,25 @@ values (
   20
 );
 
+insert into public.comment_import_jobs (
+  id,
+  workspace_id,
+  youtube_video_id,
+  requested_top_level_count,
+  source_kind,
+  requested_total_count,
+  source_video_url
+)
+values (
+  '56565656-5656-4565-8565-565656565656',
+  '33333333-3333-3333-3333-333333333333',
+  'video-inbox',
+  null,
+  'public_url',
+  20,
+  'https://www.youtube.com/watch?v=AbCdEfGhI12'
+);
+
 insert into public.raw_comments (
   id,
   workspace_id,
@@ -176,6 +195,13 @@ values
     '33333333-3333-3333-3333-333333333333',
     'comment-risk',
     '99999999-9999-4999-8999-999999999999',
+    'succeeded'
+  ),
+  (
+    '56565656-5656-4565-8565-565656565656',
+    '33333333-3333-3333-3333-333333333333',
+    'comment-safe',
+    '77777777-7777-4777-8777-777777777777',
     'succeeded'
   );
 
@@ -377,7 +403,7 @@ values (
   'Foreign inbox workspace'
 );
 
-select plan(8);
+select plan(9);
 
 set local role anon;
 
@@ -404,6 +430,20 @@ select set_config(
   'request.jwt.claim.role',
   'authenticated',
   true
+);
+
+select is(
+  (
+    select array_agg(source_import_job_id order by source_import_job_id)
+    from public.get_inbox_page(
+      target_workspace_id =>
+        '33333333-3333-3333-3333-333333333333',
+      review_levels => array['safe']::public.review_level[]
+    )
+    where raw_comment_id = '77777777-7777-4777-8777-777777777777'
+  ),
+  array['55555555-5555-5555-5555-555555555555'::uuid],
+  'Inbox shows one row per raw comment and prefers its owned OAuth observation'
 );
 
 select is(

@@ -1,8 +1,8 @@
-# CommentHawk Mermaid Roadmap Document Design
+# CrowdSift Mermaid Roadmap Document Design
 
 ## Goal
 
-Move the CommentHawk development roadmap out of the customer-facing Next.js page and make one GitHub-rendered Markdown document its source of truth.
+Move the CrowdSift development roadmap out of the customer-facing Next.js page and make one GitHub-rendered Markdown document its source of truth.
 
 The public `/` route must contain only customer-facing product content. Engineering plans must no longer be shipped as an interactive web feature.
 
@@ -12,7 +12,7 @@ Create `docs/development-roadmap.md` with:
 
 - a short explanation that the diagram describes planned work, not completion status;
 - one GitHub-compatible fenced `mermaid` block;
-- one top-level CommentHawk roadmap node;
+- one top-level CrowdSift roadmap node;
 - four implementation lanes: Frontend, Backend, AI, and Security;
 - the existing ordered tasks under each lane;
 - one integrated MVP goal where all four lanes converge;
@@ -22,7 +22,7 @@ The document is the only editable roadmap. No browser storage or duplicated appl
 
 ## Public application
 
-`src/app/page.tsx` renders only the existing CommentHawk landing page. It must not import, render, or link to the internal development roadmap.
+`src/app/page.tsx` renders only the existing CrowdSift landing page. It must not import, render, or link to the internal development roadmap.
 
 The roadmap remains discoverable to repository collaborators through a link in the README under the project documentation section. It is not exposed through a customer-facing navigation element.
 

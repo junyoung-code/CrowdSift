@@ -51,7 +51,7 @@ describe("Supabase dashboard summary repository", () => {
       provider: "openai",
       modelIdentifier: "configured-model",
       providerResponseId: "response-1",
-      promptVersion: "commenthawk-dashboard-summary-v1",
+      promptVersion: "crowdsift-dashboard-summary-v2",
       schemaVersion: "dashboard-summary-v1",
       usage: { inputTokens: 20, outputTokens: 10, totalTokens: 30 },
     });
@@ -65,7 +65,7 @@ describe("Supabase dashboard summary repository", () => {
       provider: "openai",
       model_identifier: "configured-model",
       provider_response_id: "response-1",
-      prompt_version: "commenthawk-dashboard-summary-v1",
+      prompt_version: "crowdsift-dashboard-summary-v2",
       schema_version: "dashboard-summary-v1",
       usage: { inputTokens: 20, outputTokens: 10, totalTokens: 30 },
     });

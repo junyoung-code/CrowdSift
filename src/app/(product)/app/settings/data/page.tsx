@@ -8,7 +8,7 @@ export default function DataSettingsPage() {
           <p>DATA SETTINGS</p>
           <h1>데이터 설정</h1>
           <span>
-            CommentHawk가 보관하는 workspace 데이터를 확인하고 삭제할 수
+            CrowdSift가 보관하는 workspace 데이터를 확인하고 삭제할 수
             있습니다.
           </span>
         </div>

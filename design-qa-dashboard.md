@@ -1,4 +1,4 @@
-# CommentHawk 대시보드 Design QA
+# CrowdSift 대시보드 Design QA
 
 이전 랜딩 페이지 QA 기록은 `design-qa-landing.md`에 보존했다.
 
@@ -18,7 +18,7 @@
 ## Findings
 
 - P0/P1/P2 문제 없음.
-- BrandBastion 레퍼런스의 밝은 청색 캔버스, 흰색 지표 카드, 상태별 색상, 채널 영역, AI Insight 카드의 시각적 계층을 유지하면서 CommentHawk의 실제 정보 구조로 전환했다.
+- BrandBastion 레퍼런스의 밝은 청색 캔버스, 흰색 지표 카드, 상태별 색상, 채널 영역, AI Insight 카드의 시각적 계층을 유지하면서 CrowdSift의 실제 정보 구조로 전환했다.
 - 레퍼런스의 겹쳐진 홍보용 카드 구성 대신 운영 화면에 필요한 고정 사이드바와 읽기 쉬운 그리드를 사용한 것은 의도된 제품 차이다. 위쪽 첫 화면에서 핵심 지표, 채널, AI 요약, 최근 작업 상태가 모두 확인된다.
 
 ## 필수 Fidelity 점검

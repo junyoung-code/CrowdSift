@@ -11,13 +11,13 @@ describe("DataDeletionForm", () => {
   it("shows the exact confirmation text and does not imply Auth deletion", () => {
     render(<DataDeletionForm />);
 
-    expect(screen.getByText("COMMENTHAWK 데이터 삭제")).toBeInTheDocument();
+    expect(screen.getByText("CROWDSIFT 데이터 삭제")).toBeInTheDocument();
     expect(screen.getByLabelText("확인 문구")).toHaveAttribute(
       "placeholder",
-      "COMMENTHAWK 데이터 삭제",
+      "CROWDSIFT 데이터 삭제",
     );
     expect(
-      screen.getByText(/CommentHawk 로그인 계정은 삭제되지 않습니다/),
+      screen.getByText(/CrowdSift 로그인 계정은 삭제되지 않습니다/),
     ).toBeInTheDocument();
   });
 });

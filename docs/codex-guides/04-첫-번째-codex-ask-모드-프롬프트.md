@@ -11,7 +11,7 @@
 ## 복사용 영문 프롬프트
 
 ```text
-You are the lead product architect and senior full-stack engineer for CommentHawk.
+You are the lead product architect and senior full-stack engineer for CrowdSift.
 
 MODE: PLANNING ONLY.
 
@@ -20,7 +20,7 @@ Do not edit files, install packages, change configuration, create migrations, or
 Read these sources before planning, in this order of precedence:
 
 1. docs/product-context.md
-2. docs/CommentHawk_Project_Context_v0.1.pdf
+2. docs/CrowdSift_Project_Context_v1.0.pdf
 3. AGENTS.md
 4. package.json, package-lock.json, the current source tree, tests, and .env.example
 5. docs/codex-guides/

@@ -1,4 +1,4 @@
-# CommentHawk Codex 가이드 재작성 설계
+# CrowdSift Codex 가이드 재작성 설계
 
 ## 목표
 
@@ -9,7 +9,7 @@ PDF에서 추출한 1~8번 자료를 다른 개발자도 순서대로 읽고 바
 내용이 충돌하면 다음 순서를 적용한다.
 
 1. `docs/product-context.md`
-2. `docs/CommentHawk_Project_Context_v0.1.pdf`
+2. `docs/CrowdSift_Project_Context_v1.0.pdf`
 3. 저장소 루트의 `AGENTS.md` 규칙
 4. 이번에 제공된 1~8번 PDF
 
@@ -39,9 +39,9 @@ YouTube 연결
 
 ## 사용자별 AI 개인화와 Fine-tuning 원칙
 
-CommentHawk의 개인화는 모델 하나에 모든 사용자 데이터를 섞는 방식이 아니라, 사용자 또는 워크스페이스별 정책과 수정 이력을 분리하는 방식으로 시작한다. Fine-tuning은 API 호출을 대체하는 별도 실행 방식이 아니며, 학습 작업과 학습된 모델 호출 역시 제공자의 API 또는 자체 호스팅 추론 계층을 통해 수행한다.
+CrowdSift의 개인화는 모델 하나에 모든 사용자 데이터를 섞는 방식이 아니라, 사용자 또는 워크스페이스별 정책과 수정 이력을 분리하는 방식으로 시작한다. Fine-tuning은 API 호출을 대체하는 별도 실행 방식이 아니며, 학습 작업과 학습된 모델 호출 역시 제공자의 API 또는 자체 호스팅 추론 계층을 통해 수행한다.
 
-CommentHawk가 채택하는 최종 구조는 다음 여섯 계층이다.
+CrowdSift가 채택하는 최종 구조는 다음 여섯 계층이다.
 
 1. 공통 OpenAI 모델이 한국어 댓글의 의미, 욕설, 비꼼과 피드백을 분석한다.
 2. 크리에이터별 정책에 금지어, 허용어, 민감도와 원하는 조치를 저장한다.

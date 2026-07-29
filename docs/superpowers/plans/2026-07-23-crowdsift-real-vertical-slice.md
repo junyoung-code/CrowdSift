@@ -1,8 +1,8 @@
-# CommentHawk Real Vertical Slice Implementation Plan
+# CrowdSift Real Vertical Slice Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** BrandBastion 레퍼런스의 시각적 완성도를 참고한 CommentHawk 데스크톱 랜딩부터 실제 YouTube 채널 연결, 영상 선택, 댓글 20–50개 수집, 2단계 AI·크리에이터별 RAG 분석, 실제 대시보드·Comment Inbox, 사용자 확인형 moderation까지 하나의 동작하는 수직 슬라이스로 구현한다.
+**Goal:** BrandBastion 레퍼런스의 시각적 완성도를 참고한 CrowdSift 데스크톱 랜딩부터 실제 YouTube 채널 연결, 영상 선택, 댓글 20–50개 수집, 2단계 AI·크리에이터별 RAG 분석, 실제 대시보드·Comment Inbox, 사용자 확인형 moderation까지 하나의 동작하는 수직 슬라이스로 구현한다.
 
 **Architecture:** Next.js 16 App Router 한 앱 안에서 React 화면과 server-only 도메인 서비스를 분리한다. Supabase Auth/Postgres/RLS가 사용자 세션과 테넌트 데이터를 담당하고, Google/YouTube와 OpenAI SDK는 교체 가능한 provider 인터페이스 뒤에서만 호출한다. 원본 댓글, 규칙 결과, 모델 실행, 최종 분석, 정제 피드백, 사용자 수정, 조치 전 증거, 실제 조치와 감사 로그를 각각 별도 레코드로 보존한다.
 
@@ -10,12 +10,12 @@
 
 ## Global Constraints
 
-- 요구사항 우선순위는 `docs/product-context.md` → `docs/CommentHawk_Project_Context_v0.1.pdf` → `AGENTS.md` → `docs/codex-guides/` → `references/brandbastion/` 순서다.
-- 현재의 최소 랜딩 페이지를 유지하지 않는다. `/`를 CommentHawk 고유 문구·자산으로 전면 재구축한다.
+- 요구사항 우선순위는 `docs/product-context.md` → `docs/CrowdSift_Project_Context_v1.0.pdf` → `AGENTS.md` → `docs/codex-guides/` → `references/brandbastion/` 순서다.
+- 현재의 최소 랜딩 페이지를 유지하지 않는다. `/`를 CrowdSift 고유 문구·자산으로 전면 재구축한다.
 - BrandBastion의 정보 리듬과 품질만 참고하고 자산, 문구, 고객 로고, 수치, 소스, 일러스트, 정확한 기하 구조는 복제하지 않는다.
 - 1차 지원 화면은 데스크톱 `1440x900`, `1280x800`이며 모바일 전용 내비게이션·테이블·드로어는 후속 범위다.
 - 인증된 화면에는 저장된 실제 데이터만 표시한다. 랜딩의 예시 대시보드는 반드시 `제품 예시 화면`으로 표시하고 실제 데이터 경로를 공유하지 않는다.
-- CommentHawk 로그인은 Supabase magic link, YouTube 연결은 별도의 Google OAuth로 분리한다.
+- CrowdSift 로그인은 Supabase magic link, YouTube 연결은 별도의 Google OAuth로 분리한다.
 - 한 workspace에는 이번 범위에서 활성 YouTube 채널을 정확히 하나만 선택한다.
 - 초기 가져오기 수량 `20–50`은 상위 댓글 스레드 수다. 선택된 스레드의 사용 가능한 답글은 추가로 저장하며, 이 수치는 제품의 영구 상한이 아니다.
 - 모든 원본 댓글과 원본 API payload를 AI 결과·정제 문장과 분리하고 원본을 수정하지 않는다.
@@ -79,7 +79,7 @@ Task 16 실제 API 검증·릴리스 게이트
 - `src/features/landing/landing-copy.ts`: 한국어 마케팅 문구와 예시 수치의 단일 원천.
 - `src/features/landing/product-preview.tsx`: `제품 예시 화면`으로 명시된 순수 예시 컴포넌트.
 - `src/features/landing/landing-page.test.tsx`: 섹션, 레이블, CTA, 지원 플랫폼 표현 검증.
-- `src/app/globals.css`: CommentHawk 토큰, 포커스, reduced-motion, 데스크톱 레이아웃.
+- `src/app/globals.css`: CrowdSift 토큰, 포커스, reduced-motion, 데스크톱 레이아웃.
 
 ### Database
 
@@ -465,7 +465,7 @@ describe("LandingPage", () => {
   it("renders the complete product story and clearly labels example data", () => {
     render(<LandingPage />);
 
-    expect(screen.getByRole("banner")).toHaveTextContent("CommentHawk");
+    expect(screen.getByRole("banner")).toHaveTextContent("CrowdSift");
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
       "댓글의 소음은 줄이고",
     );
@@ -496,7 +496,7 @@ export const landingCopy = {
     eyebrow: "CREATOR COMMENT OPERATIONS",
     title: "댓글의 소음은 줄이고, 중요한 목소리는 더 선명하게.",
     description:
-      "CommentHawk는 YouTube 댓글을 안전·주의·위험으로 정리하고, 크리에이터마다 다른 기준과 과거 판단을 반영해 검토할 댓글을 먼저 보여줍니다.",
+      "CrowdSift는 YouTube 댓글을 안전·주의·위험으로 정리하고, 크리에이터마다 다른 기준과 과거 판단을 반영해 검토할 댓글을 먼저 보여줍니다.",
   },
   problems: [
     ["유해한 표현에 반복 노출", "원문을 직접 훑는 시간을 줄이고 필요한 순간에만 경고 후 확인합니다."],
@@ -539,9 +539,9 @@ export function LandingPage() {
   return (
     <main className="landing">
       <header className="landing-header">
-        <Link className="brand" href="/" aria-label="CommentHawk 홈">
+        <Link className="brand" href="/" aria-label="CrowdSift 홈">
           <span aria-hidden="true">CH</span>
-          <strong>CommentHawk</strong>
+          <strong>CrowdSift</strong>
         </Link>
         <nav aria-label="제품 소개">
           <a href="#problems">문제</a>
@@ -651,12 +651,12 @@ export function LandingPage() {
         <h2 id="final-cta-title">첫 20개 댓글부터 검토해 보세요</h2>
         <p>연결과 조치는 분리되어 있으며, 원문과 이력은 덮어쓰지 않습니다.</p>
         <Link className="button button-primary" href="/auth/sign-in">
-          CommentHawk 시작하기
+          CrowdSift 시작하기
         </Link>
       </section>
 
       <footer>
-        <strong>CommentHawk</strong>
+        <strong>CrowdSift</strong>
         <p>크리에이터를 위한 사람 중심의 AI 댓글 운영 도구</p>
       </footer>
     </main>
@@ -754,7 +754,7 @@ Expected: tests PASS. 브라우저에서 `1440x900`, `1280x800` 모두 수평 �
 
 ```bash
 git add src/app/page.tsx src/app/page.test.tsx src/app/globals.css src/features/landing
-git commit -m "feat: rebuild the full CommentHawk landing page"
+git commit -m "feat: rebuild the full CrowdSift landing page"
 ```
 
 ---
@@ -800,7 +800,7 @@ create type public.item_status as enum
 create table public.workspaces (
   id uuid primary key default gen_random_uuid(),
   owner_user_id uuid not null references auth.users(id) on delete cascade,
-  name text not null default '내 CommentHawk',
+  name text not null default '내 CrowdSift',
   created_at timestamptz not null default now(),
   unique (owner_user_id)
 );
@@ -1375,7 +1375,7 @@ Expected: migrations apply, pgTAP 4/4 PASS, `src/types/database.ts` generated.
 
 ```bash
 git add supabase src/types/database.ts package.json package-lock.json
-git commit -m "feat: add tenant-safe CommentHawk data model"
+git commit -m "feat: add tenant-safe CrowdSift data model"
 ```
 
 ---
@@ -1472,14 +1472,14 @@ callback은 `code`를 `exchangeCodeForSession(code)`로 교환하고 `next`가 `
 ```tsx
 <EmptyConnectionState
   title="YouTube 채널을 연결해 첫 댓글을 가져오세요"
-  description="CommentHawk 로그인과 YouTube 권한은 별도로 관리됩니다."
+  description="CrowdSift 로그인과 YouTube 권한은 별도로 관리됩니다."
   href="/app/connect/youtube"
 />
 ```
 
 - [ ] **Step 6: 별도의 명시적 확인이 필요한 workspace data 삭제를 구현한다**
 
-설정 화면은 사용자가 `COMMENTHAWK 데이터 삭제`를 직접 입력한 경우에만 action을 호출한다. service는 owner 여부 확인 → Google token revoke best-effort → encrypted token 즉시 null 처리 → transaction에서 content-free `deletion_audit_logs` insert → workspace delete cascade 순서다. `deletion_audit_logs.actor_fingerprint`는 server pepper와 user ID의 HMAC이며 email, channel ID, comment text를 저장하지 않는다. 이 작업은 Supabase Auth account 자체를 삭제하지 않는다.
+설정 화면은 사용자가 `CROWDSIFT 데이터 삭제`를 직접 입력한 경우에만 action을 호출한다. service는 owner 여부 확인 → Google token revoke best-effort → encrypted token 즉시 null 처리 → transaction에서 content-free `deletion_audit_logs` insert → workspace delete cascade 순서다. `deletion_audit_logs.actor_fingerprint`는 server pepper와 user ID의 HMAC이며 email, channel ID, comment text를 저장하지 않는다. 이 작업은 Supabase Auth account 자체를 삭제하지 않는다.
 
 ```ts
 it("deletes tenant data only after the exact confirmation", async () => {
@@ -1494,7 +1494,7 @@ it("deletes tenant data only after the exact confirmation", async () => {
   await deleteWorkspaceData({
     userId: "u1",
     workspaceId: "w1",
-    confirmation: "COMMENTHAWK 데이터 삭제",
+    confirmation: "CROWDSIFT 데이터 삭제",
   }, dependencies);
 
   expect(repository.insertContentFreeDeletionAudit).toHaveBeenCalledBefore(
@@ -1520,7 +1520,7 @@ Expected: auth tests PASS, lint/build exit 0.
 
 ```bash
 git add src/proxy.ts src/lib/supabase src/features/auth src/features/app-shell src/app/auth "src/app/(product)"
-git commit -m "feat: add authenticated CommentHawk application shell"
+git commit -m "feat: add authenticated CrowdSift application shell"
 ```
 
 ---
@@ -2052,7 +2052,7 @@ export function buildAnalysisIdempotencyKey(input: {
 }
 ```
 
-prompt 파일은 영어로 작성하고 다음 불변식을 명시한다: 원문을 고치지 않음, 욕설만 있고 유용한 신호가 없으면 sanitized feedback을 만들지 않음, `safe`를 법적 안전으로 표현하지 않음, category enum 밖의 값을 생성하지 않음. prompt version은 Stage 1 `commenthawk-stage1-v1`, Stage 2 `commenthawk-stage2-v1`로 분리한다.
+prompt 파일은 영어로 작성하고 다음 불변식을 명시한다: 원문을 고치지 않음, 욕설만 있고 유용한 신호가 없으면 sanitized feedback을 만들지 않음, `safe`를 법적 안전으로 표현하지 않음, category enum 밖의 값을 생성하지 않음. prompt version은 Stage 1 `crowdsift-stage1-v1`, Stage 2 `crowdsift-stage2-v1`로 분리한다.
 
 - [x] **Step 5: 테스트와 커밋을 수행한다**
 
@@ -2088,7 +2088,7 @@ it("persists the model run and stage-one analysis separately", async () => {
   provider.classifyStage1.mockResolvedValue(stage1ModelResult);
   await service.processAnalysisChunk("job-1", 5);
   expect(repository.insertModelRun).toHaveBeenCalledWith(
-    expect.objectContaining({ stage: 1, promptVersion: "commenthawk-stage1-v1" }),
+    expect.objectContaining({ stage: 1, promptVersion: "crowdsift-stage1-v1" }),
   );
   expect(repository.insertAnalysis).toHaveBeenCalledWith(
     expect.objectContaining({ stage: 1, reviewLevel: "caution" }),
@@ -2422,7 +2422,7 @@ Expected: FAIL because dashboard modules do not exist.
 
 - [x] **Step 3: 실제 derived data만 사용하는 AI summary를 구현한다**
 
-analysis job이 terminal 상태가 된 뒤 final analysis가 10개 이상이고 해당 job summary가 없을 때만 `summarizeDashboard`를 호출한다. 입력은 `safe/caution/risk` count와 `sanitized_feedback.neutral_text` 최대 20개이며 raw harmful source는 보내지 않는다. Structured Output은 `DashboardSummaryOutputSchema`, prompt version은 `commenthawk-dashboard-summary-v1`이다. provider/model/response/prompt/schema/usage를 `workspace_analysis_summaries`에 함께 저장한다.
+analysis job이 terminal 상태가 된 뒤 final analysis가 10개 이상이고 해당 job summary가 없을 때만 `summarizeDashboard`를 호출한다. 입력은 `safe/caution/risk` count와 `sanitized_feedback.neutral_text` 최대 20개이며 raw harmful source는 보내지 않는다. Structured Output은 `DashboardSummaryOutputSchema`, prompt version은 `crowdsift-dashboard-summary-v1`이다. provider/model/response/prompt/schema/usage를 `workspace_analysis_summaries`에 함께 저장한다.
 
 final analysis가 10개 미만이면 provider 호출 없이 `null`을 반환한다. 같은 `analysis_job_id` 재호출은 unique constraint로 기존 summary를 반환한다.
 
@@ -2753,7 +2753,7 @@ Expected: all unit/integration/RLS/eval/browser tests PASS; lint/build exit 0.
 
 ```bash
 git add playwright.config.ts e2e src/features/youtube src/features/analysis
-git commit -m "test: verify the complete CommentHawk vertical slice"
+git commit -m "test: verify the complete CrowdSift vertical slice"
 ```
 
 ---

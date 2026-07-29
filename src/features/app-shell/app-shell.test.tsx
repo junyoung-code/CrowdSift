@@ -36,6 +36,15 @@ describe("AppShell", () => {
       screen.getByRole("button", { name: "로그아웃" }),
     ).toBeInTheDocument();
     expect(
+      screen.getByRole("group", { name: "화면 테마" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "라이트 모드 사용" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "다크 모드 사용" }),
+    ).toBeInTheDocument();
+    expect(
       screen.getByRole("heading", { name: "대시보드 내용" }),
     ).toBeInTheDocument();
   });

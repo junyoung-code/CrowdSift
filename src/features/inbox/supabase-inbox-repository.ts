@@ -7,17 +7,34 @@ import type {
   InboxActionState,
   InboxAnalysisState,
   InboxItem,
+  InboxReply,
   InboxRepository,
 } from "./inbox-query";
+
+type InboxRpcReply = {
+  rawCommentId?: unknown;
+  authorDisplayName?: unknown;
+  authorAvatarUrl?: unknown;
+  publishedAt?: unknown;
+  likeCount?: unknown;
+  reviewLevel?: unknown;
+  sourceAvailable?: unknown;
+  safeSourceText?: unknown;
+  neutralText?: unknown;
+  normalizedQuestion?: unknown;
+};
 
 type InboxRpcRow = {
   raw_comment_id: string;
   source_import_job_id: string;
   source_kind: "owned_oauth" | "public_url";
   youtube_video_id: string;
+  video_title: string | null;
+  video_thumbnail_url: string | null;
   author_display_name: string | null;
   author_avatar_url: string | null;
   published_at: string | null;
+  like_count: number;
   source_available: boolean;
   safe_source_text: string | null;
   analysis_id: string | null;
@@ -31,11 +48,13 @@ type InboxRpcRow = {
   analysis_state: string;
   action_state: InboxActionState | null;
   delete_eligible: boolean;
+  reply_count: number;
+  replies: unknown;
   total_count: number;
 };
 
 type InboxRpc = (
-  name: "get_inbox_page",
+  name: "get_inbox_conversation_page",
   input: {
     target_workspace_id: string;
     review_levels: ReviewLevel[];
@@ -54,13 +73,51 @@ type InboxRpc = (
   error: { message?: string } | null;
 }>;
 
+const optionalString = (value: unknown) =>
+  typeof value === "string" ? value : null;
+
+const rpcReplies = (value: unknown): InboxRpcReply[] =>
+  Array.isArray(value)
+    ? value.filter(
+        (reply): reply is InboxRpcReply =>
+          typeof reply === "object" && reply !== null,
+      )
+    : [];
+
+const mapReply = (reply: InboxRpcReply): InboxReply | null => {
+  if (typeof reply.rawCommentId !== "string") {
+    return null;
+  }
+
+  return {
+    rawCommentId: reply.rawCommentId,
+    authorDisplayName: optionalString(reply.authorDisplayName),
+    authorAvatarUrl: optionalString(reply.authorAvatarUrl),
+    publishedAt: optionalString(reply.publishedAt),
+    likeCount:
+      typeof reply.likeCount === "number" && Number.isFinite(reply.likeCount)
+        ? reply.likeCount
+        : 0,
+    reviewLevel:
+      reply.reviewLevel === "safe" ||
+      reply.reviewLevel === "caution" ||
+      reply.reviewLevel === "risk"
+        ? reply.reviewLevel
+        : null,
+    sourceAvailable: reply.sourceAvailable === true,
+    safeSourceText: optionalString(reply.safeSourceText),
+    neutralText: optionalString(reply.neutralText),
+    normalizedQuestion: optionalString(reply.normalizedQuestion),
+  };
+};
+
 export const createSupabaseInboxRepository = ({
   rpc,
 }: {
   rpc: InboxRpc;
 }): InboxRepository => ({
   async query(input) {
-    const { data, error } = await rpc("get_inbox_page", {
+    const { data, error } = await rpc("get_inbox_conversation_page", {
       target_workspace_id: input.workspaceId,
       review_levels: input.reviewLevels,
       category_filter: input.category ?? undefined,
@@ -84,9 +141,12 @@ export const createSupabaseInboxRepository = ({
         sourceImportJobId: row.source_import_job_id,
         sourceKind: row.source_kind,
         youtubeVideoId: row.youtube_video_id,
+        videoTitle: row.video_title,
+        videoThumbnailUrl: row.video_thumbnail_url,
         authorDisplayName: row.author_display_name,
         authorAvatarUrl: row.author_avatar_url,
         publishedAt: row.published_at,
+        likeCount: row.like_count,
         sourceAvailable: row.source_available,
         safeSourceText: row.safe_source_text,
         analysisId: row.analysis_id,
@@ -100,6 +160,10 @@ export const createSupabaseInboxRepository = ({
         analysisState: row.analysis_state as InboxAnalysisState,
         actionState: row.action_state,
         deleteEligible: row.delete_eligible,
+        replyCount: row.reply_count,
+        replies: rpcReplies(row.replies)
+          .map(mapReply)
+          .filter((reply): reply is InboxReply => reply !== null),
       })),
       total: data?.[0]?.total_count ?? 0,
     };

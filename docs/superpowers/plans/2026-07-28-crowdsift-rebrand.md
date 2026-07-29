@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Rebrand the active CommentHawk application, runtime identifiers, current documentation, and product-context PDF as CrowdSift while preserving credentials, existing data, and historical AI audit records.
+**Goal:** Complete the active product rebrand as CrowdSift across the application, runtime identifiers, current documentation, and product-context PDF while preserving credentials, existing data, and historical AI audit records.
 
 **Architecture:** Treat the product display name, runtime slug, AI prompt versions, database defaults, and documentation paths as separate change boundaries. Update observable behavior through failing tests first, introduce one additive database migration, and use a reproducible PDF generator for the canonical CrowdSift context. Stable provider credentials and the running local Supabase Docker namespace remain unchanged.
 
@@ -14,10 +14,10 @@
 - Runtime slug is exactly `crowdsift`.
 - Destructive confirmation phrase is exactly `CROWDSIFT 데이터 삭제`.
 - New prompt versions are `crowdsift-stage1-v2`, `crowdsift-stage2-v2`, and `crowdsift-dashboard-summary-v2`.
-- Existing `commenthawk-*-v1` database records remain unchanged.
+- Existing pre-rebrand v1 prompt records remain unchanged.
 - API keys, OAuth client IDs, encryption keys, callback URLs, comments, analyses, and audit records are not modified.
 - Existing applied migrations are immutable; database behavior changes use a new migration.
-- `supabase/config.toml` keeps `project_id = "commenthawk-real-vertical-slice"` until a separately approved local-stack recreation.
+- `supabase/config.toml` keeps its current local project ID until a separately approved local-stack recreation.
 - Untracked duplicate files whose names end in ` 2` are not modified or deleted.
 
 ---
@@ -64,11 +64,11 @@ Run:
 npm test -- src/features/landing/landing-page.test.tsx src/app/auth/sign-in/page.test.tsx 'src/app/(product)/app/settings/data/data-deletion-form.test.tsx' src/features/auth/workspace-deletion-service.test.ts
 ```
 
-Expected: failures show the current CommentHawk strings.
+Expected: failures show the former product strings.
 
 - [ ] **Step 3: Update production UI and deletion behavior**
 
-Replace active user-facing `CommentHawk` strings with `CrowdSift`, including
+Replace active user-facing former-brand strings with `CrowdSift`, including
 ARIA labels and Korean possessive phrases. Set:
 
 ```ts
@@ -216,7 +216,7 @@ alter table public.workspaces
 
 update public.workspaces
 set name = '내 CrowdSift'
-where name = '내 CommentHawk';
+where name = '내 CrowdSift';
 ```
 
 - [ ] **Step 4: Apply migration without resetting data**
@@ -255,9 +255,9 @@ git commit -m "feat: migrate default workspace name to CrowdSift"
 - Modify: `design-qa-dashboard.md`
 - Modify: `design-qa-landing.md`
 - Modify: tracked Markdown under `docs/codex-guides/`, `docs/superpowers/`, and `docs/`
-- Rename: tracked `commenthawk`-named specifications and plans to `crowdsift`
-- Rename: `references/commenthawk-ui/` to `references/crowdsift-ui/`
-- Rename: `docs/CommentHawk_Project_Context_v0.1.pdf` to `docs/CrowdSift_Project_Context_v1.0.pdf`
+- Rename: tracked former-slug specifications and plans to `crowdsift`
+- Rename: the former UI reference folder to `references/crowdsift-ui/`
+- Rename: the former product-context PDF to `docs/CrowdSift_Project_Context_v1.0.pdf`
 - Create: `scripts/generate_crowdsift_context_pdf.py`
 
 **Interfaces:**
@@ -266,21 +266,15 @@ git commit -m "feat: migrate default workspace name to CrowdSift"
 
 - [ ] **Step 1: Rename tracked paths with Git-aware moves**
 
-Use `git mv` for every tracked path containing `commenthawk`, preserving file
-history. Do not touch untracked files ending in ` 2`.
+Use `git mv` for every tracked path containing the former slug, preserving
+file history. Do not touch untracked files ending in ` 2`.
 
 - [ ] **Step 2: Mechanically update tracked text**
 
-Within tracked text files only, replace:
-
-```text
-CommentHawk -> CrowdSift
-COMMENTHAWK -> CROWDSIFT
-commenthawk -> crowdsift
-CommnetHawk -> CrowdSift
-```
-
-Restore the explicitly allowed `supabase/config.toml` project ID afterward.
+Within tracked text files only, replace the former display name, uppercase
+confirmation prefix, lowercase slug, and misspelled repository name with their
+CrowdSift equivalents. Restore the explicitly allowed
+`supabase/config.toml` project ID afterward.
 
 - [ ] **Step 3: Add a reproducible PDF generator**
 
@@ -300,18 +294,15 @@ pdftotext docs/CrowdSift_Project_Context_v1.0.pdf -
 pdftoppm -png docs/CrowdSift_Project_Context_v1.0.pdf tmp/pdfs/crowdsift-context
 ```
 
-Verify the extracted text contains `CrowdSift` and no active `CommentHawk`;
+Verify the extracted text contains `CrowdSift` and no active former-brand name;
 inspect every rendered PNG for clipped, overlapping, or missing Korean text.
 
 - [ ] **Step 5: Scan tracked files for legacy names**
 
-Run a tracked-file-aware scan. The only allowed result is:
-
-```text
-supabase/config.toml:project_id = "commenthawk-real-vertical-slice"
-```
-
-The scan must exclude Git history and untracked ` 2` copies.
+Run a tracked-file-aware scan. Only immutable migration history, the exact-name
+conversion migration, and the preserved local Supabase project ID may contain
+the former identifier. The scan must exclude Git history and untracked ` 2`
+copies.
 
 - [ ] **Step 6: Commit documentation and generated artifacts**
 
@@ -360,11 +351,11 @@ and the exact deletion phrase.
 
 Report these exact remaining actions without changing credentials:
 
-1. Rename GitHub repository `CommnetHawk` to `CrowdSift`.
+1. Rename the current GitHub repository to `CrowdSift`.
 2. Verify Google OAuth consent-screen app name is `CrowdSift`.
 3. Rename hosted Supabase/Vercel display projects if they exist.
-4. After closing Codex and the dev server, rename the local folder from
-   `CommentHawk` to `CrowdSift`.
+4. After closing Codex and the dev server, rename the local folder to
+   `CrowdSift`.
 5. After GitHub rename, update `origin` to the new repository URL.
 
 - [ ] **Step 6: Review final Git status**

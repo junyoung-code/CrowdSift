@@ -51,7 +51,7 @@ describe("deleteWorkspaceData", () => {
       {
         userId: "u1",
         workspaceId: "w1",
-        confirmation: "COMMENTHAWK 데이터 삭제",
+        confirmation: "CROWDSIFT 데이터 삭제",
       },
       dependencies,
     );
@@ -75,7 +75,7 @@ describe("deleteWorkspaceData", () => {
         {
           userId: "u2",
           workspaceId: "w1",
-          confirmation: "COMMENTHAWK 데이터 삭제",
+          confirmation: "CROWDSIFT 데이터 삭제",
         },
         dependencies,
       ),

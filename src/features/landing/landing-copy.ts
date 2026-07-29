@@ -3,7 +3,7 @@ export const landingCopy = {
     eyebrow: "CREATOR COMMENT OPERATIONS",
     title: "댓글의 소음은 줄이고, 중요한 목소리는 더 선명하게.",
     description:
-      "CommentHawk는 YouTube 댓글을 안전·주의·위험으로 정리하고, 크리에이터마다 다른 기준과 과거 판단을 반영해 지금 검토할 댓글부터 보여줍니다.",
+      "CrowdSift는 YouTube 댓글을 안전·주의·위험으로 정리하고, 크리에이터마다 다른 기준과 과거 판단을 반영해 지금 검토할 댓글부터 보여줍니다.",
   },
   problems: [
     {

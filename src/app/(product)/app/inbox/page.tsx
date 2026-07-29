@@ -169,6 +169,11 @@ export default async function InboxPage({ searchParams }: InboxPageProps) {
           offset: inbox.filters.offset,
         }}
         moderationAction={requestYouTubeModerationAction}
+        selectedCommentId={
+          typeof parameters.selected === "string"
+            ? parameters.selected.slice(0, 128)
+            : null
+        }
         videos={(videos ?? []).map((video) => ({
           id: video.youtube_video_id,
           title: video.title,

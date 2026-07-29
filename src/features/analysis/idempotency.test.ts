@@ -5,7 +5,7 @@ import { buildAnalysisIdempotencyKey } from "./idempotency";
 const base = {
   rawCommentId: "raw-comment-1",
   policyVersion: 1,
-  promptVersion: "commenthawk-stage1-v1",
+  promptVersion: "crowdsift-stage1-v2",
   modelVersion: "gpt-analysis-v1",
   schemaVersion: "comment-analysis-v1",
 };
@@ -20,7 +20,7 @@ describe("buildAnalysisIdempotencyKey", () => {
 
   it.each([
     ["policyVersion", 2],
-    ["promptVersion", "commenthawk-stage1-v2"],
+    ["promptVersion", "crowdsift-stage1-v3"],
     ["modelVersion", "gpt-analysis-v2"],
     ["schemaVersion", "comment-analysis-v2"],
   ] as const)("changes the key when %s changes", (field, value) => {

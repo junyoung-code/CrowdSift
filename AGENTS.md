@@ -4,9 +4,9 @@
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
 <!-- END:nextjs-agent-rules -->
 
-## CommentHawk project rules
+## CrowdSift project rules
 
-- Treat `docs/product-context.md` and `docs/CommentHawk_Project_Context_v0.1.pdf` as the product source of truth. The Markdown file is the concise implementation guide; the PDF contains the fuller context.
+- Treat `docs/product-context.md` and `docs/CrowdSift_Project_Context_v1.0.pdf` as the product source of truth. The Markdown file is the concise implementation guide; the PDF contains the fuller context.
 - Build the first real vertical slice before secondary dashboards: YouTube connection → choose one video → import 20–50 comments → AI classification → database storage → Comment Inbox.
 - Never present a mock integration, sample metric, or placeholder response as real connected data.
 - Keep raw YouTube comments, AI outputs, sanitized feedback, user actions, evidence records, and audit logs structurally separate.
