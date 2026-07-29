@@ -6,27 +6,16 @@ const repeatedVowelSyllablePattern =
 const removeMatchingWhitespace = (value: string) => value.replace(/\s+/g, "");
 
 export const normalizeForMatching = (source: string) => {
-  const normalized = source
-    .normalize("NFKC")
-    .toLowerCase()
-    .replace(urlPattern, " __url__ ");
-  const twoCharacterRepeat = normalized.replace(
-    repeatedCharacterPattern,
-    "$1$1",
-  );
-  const singleCharacterRepeat = normalized.replace(
-    repeatedCharacterPattern,
-    "$1",
-  );
-  const removedVowelElongation = normalized.replace(
-    repeatedVowelSyllablePattern,
-    "",
+  // Strip whitespace BEFORE collapsing repeats so that spacing-split evasion
+  // ("진 짜  한 심 하 다 아 아") cannot hide an elongated run from the reducers.
+  const despaced = removeMatchingWhitespace(
+    source.normalize("NFKC").toLowerCase().replace(urlPattern, " __url__ "),
   );
   const variants = [
-    twoCharacterRepeat,
-    singleCharacterRepeat,
-    removedVowelElongation,
-  ].map(removeMatchingWhitespace);
+    despaced.replace(repeatedCharacterPattern, "$1$1"),
+    despaced.replace(repeatedCharacterPattern, "$1"),
+    despaced.replace(repeatedVowelSyllablePattern, ""),
+  ];
 
   return [...new Set(variants)].join("|");
 };

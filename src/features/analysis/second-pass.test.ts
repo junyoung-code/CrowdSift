@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import type { Stage1Output } from "./contracts";
-import { shouldRunSecondPass } from "./second-pass";
+import {
+  detectContextSensitivePattern,
+  shouldRunSecondPass,
+} from "./second-pass";
 
 const safeHighConfidence: Stage1Output = {
   category: "neutral",
@@ -110,5 +113,27 @@ describe("shouldRunSecondPass", () => {
         ],
       }),
     ).toEqual({ run: false, reasons: [] });
+  });
+});
+
+describe("detectContextSensitivePattern", () => {
+  const detect = (sourceText: string, threadContext: string[] = []) =>
+    detectContextSensitivePattern({ sourceText, threadContext });
+
+  it("flags an explicit irony marker", () => {
+    expect(detect("이건 완전 반어법이네요")).toBe(true);
+  });
+
+  it("flags a comment that has any thread context", () => {
+    expect(detect("좋아요", ["부모 댓글"])).toBe(true);
+  });
+
+  it("does not flag laughter alone (ㅋㅋ appears in friendly and mocking alike)", () => {
+    expect(detect("오늘 편집 미쳤다 ㅋㅋ 완전 좋음")).toBe(false);
+    expect(detect("이딴 걸 영상이라고 ㅋㅋㅋ")).toBe(false);
+  });
+
+  it("does not flag a plain positive comment", () => {
+    expect(detect("영상 잘 봤어요")).toBe(false);
   });
 });

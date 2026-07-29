@@ -55,6 +55,55 @@ describe("evaluateComment", () => {
 
     expect(result.initialReviewLevel).toBe("caution");
   });
+
+  it("raises obfuscated abuse to caution without any creator phrase rule", () => {
+    const result = evaluateComment({
+      text: "이런 ㅆㄹㄱ 같은 걸 영상이라고 올렸냐",
+      engineVersion: "rules-v1",
+      phraseRules: [],
+    });
+
+    expect(result.initialReviewLevel).toBe("caution");
+    expect(result.signals.map((signal) => signal.kind)).toContain(
+      "abuse_lexicon",
+    );
+  });
+
+  it("does not flag friendly slang as abuse", () => {
+    const result = evaluateComment({
+      text: "와 이건 진짜 개맛있겠다 존맛 ㅁㅊ",
+      engineVersion: "rules-v1",
+      phraseRules: [],
+    });
+
+    expect(result.initialReviewLevel).toBe("safe");
+    expect(result.signals).toEqual([]);
+  });
+
+  it("treats a credential lure with no link as phishing", () => {
+    const result = evaluateComment({
+      text: "공식 당첨 확인을 위해 계정 비밀번호를 입력하세요",
+      engineVersion: "rules-v1",
+      phraseRules: [],
+    });
+
+    expect(result.initialReviewLevel).toBe("risk");
+    expect(result.signals).toContainEqual(
+      expect.objectContaining({ kind: "phishing_pattern", severity: 2 }),
+    );
+  });
+
+  it("flags a twice-repeated copy-paste advertisement", () => {
+    const result = evaluateComment({
+      text: "제 페이지도 방문해 주세요 제 페이지도 방문해 주세요",
+      engineVersion: "rules-v1",
+      phraseRules: [],
+    });
+
+    expect(result.signals.map((signal) => signal.kind)).toContain(
+      "repetition",
+    );
+  });
 });
 
 describe("applyReviewFloor", () => {
