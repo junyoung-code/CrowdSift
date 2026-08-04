@@ -15,6 +15,15 @@ describe("MotionReveal", () => {
     expect(screen.getByRole("article")).toHaveTextContent("검토할 댓글부터");
   });
 
+  it("exposes viewport visibility for secondary reveal effects", () => {
+    render(<MotionReveal as="article">카드</MotionReveal>);
+
+    expect(screen.getByRole("article")).toHaveAttribute(
+      "data-motion-visible",
+      "true",
+    );
+  });
+
   it("server-renders visible content for the no-JavaScript fallback", () => {
     const markup = renderToString(
       <MotionReveal>

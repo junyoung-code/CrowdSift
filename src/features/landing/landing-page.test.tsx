@@ -54,6 +54,9 @@ describe("LandingPage", () => {
     const solutions = screen.getByRole("region", {
       name: "삭제보다 먼저, 이해하고 분리합니다",
     });
+    const analysis = screen.getByRole("region", {
+      name: "두 번 분석하고, 마지막 판단은 크리에이터가 합니다",
+    });
 
     expect(within(problems).getAllByRole("article")).toHaveLength(3);
     expect(within(solutions).getAllByRole("article")).toHaveLength(3);
@@ -69,6 +72,10 @@ describe("LandingPage", () => {
     ).toBeInTheDocument();
     expect(
       screen.getByRole("region", { name: "제품 예시 화면 - AI 분석 데모" }),
+    ).toBeInTheDocument();
+    expect(within(analysis).getAllByRole("button")).toHaveLength(4);
+    expect(
+      screen.getByRole("heading", { name: "먼저 YouTube에서 시작합니다" }),
     ).toBeInTheDocument();
 
     screen

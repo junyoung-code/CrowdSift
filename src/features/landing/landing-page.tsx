@@ -10,12 +10,12 @@ import {
   ShieldCheck,
   Sparkle,
   UserFocus,
-  YoutubeLogo,
 } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 
 import { AnalysisScrollStory } from "./analysis-scroll-story";
 import { InteractiveAnalysisDemo } from "./interactive-analysis-demo";
+import { IntegrationMark } from "./integration-mark";
 import { landingCopy } from "./landing-copy";
 import { LandingHeader } from "./landing-header";
 import { MotionReveal } from "./motion-reveal";
@@ -23,6 +23,23 @@ import { ProductPreview } from "./product-preview";
 
 const problemIcons = [EyeSlash, Flag, ListChecks];
 const solutionIcons = [ListChecks, UserFocus, ShieldCheck];
+const aiFacts = [
+  {
+    description: "색뿐 아니라 이름과 이유로 검토 순위를 표시합니다.",
+    icon: ListChecks,
+    title: "안전 · 주의 · 위험",
+  },
+  {
+    description: "동의한 피드백만 같은 크리에이터의 판단에 사용합니다.",
+    icon: Sparkle,
+    title: "정책 · 허용어 · 과거 수정",
+  },
+  {
+    description: "되돌리기 어려운 조치는 명시적인 확인을 먼저 받습니다.",
+    icon: ShieldCheck,
+    title: "사용자 확인 후에만 실행",
+  },
+];
 
 export function LandingPage() {
   return (
@@ -162,7 +179,8 @@ export function LandingPage() {
                   className="landing-reveal-card"
                   delay={index * 0.08}
                   key={title}
-                  y={12}
+                  x={index === 0 ? -12 : index === 2 ? 12 : 0}
+                  y={0}
                 >
                   <span className="solution-icon">
                     <Icon aria-hidden="true" weight="duotone" />
@@ -186,7 +204,10 @@ export function LandingPage() {
         id="analysis"
         aria-labelledby="two-stage-title"
       >
-        <div className="section-heading section-heading-centered">
+        <MotionReveal
+          className="section-heading section-heading-centered landing-motion-reveal"
+          y={12}
+        >
           <p className="eyebrow">TWO-STAGE ANALYSIS</p>
           <h2 id="two-stage-title">
             두 번 분석하고, 마지막 판단은 크리에이터가 합니다
@@ -195,13 +216,17 @@ export function LandingPage() {
             모든 댓글을 무겁게 처리하지 않고, 문맥이 필요한 댓글에만
             크리에이터별 기준을 더합니다.
           </p>
-        </div>
+        </MotionReveal>
 
         <AnalysisScrollStory />
       </section>
 
       <section className="landing-ai-dark" aria-labelledby="ai-process-title">
-        <div className="ai-copy">
+        <MotionReveal
+          className="ai-copy landing-motion-reveal"
+          x={-12}
+          y={0}
+        >
           <p className="eyebrow">SOURCE-PRESERVING AI</p>
           <h2 id="ai-process-title">
             원문은 보존하고,
@@ -215,26 +240,29 @@ export function LandingPage() {
             연결 방식 보기
             <ArrowRight aria-hidden="true" weight="bold" />
           </a>
-        </div>
+        </MotionReveal>
 
-        <InteractiveAnalysisDemo />
+        <MotionReveal
+          className="ai-demo-reveal landing-motion-reveal"
+          x={12}
+          y={0}
+        >
+          <InteractiveAnalysisDemo />
+        </MotionReveal>
 
         <div className="ai-facts">
-          <article>
-            <ListChecks aria-hidden="true" weight="duotone" />
-            <h3>안전 · 주의 · 위험</h3>
-            <p>색뿐 아니라 이름과 이유로 검토 순위를 표시합니다.</p>
-          </article>
-          <article>
-            <Sparkle aria-hidden="true" weight="duotone" />
-            <h3>정책 · 허용어 · 과거 수정</h3>
-            <p>동의한 피드백만 같은 크리에이터의 판단에 사용합니다.</p>
-          </article>
-          <article>
-            <ShieldCheck aria-hidden="true" weight="duotone" />
-            <h3>사용자 확인 후에만 실행</h3>
-            <p>되돌리기 어려운 조치는 명시적인 확인을 먼저 받습니다.</p>
-          </article>
+          {aiFacts.map(({ description, icon: Icon, title }, index) => (
+            <MotionReveal
+              as="article"
+              delay={index * 0.08}
+              key={title}
+              y={12}
+            >
+              <Icon aria-hidden="true" weight="duotone" />
+              <h3>{title}</h3>
+              <p>{description}</p>
+            </MotionReveal>
+          ))}
         </div>
       </section>
 
@@ -244,12 +272,11 @@ export function LandingPage() {
         aria-labelledby="youtube-title"
       >
         <MotionReveal
-          ariaHidden
-          className="youtube-mark landing-motion-reveal"
+          className="integration-mark-reveal landing-motion-reveal"
           x={-12}
           y={0}
         >
-          <YoutubeLogo weight="fill" />
+          <IntegrationMark />
         </MotionReveal>
         <MotionReveal
           className="integration-copy landing-motion-reveal"

@@ -974,6 +974,17 @@ a {
   color: var(--ch-blue);
 }
 
+.landing-reveal-card .card-icon,
+.landing-reveal-card .solution-icon {
+  scale: 0.94;
+  transition: scale var(--landing-motion-base) var(--landing-motion-ease);
+}
+
+.landing-reveal-card[data-motion-visible="true"]
+  :is(.card-icon, .solution-icon) {
+  scale: 1;
+}
+
 .card-icon svg,
 .solution-icon svg {
   width: 27px;
@@ -1394,6 +1405,11 @@ a {
 }
 
 .ai-copy {
+  align-self: center;
+}
+
+.ai-demo-reveal {
+  min-width: 0;
   align-self: center;
 }
 
@@ -1864,6 +1880,11 @@ a {
   padding-bottom: 126px;
 }
 
+.integration-mark-reveal {
+  display: grid;
+  place-items: center;
+}
+
 .youtube-mark {
   display: grid;
   width: 250px;
@@ -1930,6 +1951,8 @@ a {
 }
 
 .final-cta {
+  position: relative;
+  z-index: 0;
   display: flex;
   width: min(100% - 72px, 1280px);
   min-height: 436px;
@@ -1939,10 +1962,28 @@ a {
   margin: 0 auto 50px;
   border-radius: 32px;
   padding: 70px 32px;
-  background:
-    radial-gradient(circle at 50% 0%, rgb(108 153 255 / 31%), transparent 45%),
-    #eaf2ff;
+  background: #eaf2ff;
+  isolation: isolate;
   text-align: center;
+}
+
+.final-cta::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    circle at 50% 0%,
+    rgb(108 153 255 / 31%),
+    transparent 45%
+  );
+  content: "";
+  scale: 0.96;
+  transition: scale var(--landing-motion-section) var(--landing-motion-ease);
+}
+
+.final-cta[data-motion-visible="true"]::before {
+  scale: 1;
 }
 
 .final-cta-icon {
@@ -2004,6 +2045,12 @@ a {
   width: 14px;
   height: 14px;
   transform: rotate(180deg);
+}
+
+@media (max-width: 767px) {
+  .youtube-mark {
+    transform: none !important;
+  }
 }
 
 @media (max-width: 1190px) {
@@ -6093,6 +6140,15 @@ a {
   .problem-grid article,
   .solution-grid article {
     translate: none !important;
+  }
+
+  .landing-reveal-card :is(.card-icon, .solution-icon),
+  .final-cta::before {
+    scale: 1 !important;
+  }
+
+  .youtube-mark {
+    transform: none !important;
   }
 
   .product-preview

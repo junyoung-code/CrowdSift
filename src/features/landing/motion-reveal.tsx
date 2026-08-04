@@ -69,6 +69,7 @@ export function MotionReveal({
     <Component
       aria-hidden={ariaHidden}
       aria-labelledby={ariaLabelledby}
+      data-motion-visible={isInView || Boolean(shouldReduceMotion)}
       ref={elementRef as Ref<HTMLDivElement>}
       animate={controls}
       className={className}
