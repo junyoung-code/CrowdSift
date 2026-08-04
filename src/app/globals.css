@@ -1083,8 +1083,8 @@ a {
 .analysis-scroll-story {
   display: grid;
   grid-template-columns: minmax(300px, 0.78fr) minmax(480px, 1.22fr);
-  gap: clamp(48px, 7vw, 108px);
-  min-height: 250vh;
+  gap: clamp(40px, 6vw, 88px);
+  min-height: auto;
 }
 
 .analysis-story-steps {
@@ -1096,16 +1096,21 @@ a {
   list-style: none;
 }
 
-.analysis-story-steps li {
+.analysis-story-steps button {
   display: grid;
+  width: 100%;
+  min-height: 132px;
   grid-template-columns: 54px 1fr;
   gap: 16px;
-  min-height: 182px;
   border: 1px solid var(--ch-border);
   border-radius: 20px;
-  padding: 25px;
-  background: rgb(255 255 255 / 72%);
+  padding: 24px;
+  background: white;
   opacity: 0.58;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
   transition:
     opacity var(--landing-motion-base) var(--landing-motion-ease),
     transform var(--landing-motion-base) var(--landing-motion-ease),
@@ -1113,20 +1118,25 @@ a {
     box-shadow var(--landing-motion-base) ease;
 }
 
-.analysis-story-steps li[aria-current="step"] {
+.analysis-story-steps button[aria-current="step"] {
   border-color: rgb(36 107 254 / 32%);
   box-shadow: 0 22px 54px rgb(39 74 130 / 11%);
   opacity: 1;
-  transform: translateX(8px);
+  transform: translateY(-4px);
 }
 
-.analysis-story-steps h3 {
+.analysis-story-steps button > span:last-child {
+  display: grid;
+  align-content: center;
+}
+
+.analysis-story-steps button strong {
   margin: 8px 0 9px;
   font-size: 20px;
   letter-spacing: -0.035em;
 }
 
-.analysis-story-steps p {
+.analysis-story-steps button small {
   margin: 0;
   color: var(--ch-muted);
   font-size: 14px;
@@ -1134,10 +1144,14 @@ a {
   word-break: keep-all;
 }
 
+.analysis-story-steps button:focus-visible {
+  outline: 3px solid rgb(36 107 254 / 24%);
+  outline-offset: 3px;
+}
+
 .analysis-story-visual {
   align-self: start;
-  position: sticky;
-  top: 118px;
+  position: static;
 }
 
 .analysis-story-panel {
@@ -1280,6 +1294,24 @@ a {
   color: var(--ch-muted);
   font-size: 11px;
   line-height: 1.65;
+}
+
+@media (max-width: 767px) {
+  .analysis-scroll-story {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+
+  .analysis-story-visual {
+    grid-row: 1;
+  }
+
+  .analysis-story-steps button,
+  .analysis-story-steps button[aria-current="step"] {
+    min-height: auto;
+    opacity: 1;
+    transform: none;
+  }
 }
 
 .process-grid {

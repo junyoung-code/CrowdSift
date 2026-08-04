@@ -1,11 +1,37 @@
 "use client";
 
 import { CheckCircle, Database, ListChecks, UserFocus } from "@phosphor-icons/react";
-import { useMotionValueEvent, useReducedMotion, useScroll } from "motion/react";
-import { useRef, useState } from "react";
+import {
+  motion,
+  useInView,
+  usePageInView,
+  useReducedMotion,
+} from "motion/react";
+import { useEffect, useReducer, useRef, useState } from "react";
 
 import { landingCopy } from "./landing-copy";
-import { getAnalysisStepFromProgress } from "./landing-motion";
+
+export const ANALYSIS_AUTOPLAY_MS = 4000;
+export const ANALYSIS_MANUAL_PAUSE_MS = 8000;
+
+export type AnalysisWalkthroughState = { activeStep: number };
+export type AnalysisWalkthroughAction =
+  | { type: "select"; index: number }
+  | { type: "advance" }
+  | { type: "reset" };
+
+export function analysisWalkthroughReducer(
+  state: AnalysisWalkthroughState,
+  action: AnalysisWalkthroughAction,
+) {
+  if (action.type === "select") return { activeStep: action.index };
+  if (action.type === "advance") {
+    return {
+      activeStep: (state.activeStep + 1) % landingCopy.processSteps.length,
+    };
+  }
+  return { activeStep: 0 };
+}
 
 const visualRows = [
   {
@@ -32,75 +58,159 @@ const visualRows = [
 
 export function AnalysisScrollStory() {
   const storyRef = useRef<HTMLDivElement>(null);
-  const [activeStep, setActiveStep] = useState(0);
+  const manualPauseTimeoutRef = useRef<number | null>(null);
+  const [state, dispatch] = useReducer(analysisWalkthroughReducer, {
+    activeStep: 0,
+  });
+  const [isInteracting, setIsInteracting] = useState(false);
+  const [isManualPaused, setIsManualPaused] = useState(false);
+  const isInView = useInView(storyRef, { amount: 0.35 });
+  const isPageInView = usePageInView();
   const shouldReduceMotion = useReducedMotion();
-  const { scrollYProgress } = useScroll({
-    target: storyRef,
-    offset: ["start 70%", "end 35%"],
-  });
+  const activeStep = landingCopy.processSteps[state.activeStep];
 
-  useMotionValueEvent(scrollYProgress, "change", (progress) => {
-    if (!shouldReduceMotion) {
-      setActiveStep(getAnalysisStepFromProgress(progress));
+  const clearManualPause = () => {
+    if (manualPauseTimeoutRef.current !== null) {
+      window.clearTimeout(manualPauseTimeoutRef.current);
+      manualPauseTimeoutRef.current = null;
     }
-  });
+    setIsManualPaused(false);
+  };
+
+  const selectStep = (index: number) => {
+    clearManualPause();
+    dispatch({ type: "select", index });
+    setIsManualPaused(true);
+    manualPauseTimeoutRef.current = window.setTimeout(() => {
+      manualPauseTimeoutRef.current = null;
+      setIsManualPaused(false);
+    }, ANALYSIS_MANUAL_PAUSE_MS);
+  };
+
+  useEffect(() => {
+    if (
+      shouldReduceMotion ||
+      !isInView ||
+      !isPageInView ||
+      isInteracting ||
+      isManualPaused
+    ) {
+      return;
+    }
+
+    const interval = window.setInterval(() => {
+      dispatch({ type: "advance" });
+    }, ANALYSIS_AUTOPLAY_MS);
+
+    return () => window.clearInterval(interval);
+  }, [isInView, isInteracting, isManualPaused, isPageInView, shouldReduceMotion]);
+
+  useEffect(() => {
+    return () => {
+      if (manualPauseTimeoutRef.current !== null) {
+        window.clearTimeout(manualPauseTimeoutRef.current);
+      }
+    };
+  }, []);
 
   return (
-    <div
-      className="analysis-scroll-story"
+    <motion.div
       aria-label="두 단계 분석 과정"
+      className="analysis-scroll-story"
+      onBlurCapture={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+          setIsInteracting(false);
+        }
+      }}
+      onFocusCapture={() => setIsInteracting(true)}
+      onMouseEnter={() => setIsInteracting(true)}
+      onMouseLeave={() => setIsInteracting(false)}
+      onViewportLeave={() => {
+        clearManualPause();
+        dispatch({ type: "reset" });
+      }}
       ref={storyRef}
       role="region"
     >
       <ol className="analysis-story-steps">
         {landingCopy.processSteps.map(({ step, title, description }, index) => (
-          <li aria-current={activeStep === index ? "step" : undefined} key={title}>
-            <span className="process-step">{step}</span>
-            <div>
-              <h3>{title}</h3>
-              <p>{description}</p>
-            </div>
+          <li key={title}>
+            <button
+              aria-current={state.activeStep === index ? "step" : undefined}
+              onClick={() => selectStep(index)}
+              type="button"
+            >
+              <span className="process-step">{step}</span>
+              <span>
+                <strong aria-level={3} role="heading">
+                  {title}
+                </strong>
+                <small>{description}</small>
+              </span>
+            </button>
           </li>
         ))}
       </ol>
 
       <div className="analysis-story-visual">
         <div className="analysis-story-panel">
-          <div className="analysis-story-panel-heading">
+          <motion.div
+            animate={{ opacity: 1, y: 0 }}
+            className="analysis-story-panel-heading"
+            initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
+            key={activeStep.title}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+          >
             <div>
               <span>LIVE PROCESS</span>
-              <strong>{landingCopy.processSteps[activeStep].title}</strong>
+              <strong>{activeStep.title}</strong>
             </div>
-            <span>{activeStep + 1} / 4</span>
-          </div>
+            <span>
+              {state.activeStep + 1} / {landingCopy.processSteps.length}
+            </span>
+          </motion.div>
 
           <progress
             aria-label="분석 진행 단계"
-            max={4}
-            value={activeStep + 1}
+            max={landingCopy.processSteps.length}
+            value={state.activeStep + 1}
           />
 
           <ul>
             {visualRows.map(({ label, value, Icon }, index) => (
-              <li className={index <= activeStep ? "is-ready" : ""} key={label}>
-                <span className="analysis-story-row-icon" aria-hidden="true">
+              <motion.li
+                animate={{
+                  opacity: index <= state.activeStep + 1 ? 1 : 0.52,
+                  y: 0,
+                }}
+                className={index <= state.activeStep + 1 ? "is-ready" : ""}
+                initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
+                key={label}
+                transition={{
+                  delay: shouldReduceMotion ? 0 : index * 0.06,
+                  duration: 0.2,
+                  ease: "easeOut",
+                }}
+              >
+                <span aria-hidden="true" className="analysis-story-row-icon">
                   <Icon weight="duotone" />
                 </span>
                 <span>
                   <small>{label}</small>
-                  <strong>{index <= activeStep ? value : "다음 단계에서 확인"}</strong>
+                  <strong>
+                    {index <= state.activeStep + 1 ? value : "다음 단계에서 확인"}
+                  </strong>
                 </span>
                 <CheckCircle aria-hidden="true" weight="fill" />
-              </li>
+              </motion.li>
             ))}
           </ul>
 
           <p className="analysis-story-note">
-            단계는 스크롤 방향에 따라 되돌아가며, 원문과 분석 기록은 서로
-            덮어쓰지 않습니다.
+            단계를 선택하거나 자동 재생으로 분석 흐름을 확인할 수 있습니다.
           </p>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
