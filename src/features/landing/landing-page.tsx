@@ -1,6 +1,5 @@
 import {
   ArrowRight,
-  Brain,
   CaretDown,
   CheckCircle,
   Database,
@@ -16,6 +15,7 @@ import {
 import Link from "next/link";
 
 import { AnalysisScrollStory } from "./analysis-scroll-story";
+import { InteractiveAnalysisDemo } from "./interactive-analysis-demo";
 import { landingCopy } from "./landing-copy";
 import { LandingHeader } from "./landing-header";
 import { ProductPreview } from "./product-preview";
@@ -198,39 +198,7 @@ export function LandingPage() {
           </a>
         </div>
 
-        <div className="analysis-card" aria-label="AI 분석 예시">
-          <div className="analysis-card-title">
-            <span>
-              <Brain aria-hidden="true" weight="duotone" />
-              AI 분석
-            </span>
-            <span className="analysis-status">2차 분석 완료</span>
-          </div>
-          <dl>
-            <div>
-              <dt>1차 분류</dt>
-              <dd>
-                <span className="status-pill status-caution">주의</span>
-                신뢰도 78%
-              </dd>
-            </div>
-            <div>
-              <dt>크리에이터 정책</dt>
-              <dd>외모 관련 비꼼은 우선 검토</dd>
-            </div>
-            <div>
-              <dt>비슷한 과거 판단</dt>
-              <dd>사용자 수정 사례 3건 반영</dd>
-            </div>
-            <div className="analysis-result">
-              <dt>최종 추천</dt>
-              <dd>
-                <span className="status-pill status-risk">위험</span>
-                숨김 검토
-              </dd>
-            </div>
-          </dl>
-        </div>
+        <InteractiveAnalysisDemo />
 
         <div className="ai-facts">
           <article>
