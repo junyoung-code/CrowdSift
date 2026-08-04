@@ -24,6 +24,8 @@ const elements = {
 
 type MotionRevealProps = {
   as?: keyof typeof elements;
+  ariaHidden?: boolean;
+  ariaLabelledby?: string;
   children: ReactNode;
   className?: string;
   delay?: number;
@@ -34,6 +36,8 @@ type MotionRevealProps = {
 
 export function MotionReveal({
   as = "div",
+  ariaHidden,
+  ariaLabelledby,
   children,
   className,
   delay = 0,
@@ -63,6 +67,8 @@ export function MotionReveal({
 
   return (
     <Component
+      aria-hidden={ariaHidden}
+      aria-labelledby={ariaLabelledby}
       ref={elementRef as Ref<HTMLDivElement>}
       animate={controls}
       className={className}

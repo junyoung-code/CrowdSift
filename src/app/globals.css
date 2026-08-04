@@ -921,6 +921,20 @@ a {
   padding: 31px 32px;
   background: var(--ch-surface);
   box-shadow: 0 18px 46px rgb(45 78 129 / 8%);
+  translate: 0 0;
+  transition:
+    border-color var(--landing-motion-fast) ease,
+    box-shadow var(--landing-motion-fast) ease,
+    translate var(--landing-motion-fast) var(--landing-motion-ease);
+}
+
+.problem-grid article:hover,
+.problem-grid article:focus-within,
+.solution-grid article:hover,
+.solution-grid article:focus-within {
+  border-color: rgb(36 107 254 / 26%);
+  box-shadow: 0 24px 58px rgb(45 78 129 / 13%);
+  translate: 0 -4px;
 }
 
 .problem-grid article::after {
@@ -1015,6 +1029,11 @@ a {
   padding: 33px;
   background: white;
   box-shadow: 0 18px 50px rgb(41 74 129 / 8%);
+  translate: 0 0;
+  transition:
+    border-color var(--landing-motion-fast) ease,
+    box-shadow var(--landing-motion-fast) ease,
+    translate var(--landing-motion-fast) var(--landing-motion-ease);
 }
 
 .solution-grid article:nth-child(2) .solution-icon {
@@ -6028,6 +6047,11 @@ a {
   .analysis-story-steps li {
     opacity: 1;
     transform: none;
+  }
+
+  .problem-grid article,
+  .solution-grid article {
+    translate: none !important;
   }
 }
 

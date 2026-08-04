@@ -32,6 +32,8 @@ function usePrefersReducedMotion() {
   const [shouldReduceMotion, setShouldReduceMotion] = useState(false);
 
   useEffect(() => {
+    if (typeof window.matchMedia !== "function") return;
+
     const query = window.matchMedia("(prefers-reduced-motion: reduce)");
     const updatePreference = () => setShouldReduceMotion(query.matches);
 
