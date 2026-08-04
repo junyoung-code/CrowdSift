@@ -6076,7 +6076,8 @@ a {
     position: static;
   }
 
-  .analysis-story-steps li {
+  .analysis-story-steps button,
+  .analysis-story-steps button[aria-current="step"] {
     opacity: 1;
     transform: none;
   }
