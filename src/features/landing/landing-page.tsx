@@ -15,6 +15,7 @@ import {
 } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 
+import { AnalysisScrollStory } from "./analysis-scroll-story";
 import { landingCopy } from "./landing-copy";
 import { LandingHeader } from "./landing-header";
 import { ProductPreview } from "./product-preview";
@@ -177,20 +178,7 @@ export function LandingPage() {
           </p>
         </div>
 
-        <ol className="process-grid">
-          {landingCopy.processSteps.map(({ step, title, description }) => (
-            <li key={title}>
-              <span className="process-step">{step}</span>
-              <div>
-                <h3>{title}</h3>
-                <p>{description}</p>
-              </div>
-              {step !== "04" ? (
-                <ArrowRight className="process-arrow" aria-hidden="true" />
-              ) : null}
-            </li>
-          ))}
-        </ol>
+        <AnalysisScrollStory />
       </section>
 
       <section className="landing-ai-dark" aria-labelledby="ai-process-title">
