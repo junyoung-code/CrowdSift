@@ -126,10 +126,20 @@ export function ProductPreview() {
           </div>
 
           <div className="preview-title-row">
-            <div aria-live="polite">
+            <motion.div
+              animate={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+              aria-live="polite"
+              initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
+              key={activeState.id}
+              transition={
+                shouldReduceMotion
+                  ? { duration: 0 }
+                  : { duration: landingMotion.duration.base, ease: landingMotion.ease }
+              }
+            >
               <span className="preview-kicker">{activeState.kicker}</span>
               <strong>{activeState.title}</strong>
-            </div>
+            </motion.div>
             <span className="preview-video">
               <VideoCamera aria-hidden="true" weight="fill" />
               최근 영상
@@ -138,16 +148,53 @@ export function ProductPreview() {
 
           <div className="preview-main">
             <div className="preview-metrics">
-              {previewMetrics.map(({ label, value, tone }, index) => {
+              {previewMetrics.map(({ label, tone }, index) => {
                 const Icon = metricIcons[index];
+                const delay = index * 0.06;
 
                 return (
-                  <article className={`metric-card metric-${tone}`} key={label}>
-                    <span>
-                      {label}
-                      <Icon aria-hidden="true" weight="bold" />
-                    </span>
-                    <strong>{value}</strong>
+                  <article key={label}>
+                    <motion.div
+                      animate={
+                        shouldReduceMotion
+                          ? { opacity: 1 }
+                          : { opacity: 1, y: 0 }
+                      }
+                      className={`metric-card metric-${tone}`}
+                      initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
+                      key={`${activeState.id}-${label}-card`}
+                      transition={
+                        shouldReduceMotion
+                          ? { duration: 0 }
+                          : {
+                              delay,
+                              duration: landingMotion.duration.base,
+                              ease: landingMotion.ease,
+                            }
+                      }
+                      whileHover={shouldReduceMotion ? undefined : { y: -3 }}
+                    >
+                      <span>
+                        {label}
+                        <Icon aria-hidden="true" weight="bold" />
+                      </span>
+                      <motion.strong
+                        animate={{ opacity: 1 }}
+                        initial={shouldReduceMotion ? false : { opacity: 0 }}
+                        key={`${activeState.id}-${label}-value`}
+                        transition={
+                          shouldReduceMotion
+                            ? { duration: 0 }
+                            : {
+                                delay,
+                                duration: landingMotion.duration.base,
+                                ease: landingMotion.ease,
+                              }
+                        }
+                      >
+                        {activeState.metricValues[index]}
+                      </motion.strong>
+                    </motion.div>
                   </article>
                 );
               })}
@@ -160,8 +207,29 @@ export function ProductPreview() {
               </div>
               <ul>
                 {previewReviewLevels.map(
-                  ({ label, count, description, tone }) => (
-                    <li className={`level-row level-${tone}`} key={label}>
+                  ({ label, description, tone }, index) => (
+                    <motion.li
+                      animate={
+                        shouldReduceMotion
+                          ? { opacity: 1 }
+                          : { opacity: 1, y: 0 }
+                      }
+                      className={`level-row level-${tone}`}
+                      data-emphasized={activeState.emphasis === tone}
+                      data-testid={`review-level-${tone}`}
+                      initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
+                      key={`${activeState.id}-${label}`}
+                      transition={
+                        shouldReduceMotion
+                          ? { duration: 0 }
+                          : {
+                              delay: index * 0.06,
+                              duration: landingMotion.duration.base,
+                              ease: landingMotion.ease,
+                            }
+                      }
+                      whileHover={shouldReduceMotion ? undefined : { y: -3 }}
+                    >
                       <span className="level-icon" aria-hidden="true">
                         {tone === "safe" ? "✓" : "!"}
                       </span>
@@ -169,15 +237,29 @@ export function ProductPreview() {
                         <strong>{label}</strong>
                         <small>{description}</small>
                       </span>
-                      <b>{count}</b>
-                    </li>
+                      <b>{activeState.reviewCounts[index]}</b>
+                    </motion.li>
                   ),
                 )}
               </ul>
             </div>
           </div>
 
-          <aside className="preview-insight">
+          <motion.aside
+            animate={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+            className="preview-insight"
+            initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
+            key={`${activeState.id}-insight`}
+            transition={
+              shouldReduceMotion
+                ? { duration: 0 }
+                : {
+                    delay: 0.18,
+                    duration: landingMotion.duration.base,
+                    ease: landingMotion.ease,
+                  }
+            }
+          >
             <span className="insight-icon" aria-hidden="true">
               <Sparkle weight="fill" />
             </span>
@@ -185,10 +267,20 @@ export function ProductPreview() {
               <strong>AI 요약</strong>
               <p>{activeState.summary}</p>
             </div>
-            <span className={`insight-badge insight-badge-${activeState.tone}`}>
+            <motion.span
+              animate={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, scale: 1 }}
+              className={`insight-badge insight-badge-${activeState.tone}`}
+              initial={shouldReduceMotion ? false : { opacity: 0, scale: 0.96 }}
+              key={`${activeState.id}-status`}
+              transition={
+                shouldReduceMotion
+                  ? { duration: 0 }
+                  : { duration: landingMotion.duration.base, ease: landingMotion.ease }
+              }
+            >
               {activeState.status}
-            </span>
-          </aside>
+            </motion.span>
+          </motion.aside>
         </div>
       </div>
     </motion.section>

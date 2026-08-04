@@ -73,10 +73,10 @@ export const landingCopy = {
 } as const;
 
 export const previewMetrics = [
-  { label: "가져온 댓글", value: "248", tone: "blue" },
-  { label: "분석 완료", value: "241", tone: "violet" },
-  { label: "주의", value: "17", tone: "caution" },
-  { label: "위험", value: "6", tone: "risk" },
+  { label: "가져온 댓글", tone: "blue" },
+  { label: "분석 완료", tone: "violet" },
+  { label: "주의", tone: "caution" },
+  { label: "위험", tone: "risk" },
 ] as const;
 
 export const heroPreviewStates = [
@@ -88,6 +88,9 @@ export const heroPreviewStates = [
     status: "수집 완료",
     summary: "원문과 답글을 분리해 보존했습니다.",
     tone: "blue",
+    metricValues: ["248", "—", "—", "—"],
+    reviewCounts: ["—", "—", "—"],
+    emphasis: null,
   },
   {
     id: "classified",
@@ -97,6 +100,9 @@ export const heroPreviewStates = [
     status: "주의 · 78%",
     summary: "공통 규칙과 AI가 우선 검토 대상으로 분류했습니다.",
     tone: "caution",
+    metricValues: ["248", "241", "17", "6"],
+    reviewCounts: [218, 17, 6],
+    emphasis: "caution",
   },
   {
     id: "recommended",
@@ -106,25 +112,25 @@ export const heroPreviewStates = [
     status: "사용자 검토 필요",
     summary: "과거 수정과 채널 정책을 근거로 숨김 검토를 추천합니다.",
     tone: "risk",
+    metricValues: ["248", "241", "17", "6"],
+    reviewCounts: [218, 17, 6],
+    emphasis: "risk",
   },
 ] as const;
 
 export const previewReviewLevels = [
   {
     label: "안전",
-    count: 218,
     description: "낮은 검토 우선순위",
     tone: "safe",
   },
   {
     label: "주의",
-    count: 17,
     description: "문맥 확인이 필요한 댓글",
     tone: "caution",
   },
   {
     label: "위험",
-    count: 6,
     description: "우선 검토할 댓글",
     tone: "risk",
   },

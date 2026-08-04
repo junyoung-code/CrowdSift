@@ -596,6 +596,7 @@ a {
   padding: 16px 16px 14px;
   background: rgb(255 255 255 / 78%);
   box-shadow: 0 10px 25px rgb(39 73 127 / 8%);
+  will-change: transform, opacity;
 }
 
 .metric-card > span {
@@ -676,6 +677,12 @@ a {
   border: 1px solid transparent;
   border-radius: 10px;
   padding: 9px 9px;
+  will-change: transform, opacity;
+}
+
+.level-row[data-emphasized="true"] {
+  border-color: color-mix(in srgb, currentcolor 28%, transparent);
+  box-shadow: 0 9px 24px rgb(39 73 127 / 10%);
 }
 
 .level-row > span:nth-child(2) {
@@ -755,6 +762,7 @@ a {
   padding: 12px 14px;
   background: rgb(255 255 255 / 94%);
   box-shadow: 0 16px 34px rgb(34 67 119 / 14%);
+  will-change: transform, opacity;
 }
 
 .insight-icon {
@@ -6085,6 +6093,18 @@ a {
   .problem-grid article,
   .solution-grid article {
     translate: none !important;
+  }
+
+  .product-preview
+    :is(
+      .preview-title-row > div,
+      .metric-card,
+      .level-row,
+      .preview-insight,
+      .insight-badge
+    ) {
+    transform: none !important;
+    transition: none !important;
   }
 }
 
