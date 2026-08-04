@@ -77,13 +77,14 @@ a {
 
 .landing {
   min-width: 0;
-  overflow: hidden;
+  overflow: clip;
   background: var(--ch-surface);
   color: var(--ch-ink);
 }
 
 .landing-header {
-  position: relative;
+  position: sticky;
+  top: 0;
   z-index: 20;
   display: grid;
   grid-template-columns: 1fr auto 1fr;
@@ -91,6 +92,32 @@ a {
   width: min(100% - 72px, 1360px);
   height: 92px;
   margin: 0 auto;
+  transition:
+    height var(--landing-motion-fast) ease,
+    background-color var(--landing-motion-fast) ease,
+    box-shadow var(--landing-motion-fast) ease,
+    backdrop-filter var(--landing-motion-fast) ease;
+}
+
+.landing-header::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0 calc((100vw - 100%) / -2);
+  border-bottom: 1px solid transparent;
+  background: transparent;
+  content: "";
+  transition: inherit;
+}
+
+.landing-header-scrolled {
+  height: 72px;
+}
+
+.landing-header-scrolled::before {
+  border-bottom-color: rgb(215 225 240 / 78%);
+  background: rgb(255 255 255 / 82%);
+  box-shadow: 0 12px 34px rgb(32 62 105 / 8%);
+  backdrop-filter: blur(16px);
 }
 
 .brand {
@@ -156,9 +183,14 @@ a {
 }
 
 .landing-header nav a:hover::after,
+.landing-header nav a[aria-current="location"]::after,
 .login-link:hover::after {
   opacity: 1;
   transform: scaleX(1);
+}
+
+.landing-header nav a[aria-current="location"] {
+  color: var(--ch-blue);
 }
 
 .header-actions {
@@ -447,6 +479,46 @@ a {
   padding: 25px 26px 33px;
 }
 
+.preview-state-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+  margin-bottom: 18px;
+  border-radius: 12px;
+  padding: 4px;
+  background: rgb(230 237 249 / 68%);
+}
+
+.preview-state-tab {
+  min-height: 30px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--ch-muted);
+  font: inherit;
+  font-size: 9px;
+  font-weight: 780;
+  cursor: pointer;
+  transition:
+    color var(--landing-motion-fast) ease,
+    background-color var(--landing-motion-fast) ease,
+    box-shadow var(--landing-motion-fast) ease;
+}
+
+.preview-state-tab[aria-selected="true"] {
+  background: white;
+  box-shadow: 0 5px 14px rgb(43 76 126 / 10%);
+  color: var(--ch-blue);
+}
+
+.preview-state-caution[aria-selected="true"] {
+  color: var(--ch-caution);
+}
+
+.preview-state-risk[aria-selected="true"] {
+  color: var(--ch-risk);
+}
+
 .preview-title-row {
   display: flex;
   align-items: center;
@@ -716,6 +788,16 @@ a {
   font-size: 9px;
   font-weight: 780;
   white-space: nowrap;
+}
+
+.insight-badge-caution {
+  background: var(--ch-caution-soft);
+  color: var(--ch-caution);
+}
+
+.insight-badge-risk {
+  background: var(--ch-risk-soft);
+  color: var(--ch-risk);
 }
 
 .landing-strip {

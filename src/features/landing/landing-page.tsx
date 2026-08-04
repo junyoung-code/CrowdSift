@@ -16,6 +16,7 @@ import {
 import Link from "next/link";
 
 import { landingCopy } from "./landing-copy";
+import { LandingHeader } from "./landing-header";
 import { ProductPreview } from "./product-preview";
 
 const problemIcons = [EyeSlash, Flag, ListChecks];
@@ -24,31 +25,7 @@ const solutionIcons = [ListChecks, UserFocus, ShieldCheck];
 export function LandingPage() {
   return (
     <main className="landing">
-      <header className="landing-header" id="top">
-        <Link className="brand" href="/" aria-label="CrowdSift 홈">
-          <span className="brand-mark" aria-hidden="true">
-            <ShieldCheck weight="fill" />
-          </span>
-          <strong>CrowdSift</strong>
-        </Link>
-
-        <nav aria-label="제품 소개">
-          <a href="#problems">문제</a>
-          <a href="#solutions">해결 방식</a>
-          <a href="#analysis">AI 분석</a>
-          <a href="#integration">연결</a>
-        </nav>
-
-        <div className="header-actions">
-          <Link className="login-link" href="/auth/sign-in">
-            로그인
-          </Link>
-          <Link className="button button-primary button-small" href="/auth/sign-in">
-            시작하기
-            <ArrowRight aria-hidden="true" weight="bold" />
-          </Link>
-        </div>
-      </header>
+      <LandingHeader />
 
       <section className="landing-hero">
         <div className="hero-copy">

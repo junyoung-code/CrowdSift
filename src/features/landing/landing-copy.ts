@@ -79,6 +79,36 @@ export const previewMetrics = [
   { label: "위험", value: "6", tone: "risk" },
 ] as const;
 
+export const heroPreviewStates = [
+  {
+    id: "imported",
+    tabLabel: "댓글 수집",
+    kicker: "SOURCE PRESERVED",
+    title: "댓글 원문과 스레드를 가져왔어요",
+    status: "수집 완료",
+    summary: "원문과 답글을 분리해 보존했습니다.",
+    tone: "blue",
+  },
+  {
+    id: "classified",
+    tabLabel: "1차 분류",
+    kicker: "FIRST PASS",
+    title: "문맥 확인이 필요한 댓글을 찾았어요",
+    status: "주의 · 78%",
+    summary: "공통 규칙과 AI가 우선 검토 대상으로 분류했습니다.",
+    tone: "caution",
+  },
+  {
+    id: "recommended",
+    tabLabel: "최종 추천",
+    kicker: "CREATOR CONTEXT",
+    title: "크리에이터 기준을 반영했어요",
+    status: "사용자 검토 필요",
+    summary: "과거 수정과 채널 정책을 근거로 숨김 검토를 추천합니다.",
+    tone: "risk",
+  },
+] as const;
+
 export const previewReviewLevels = [
   {
     label: "안전",

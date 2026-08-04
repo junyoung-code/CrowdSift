@@ -1,3 +1,5 @@
+"use client";
+
 import {
   BellSimple,
   ChartBar,
@@ -7,15 +9,88 @@ import {
   Sparkle,
   VideoCamera,
   WarningCircle,
-} from "@phosphor-icons/react/dist/ssr";
+} from "@phosphor-icons/react";
+import {
+  motion,
+  useInView,
+  usePageInView,
+  useScroll,
+  useTransform,
+} from "motion/react";
+import { useEffect, useRef, useState } from "react";
 
-import { previewMetrics, previewReviewLevels } from "./landing-copy";
+import {
+  heroPreviewStates,
+  previewMetrics,
+  previewReviewLevels,
+} from "./landing-copy";
+import { landingMotion } from "./landing-motion";
 
 const metricIcons = [ChatCircleDots, CheckCircle, WarningCircle, BellSimple];
 
+function usePrefersReducedMotion() {
+  const [shouldReduceMotion, setShouldReduceMotion] = useState(false);
+
+  useEffect(() => {
+    const query = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const updatePreference = () => setShouldReduceMotion(query.matches);
+
+    updatePreference();
+    query.addEventListener("change", updatePreference);
+    return () => query.removeEventListener("change", updatePreference);
+  }, []);
+
+  return shouldReduceMotion;
+}
+
 export function ProductPreview() {
+  const previewRef = useRef<HTMLElement>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [isManual, setIsManual] = useState(false);
+  const isInView = useInView(previewRef, { amount: 0.25 });
+  const isPageInView = usePageInView();
+  const shouldReduceMotion = usePrefersReducedMotion();
+  const { scrollYProgress } = useScroll({
+    target: previewRef,
+    offset: ["start start", "end start"],
+  });
+  const y = useTransform(
+    scrollYProgress,
+    [0, 1],
+    [0, landingMotion.distance.parallax],
+  );
+  const rotate = useTransform(
+    scrollYProgress,
+    [0, 1],
+    [0, landingMotion.tilt],
+  );
+  const scale = useTransform(scrollYProgress, [0, 1], [1, 0.985]);
+  const activeState = heroPreviewStates[activeIndex];
+
+  useEffect(() => {
+    if (shouldReduceMotion || !isInView || !isPageInView || isManual) return;
+
+    const interval = window.setInterval(() => {
+      setActiveIndex((current) => (current + 1) % heroPreviewStates.length);
+    }, 4500);
+
+    return () => window.clearInterval(interval);
+  }, [isInView, isManual, isPageInView, shouldReduceMotion]);
+
+  useEffect(() => {
+    if (!isInView) {
+      setActiveIndex(0);
+      setIsManual(false);
+    }
+  }, [isInView]);
+
   return (
-    <section className="product-preview" aria-label="제품 예시 화면">
+    <motion.section
+      className="product-preview"
+      aria-label="제품 예시 화면"
+      ref={previewRef}
+      style={shouldReduceMotion ? undefined : { y, rotate, scale }}
+    >
       <p className="preview-label">
         <Sparkle aria-hidden="true" weight="fill" />
         제품 예시 화면
@@ -33,10 +108,28 @@ export function ProductPreview() {
         </div>
 
         <div className="preview-shell">
+          <div className="preview-state-tabs" role="tablist" aria-label="제품 예시 단계">
+            {heroPreviewStates.map((state, index) => (
+              <button
+                aria-selected={activeIndex === index}
+                className={`preview-state-tab preview-state-${state.tone}`}
+                key={state.id}
+                onClick={() => {
+                  setActiveIndex(index);
+                  setIsManual(true);
+                }}
+                role="tab"
+                type="button"
+              >
+                {state.tabLabel}
+              </button>
+            ))}
+          </div>
+
           <div className="preview-title-row">
-            <div>
-              <span className="preview-kicker">댓글 운영 현황</span>
-              <strong>오늘의 댓글을 먼저 정리했어요</strong>
+            <div aria-live="polite">
+              <span className="preview-kicker">{activeState.kicker}</span>
+              <strong>{activeState.title}</strong>
             </div>
             <span className="preview-video">
               <VideoCamera aria-hidden="true" weight="fill" />
@@ -91,12 +184,14 @@ export function ProductPreview() {
             </span>
             <div>
               <strong>AI 요약</strong>
-              <p>반복 질문과 배송 관련 개선 의견이 늘었습니다.</p>
+              <p>{activeState.summary}</p>
             </div>
-            <span className="insight-badge">검토 23건</span>
+            <span className={`insight-badge insight-badge-${activeState.tone}`}>
+              {activeState.status}
+            </span>
           </aside>
         </div>
       </div>
-    </section>
+    </motion.section>
   );
 }
