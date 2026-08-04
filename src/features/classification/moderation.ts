@@ -21,20 +21,25 @@ export type ModerationClient = {
   };
 };
 
-const toCategories = (flags: Record<string, boolean>): ModerationCategory[] => {
-  const flagged: ModerationCategory[] = [];
+const splitFlaggedCategories = (flags: Record<string, boolean>) => {
+  const known: ModerationCategory[] = [];
+  const unknown: string[] = [];
 
   for (const [name, isSet] of Object.entries(flags)) {
     if (!isSet) continue;
 
-    const known = ModerationCategorySchema.safeParse(name);
-    // 새 범주가 추가되어도 점수는 categoryScores 에 그대로 남으므로 버리지 않는다.
-    if (known.success) {
-      flagged.push(known.data);
+    const parsed = ModerationCategorySchema.safeParse(name);
+
+    if (parsed.success) {
+      known.push(parsed.data);
+    } else {
+      // 모더레이션 모델은 업데이트되면서 범주가 늘어난다. 모르는 범주를 버리면
+      // 새 위험 신호가 조용히 사라지므로, 분기 단계가 보고 판단하게 넘긴다.
+      unknown.push(name);
     }
   }
 
-  return flagged;
+  return { known, unknown };
 };
 
 /**
@@ -63,10 +68,13 @@ export const createModerationScreen = ({
       throw new Error("moderation_response_empty");
     }
 
+    const flaggedCategories = splitFlaggedCategories(first.categories);
+
     return {
       result: {
         flagged: first.flagged,
-        categories: toCategories(first.categories),
+        categories: flaggedCategories.known,
+        unknownCategories: flaggedCategories.unknown,
         categoryScores: first.category_scores,
       },
       model,

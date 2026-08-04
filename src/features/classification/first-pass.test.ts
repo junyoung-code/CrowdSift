@@ -28,6 +28,7 @@ const lunaReturning = (
         candidateLevel,
         confidence: 0.72,
         feedbackPresent: true,
+        locationOrScheduleMention: false,
         hardRiskFlags: [],
         softRiskFlags: ["profanity"],
         matchedRules: [],
@@ -47,6 +48,7 @@ const moderationReturning = (flagged: boolean) =>
       result: {
         flagged,
         categories: flagged ? ["harassment"] : [],
+        unknownCategories: [],
         categoryScores: { harassment: flagged ? 0.9 : 0.01 },
       },
       model: "omni-moderation-latest",
@@ -87,6 +89,7 @@ describe("first pass runner", () => {
             candidateLevel: "safe" as const,
             confidence: 0.95,
             feedbackPresent: false,
+            locationOrScheduleMention: false,
             hardRiskFlags: [],
             softRiskFlags: [],
             matchedRules: [],
@@ -106,7 +109,12 @@ describe("first pass runner", () => {
         await new Promise((resolve) => setTimeout(resolve, 10));
         order.push("moderation:end");
         return {
-          result: { flagged: false, categories: [], categoryScores: {} },
+          result: {
+            flagged: false,
+            categories: [],
+            unknownCategories: [],
+            categoryScores: {},
+          },
           model: "omni-moderation-latest",
           latencyMs: 10,
         };

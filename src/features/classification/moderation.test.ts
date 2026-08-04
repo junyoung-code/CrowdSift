@@ -41,15 +41,16 @@ describe("moderation screen", () => {
 
     expect(outcome.result.flagged).toBe(true);
     expect(outcome.result.categories).toEqual(["harassment", "violence"]);
+    expect(outcome.result.unknownCategories).toEqual([]);
     expect(outcome.result.categoryScores.harassment).toBe(0.91);
   });
 
-  it("keeps scores for categories it does not recognise", async () => {
+  it("surfaces a category it has no policy for instead of dropping it", async () => {
     const screen = createModerationScreen({
       client: clientReturning({
         flagged: true,
-        // A category added after this code was written must not drop its score,
-        // or the branch step would silently lose a risk signal.
+        // The filter gains categories over time. Swallowing an unknown one would
+        // read as "nothing else was flagged" and lose a real risk signal.
         categories: { harassment: true, "brand-new/category": true },
         category_scores: { harassment: 0.8, "brand-new/category": 0.7 },
       }),
@@ -59,7 +60,24 @@ describe("moderation screen", () => {
     const outcome = await screen.screen("아무 댓글");
 
     expect(outcome.result.categories).toEqual(["harassment"]);
+    expect(outcome.result.unknownCategories).toEqual(["brand-new/category"]);
     expect(outcome.result.categoryScores["brand-new/category"]).toBe(0.7);
+  });
+
+  it("ignores categories the filter did not flag", async () => {
+    const screen = createModerationScreen({
+      client: clientReturning({
+        flagged: false,
+        categories: { harassment: false, "brand-new/category": false },
+        category_scores: { harassment: 0.02, "brand-new/category": 0.01 },
+      }),
+      model: "omni-moderation-latest",
+    });
+
+    const outcome = await screen.screen("마이크 소리가 작게 들립니다");
+
+    expect(outcome.result.categories).toEqual([]);
+    expect(outcome.result.unknownCategories).toEqual([]);
   });
 
   it("fails loudly when the filter returns no result", async () => {

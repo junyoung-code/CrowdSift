@@ -57,7 +57,18 @@ export const LunaFirstPassSchema = z
   .object({
     candidateLevel: RiskLevelSchema,
     confidence: z.number().min(0).max(1),
+    /**
+     * 표현을 걷어내면 콘텐츠에 쓸 만한 내용이 남는지. 있음/없음만 본다.
+     * 어떤 종류인지와 핵심 내용은 Terra 가 뽑는다.
+     */
     feedbackPresent: z.boolean(),
+    /**
+     * 크리에이터의 위치나 일정을 안다고 내비치는 댓글인지.
+     *
+     * 등급을 함의하지는 않지만 안전 즉시 통과를 막는다. 작성자 이력 기능이 없는
+     * 동안에는 이 한 줄만으로 스토킹 여부를 가릴 수 없어, 한 번 더 보는 쪽을 택한다.
+     */
+    locationOrScheduleMention: z.boolean(),
     hardRiskFlags: z.array(HardRiskFlagSchema).max(9),
     softRiskFlags: z.array(SoftRiskFlagSchema).max(5),
     matchedRules: z.array(z.string().min(1).max(80)).max(10),
@@ -87,6 +98,11 @@ export const ModerationResultSchema = z
   .object({
     flagged: z.boolean(),
     categories: z.array(ModerationCategorySchema),
+    /**
+     * 우리 정책에 아직 없는 범주가 걸린 경우. 모더레이션 모델은 업데이트되면서
+     * 범주가 늘어나므로, 모르는 신호를 조용히 버리지 않고 Terra 로 넘긴다.
+     */
+    unknownCategories: z.array(z.string().min(1)),
     categoryScores: z.record(z.string(), z.number()),
   })
   .strict();

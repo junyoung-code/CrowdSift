@@ -36,6 +36,7 @@ const validOutput = {
   candidateLevel: "caution",
   confidence: 0.72,
   feedbackPresent: true,
+  locationOrScheduleMention: false,
   hardRiskFlags: [],
   softRiskFlags: ["profanity"],
   matchedRules: [],
@@ -53,8 +54,33 @@ describe("luna first pass", () => {
     expect(result.candidateLevel).toBe("caution");
     expect(result.softRiskFlags).toEqual(["profanity"]);
     expect(result.feedbackPresent).toBe(true);
+    expect(result.locationOrScheduleMention).toBe(false);
     expect(run.model).toBe("gpt-5.6-luna");
     expect(run.usage.totalTokens).toBe(250);
+  });
+
+  it("carries a location hint even when the level stays safe", async () => {
+    const luna = createLunaFirstPass({
+      client: clientReturning({
+        ...validOutput,
+        candidateLevel: "safe",
+        confidence: 0.91,
+        softRiskFlags: [],
+        // "집 근처에서 봤어요" reads as friendly on its own, so the level stays
+        // safe while the hint keeps it out of the instant-pass lane.
+        locationOrScheduleMention: true,
+      }),
+      model: "gpt-5.6-luna",
+    });
+
+    const { result } = await luna.classify({
+      ...input,
+      sourceText: "오늘도 집 근처에서 봤어요.",
+    });
+
+    expect(result.candidateLevel).toBe("safe");
+    expect(result.hardRiskFlags).toEqual([]);
+    expect(result.locationOrScheduleMention).toBe(true);
   });
 
   it("sends the comment with the channel profile and past examples", async () => {
