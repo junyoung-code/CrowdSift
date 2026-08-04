@@ -25,6 +25,12 @@
   --ch-dark-card: #102642;
   --ch-radius-card: 24px;
   --ch-shadow: 0 24px 70px rgb(35 76 140 / 14%);
+  --landing-motion-fast: 160ms;
+  --landing-motion-base: 420ms;
+  --landing-motion-section: 620ms;
+  --landing-motion-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --landing-motion-distance-sm: 8px;
+  --landing-motion-distance-md: 20px;
 }
 
 @theme inline {
@@ -5370,6 +5376,12 @@ a {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
+  }
+
+  .landing [style*="opacity"],
+  .landing [style*="transform"] {
+    opacity: 1 !important;
+    transform: none !important;
   }
 }
 
