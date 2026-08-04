@@ -79,17 +79,14 @@ export function ProductPreview() {
     return () => window.clearInterval(interval);
   }, [isInView, isManual, isPageInView, shouldReduceMotion]);
 
-  useEffect(() => {
-    if (!isInView) {
-      setActiveIndex(0);
-      setIsManual(false);
-    }
-  }, [isInView]);
-
   return (
     <motion.section
       className="product-preview"
       aria-label="제품 예시 화면"
+      onViewportLeave={() => {
+        setActiveIndex(0);
+        setIsManual(false);
+      }}
       ref={previewRef}
       style={shouldReduceMotion ? undefined : { y, rotate, scale }}
     >
