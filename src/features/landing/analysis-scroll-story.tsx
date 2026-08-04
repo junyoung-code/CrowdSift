@@ -3,13 +3,13 @@
 import { CheckCircle, Database, ListChecks, UserFocus } from "@phosphor-icons/react";
 import {
   motion,
-  useInView,
   usePageInView,
   useReducedMotion,
 } from "motion/react";
 import { useEffect, useReducer, useRef, useState } from "react";
 
 import { landingCopy } from "./landing-copy";
+import { useViewportPresence } from "./use-viewport-presence";
 
 export const ANALYSIS_AUTOPLAY_MS = 4000;
 export const ANALYSIS_MANUAL_PAUSE_MS = 8000;
@@ -56,6 +56,8 @@ const visualRows = [
   },
 ] as const;
 
+const MotionCheckCircle = motion.create(CheckCircle);
+
 export function AnalysisScrollStory() {
   const storyRef = useRef<HTMLDivElement>(null);
   const manualPauseTimeoutRef = useRef<number | null>(null);
@@ -64,7 +66,6 @@ export function AnalysisScrollStory() {
   });
   const [isInteracting, setIsInteracting] = useState(false);
   const [isManualPaused, setIsManualPaused] = useState(false);
-  const isInView = useInView(storyRef, { amount: 0.35 });
   const isPageInView = usePageInView();
   const shouldReduceMotion = useReducedMotion();
   const activeStep = landingCopy.processSteps[state.activeStep];
@@ -86,6 +87,14 @@ export function AnalysisScrollStory() {
       setIsManualPaused(false);
     }, ANALYSIS_MANUAL_PAUSE_MS);
   };
+
+  const isInView = useViewportPresence(storyRef, {
+    amount: 0.35,
+    onLeave: () => {
+      clearManualPause();
+      dispatch({ type: "reset" });
+    },
+  });
 
   useEffect(() => {
     if (
@@ -125,10 +134,6 @@ export function AnalysisScrollStory() {
       onFocusCapture={() => setIsInteracting(true)}
       onMouseEnter={() => setIsInteracting(true)}
       onMouseLeave={() => setIsInteracting(false)}
-      onViewportLeave={() => {
-        clearManualPause();
-        dispatch({ type: "reset" });
-      }}
       ref={storyRef}
       role="region"
     >
@@ -181,11 +186,11 @@ export function AnalysisScrollStory() {
               <motion.li
                 animate={{
                   opacity: index <= state.activeStep + 1 ? 1 : 0.52,
-                  y: 0,
+                  x: 0,
                 }}
                 className={index <= state.activeStep + 1 ? "is-ready" : ""}
-                initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
-                key={label}
+                initial={shouldReduceMotion ? false : { opacity: 0, x: 8 }}
+                key={`${activeStep.title}-${label}`}
                 transition={{
                   delay: shouldReduceMotion ? 0 : index * 0.06,
                   duration: 0.2,
@@ -201,7 +206,17 @@ export function AnalysisScrollStory() {
                     {index <= state.activeStep + 1 ? value : "다음 단계에서 확인"}
                   </strong>
                 </span>
-                <CheckCircle aria-hidden="true" weight="fill" />
+                <MotionCheckCircle
+                  animate={{ scale: 1 }}
+                  aria-hidden="true"
+                  initial={shouldReduceMotion ? false : { scale: 0.94 }}
+                  transition={{
+                    delay: shouldReduceMotion ? 0 : index * 0.06,
+                    duration: shouldReduceMotion ? 0 : 0.2,
+                    ease: "easeOut",
+                  }}
+                  weight="fill"
+                />
               </motion.li>
             ))}
           </ul>

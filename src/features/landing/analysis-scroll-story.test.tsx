@@ -2,6 +2,8 @@ import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { setElementIntersection } from "@/test/setup";
+
 const motionState = vi.hoisted(() => ({ reducedMotion: false }));
 
 vi.mock("motion/react", async (importOriginal) => {
@@ -85,7 +87,7 @@ describe("AnalysisScrollStory", () => {
     );
   });
 
-  it("pauses autoplay while the walkthrough is hovered", async () => {
+  it("resumes autoplay after hover leaves the walkthrough", async () => {
     vi.useFakeTimers();
     render(<AnalysisScrollStory />);
 
@@ -96,9 +98,18 @@ describe("AnalysisScrollStory", () => {
       "aria-current",
       "step",
     );
+
+    fireEvent.mouseLeave(
+      screen.getByRole("region", { name: "두 단계 분석 과정" }),
+    );
+    await act(async () => vi.advanceTimersByTimeAsync(ANALYSIS_AUTOPLAY_MS));
+
+    expect(
+      screen.getByRole("button", { name: /크리에이터 문맥/ }),
+    ).toHaveAttribute("aria-current", "step");
   });
 
-  it("pauses autoplay while the walkthrough contains focus", async () => {
+  it("resumes autoplay after focus leaves the walkthrough", async () => {
     vi.useFakeTimers();
     render(<AnalysisScrollStory />);
 
@@ -109,6 +120,62 @@ describe("AnalysisScrollStory", () => {
       "aria-current",
       "step",
     );
+
+    fireEvent.focusOut(
+      screen.getByRole("button", { name: /크리에이터 문맥/ }),
+      { relatedTarget: null },
+    );
+    await act(async () => vi.advanceTimersByTimeAsync(ANALYSIS_AUTOPLAY_MS));
+
+    expect(
+      screen.getByRole("button", { name: /크리에이터 문맥/ }),
+    ).toHaveAttribute("aria-current", "step");
+  });
+
+  it("resets on viewport exit, clears a pending manual pause, and autoplays after re-entry", async () => {
+    vi.useFakeTimers();
+    render(<AnalysisScrollStory />);
+
+    fireEvent.click(screen.getByRole("button", { name: /사용자 확인/ }));
+    await act(async () => vi.advanceTimersByTimeAsync(1000));
+
+    const story = screen.getByRole("region", { name: "두 단계 분석 과정" });
+    await act(async () => setElementIntersection(story, false));
+
+    expect(screen.getByRole("button", { name: /1차 분석/ })).toHaveAttribute(
+      "aria-current",
+      "step",
+    );
+
+    await act(async () => setElementIntersection(story, true));
+    await act(async () => vi.advanceTimersByTimeAsync(ANALYSIS_AUTOPLAY_MS));
+
+    expect(
+      screen.getByRole("button", { name: /크리에이터 문맥/ }),
+    ).toHaveAttribute("aria-current", "step");
+  });
+
+  it("re-enters result rows horizontally with a restrained check scale", () => {
+    render(<AnalysisScrollStory />);
+
+    fireEvent.click(screen.getByRole("button", { name: /2차 분석/ }));
+
+    const sourceRow = screen.getByText("댓글 원문").closest("li");
+    expect(sourceRow).toHaveStyle({ transform: "translateX(8px)" });
+    expect(sourceRow?.querySelector(":scope > svg")).toHaveStyle({
+      transform: "scale(0.94)",
+    });
+  });
+
+  it("removes row and check transforms under reduced motion", () => {
+    motionState.reducedMotion = true;
+    render(<AnalysisScrollStory />);
+
+    const sourceRow = screen.getByText("댓글 원문").closest("li");
+    expect(sourceRow).not.toHaveStyle({ transform: "translateX(8px)" });
+    expect(sourceRow?.querySelector(":scope > svg")).not.toHaveStyle({
+      transform: "scale(0.94)",
+    });
   });
 
   it("does not autoplay when reduced motion is requested", async () => {

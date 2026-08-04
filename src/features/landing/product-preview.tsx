@@ -12,12 +12,11 @@ import {
 } from "@phosphor-icons/react";
 import {
   motion,
-  useInView,
   usePageInView,
   useScroll,
   useTransform,
 } from "motion/react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import {
   heroPreviewStates,
@@ -25,24 +24,23 @@ import {
   previewReviewLevels,
 } from "./landing-copy";
 import { landingMotion } from "./landing-motion";
+import { useViewportPresence } from "./use-viewport-presence";
 
 const metricIcons = [ChatCircleDots, CheckCircle, WarningCircle, BellSimple];
 
 function usePrefersReducedMotion() {
-  const [shouldReduceMotion, setShouldReduceMotion] = useState(false);
-
-  useEffect(() => {
-    if (typeof window.matchMedia !== "function") return;
-
-    const query = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const updatePreference = () => setShouldReduceMotion(query.matches);
-
-    updatePreference();
-    query.addEventListener("change", updatePreference);
-    return () => query.removeEventListener("change", updatePreference);
-  }, []);
-
-  return shouldReduceMotion;
+  return useSyncExternalStore(
+    (onStoreChange) => {
+      if (typeof window.matchMedia !== "function") return () => {};
+      const query = window.matchMedia("(prefers-reduced-motion: reduce)");
+      query.addEventListener("change", onStoreChange);
+      return () => query.removeEventListener("change", onStoreChange);
+    },
+    () =>
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+    () => false,
+  );
 }
 
 function useIsMobileViewport() {
@@ -66,7 +64,6 @@ export function ProductPreview() {
   const previewRef = useRef<HTMLElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [isManual, setIsManual] = useState(false);
-  const isInView = useInView(previewRef, { amount: 0.25 });
   const isPageInView = usePageInView();
   const shouldReduceMotion = usePrefersReducedMotion();
   const isMobileViewport = useIsMobileViewport();
@@ -86,6 +83,13 @@ export function ProductPreview() {
   );
   const scale = useTransform(scrollYProgress, [0, 1], [1, 0.985]);
   const activeState = heroPreviewStates[activeIndex];
+  const isInView = useViewportPresence(previewRef, {
+    amount: 0.25,
+    onLeave: () => {
+      setActiveIndex(0);
+      setIsManual(false);
+    },
+  });
 
   useEffect(() => {
     if (shouldReduceMotion || !isInView || !isPageInView || isManual) return;
@@ -104,10 +108,6 @@ export function ProductPreview() {
       data-scroll-motion={
         shouldReduceMotion || isMobileViewport ? "disabled" : "enabled"
       }
-      onViewportLeave={() => {
-        setActiveIndex(0);
-        setIsManual(false);
-      }}
       ref={previewRef}
       style={
         shouldReduceMotion || isMobileViewport
@@ -204,8 +204,14 @@ export function ProductPreview() {
                         <Icon aria-hidden="true" weight="bold" />
                       </span>
                       <motion.strong
-                        animate={{ opacity: 1 }}
-                        initial={shouldReduceMotion ? false : { opacity: 0 }}
+                        animate={
+                          shouldReduceMotion
+                            ? { opacity: 1 }
+                            : { opacity: 1, y: 0 }
+                        }
+                        initial={
+                          shouldReduceMotion ? false : { opacity: 0, y: 6 }
+                        }
                         key={`${activeState.id}-${label}-value`}
                         transition={
                           shouldReduceMotion

@@ -1,6 +1,8 @@
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { setElementIntersection } from "@/test/setup";
+
 import { ProductPreview } from "./product-preview";
 
 function setMotionPreferences({
@@ -114,5 +116,47 @@ describe("ProductPreview", () => {
       "data-scroll-motion",
       "disabled",
     );
+  });
+
+  it("resets manual state on viewport exit and resumes autoplay after re-entry", async () => {
+    render(<ProductPreview />);
+
+    fireEvent.click(screen.getByRole("tab", { name: "최종 추천" }));
+    const preview = screen.getByLabelText("제품 예시 화면");
+
+    await act(async () => setElementIntersection(preview, false));
+    expect(screen.getByRole("tab", { name: "댓글 수집" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+
+    await act(async () => setElementIntersection(preview, true));
+    await act(async () => vi.advanceTimersByTimeAsync(4500));
+
+    expect(screen.getByRole("tab", { name: "1차 분류" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+  });
+
+  it("rolls metric values vertically on each state change", () => {
+    render(<ProductPreview />);
+
+    fireEvent.click(screen.getByRole("tab", { name: "1차 분류" }));
+
+    const analyzedMetric = screen.getByText("분석 완료").closest("article");
+    expect(within(analyzedMetric!).getByText("241")).toHaveStyle({
+      transform: "translateY(6px)",
+    });
+  });
+
+  it("removes the metric roll transform under reduced motion", () => {
+    setMotionPreferences({ reducedMotion: true });
+    render(<ProductPreview />);
+
+    const importedMetric = screen.getByText("가져온 댓글").closest("article");
+    expect(within(importedMetric!).getByText("248")).not.toHaveStyle({
+      transform: "translateY(6px)",
+    });
   });
 });

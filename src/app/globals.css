@@ -1125,22 +1125,21 @@ a {
   border-radius: 20px;
   padding: 24px;
   background: white;
-  opacity: 0.58;
   color: inherit;
   font: inherit;
   text-align: left;
   cursor: pointer;
   transition:
-    opacity var(--landing-motion-base) var(--landing-motion-ease),
     transform var(--landing-motion-base) var(--landing-motion-ease),
+    background-color var(--landing-motion-base) ease,
     border-color var(--landing-motion-base) ease,
     box-shadow var(--landing-motion-base) ease;
 }
 
 .analysis-story-steps button[aria-current="step"] {
   border-color: rgb(36 107 254 / 32%);
+  background: linear-gradient(135deg, white, rgb(244 248 255));
   box-shadow: 0 22px 54px rgb(39 74 130 / 11%);
-  opacity: 1;
   transform: translateY(-4px);
 }
 
@@ -1319,10 +1318,6 @@ a {
   .analysis-scroll-story {
     grid-template-columns: 1fr;
     gap: 24px;
-  }
-
-  .analysis-story-visual {
-    grid-row: 1;
   }
 
   .analysis-story-steps button,
@@ -2282,7 +2277,6 @@ a {
 
   .analysis-story-visual {
     position: static;
-    grid-row: 1;
   }
 
   .analysis-story-steps li,
