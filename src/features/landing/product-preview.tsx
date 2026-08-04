@@ -45,6 +45,23 @@ function usePrefersReducedMotion() {
   return shouldReduceMotion;
 }
 
+function useIsMobileViewport() {
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
+
+  useEffect(() => {
+    if (typeof window.matchMedia !== "function") return;
+
+    const query = window.matchMedia("(max-width: 767px)");
+    const updateViewport = () => setIsMobileViewport(query.matches);
+
+    updateViewport();
+    query.addEventListener("change", updateViewport);
+    return () => query.removeEventListener("change", updateViewport);
+  }, []);
+
+  return isMobileViewport;
+}
+
 export function ProductPreview() {
   const previewRef = useRef<HTMLElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -52,6 +69,7 @@ export function ProductPreview() {
   const isInView = useInView(previewRef, { amount: 0.25 });
   const isPageInView = usePageInView();
   const shouldReduceMotion = usePrefersReducedMotion();
+  const isMobileViewport = useIsMobileViewport();
   const { scrollYProgress } = useScroll({
     target: previewRef,
     offset: ["start start", "end start"],
@@ -83,12 +101,19 @@ export function ProductPreview() {
     <motion.section
       className="product-preview"
       aria-label="제품 예시 화면"
+      data-scroll-motion={
+        shouldReduceMotion || isMobileViewport ? "disabled" : "enabled"
+      }
       onViewportLeave={() => {
         setActiveIndex(0);
         setIsManual(false);
       }}
       ref={previewRef}
-      style={shouldReduceMotion ? undefined : { y, rotate, scale }}
+      style={
+        shouldReduceMotion || isMobileViewport
+          ? undefined
+          : { y, rotate, scale }
+      }
     >
       <p className="preview-label">
         <Sparkle aria-hidden="true" weight="fill" />

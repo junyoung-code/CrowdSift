@@ -3,14 +3,25 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ProductPreview } from "./product-preview";
 
-function setReducedMotion(matches: boolean) {
+function setMotionPreferences({
+  mobile = false,
+  reducedMotion = false,
+}: {
+  mobile?: boolean;
+  reducedMotion?: boolean;
+}) {
   Object.defineProperty(window, "matchMedia", {
     configurable: true,
-    value: vi.fn().mockImplementation(() => ({
+    value: vi.fn().mockImplementation((media: string) => ({
       addEventListener: vi.fn(),
       dispatchEvent: vi.fn(),
-      matches,
-      media: "(prefers-reduced-motion)",
+      matches:
+        media === "(prefers-reduced-motion: reduce)"
+          ? reducedMotion
+          : media === "(max-width: 767px)"
+            ? mobile
+            : false,
+      media,
       onchange: null,
       removeEventListener: vi.fn(),
     })),
@@ -20,7 +31,7 @@ function setReducedMotion(matches: boolean) {
 describe("ProductPreview", () => {
   beforeEach(() => {
     vi.useFakeTimers();
-    setReducedMotion(false);
+    setMotionPreferences({});
   });
 
   afterEach(() => {
@@ -57,7 +68,7 @@ describe("ProductPreview", () => {
   });
 
   it("disables autoplay when reduced motion is requested", async () => {
-    setReducedMotion(true);
+    setMotionPreferences({ reducedMotion: true });
     render(<ProductPreview />);
 
     await act(async () => {
@@ -93,5 +104,15 @@ describe("ProductPreview", () => {
       "true",
     );
     expect(screen.getByText("사용자 검토 필요")).toBeInTheDocument();
+  });
+
+  it("disables scroll transforms on mobile viewports", () => {
+    setMotionPreferences({ mobile: true });
+    render(<ProductPreview />);
+
+    expect(screen.getByLabelText("제품 예시 화면")).toHaveAttribute(
+      "data-scroll-motion",
+      "disabled",
+    );
   });
 });
