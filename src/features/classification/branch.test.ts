@@ -10,7 +10,7 @@ import type {
 
 const cleanLuna: LunaFirstPass = {
   candidateLevel: "safe",
-  confidence: 0.94,
+  certainty: "clear",
   feedbackPresent: true,
   locationOrScheduleMention: false,
   sensitiveTopicMatched: false,
@@ -76,32 +76,30 @@ describe("first pass routing", () => {
       kind: "instant_safe",
       level: "safe",
       basis: "luna_safe",
-      confidence: 0.94,
+      certainty: "clear",
     });
   });
 
-  it("sends a caution or danger candidate on regardless of confidence", () => {
+  it("sends a caution or danger candidate on however sure the model was", () => {
     for (const candidateLevel of ["caution", "danger"] as const) {
       const outcome = verifyOutcome(
-        routeFirstPass(firstPass({ luna: { candidateLevel, confidence: 1 } })),
+        routeFirstPass(
+          firstPass({ luna: { candidateLevel, certainty: "clear" } }),
+        ),
       );
 
       expect(outcome.reasons).toContain(`luna_${candidateLevel}`);
     }
   });
 
-  it("sends a safe candidate on when the model was not sure", () => {
-    const outcome = verifyOutcome(
-      routeFirstPass(firstPass({ luna: { confidence: 0.84 } })),
-    );
+  it("sends a safe candidate on for anything short of a clear read", () => {
+    for (const certainty of ["borderline", "unclear"] as const) {
+      const outcome = verifyOutcome(
+        routeFirstPass(firstPass({ luna: { certainty } })),
+      );
 
-    expect(outcome.reasons).toEqual(["luna_low_confidence"]);
-  });
-
-  it("lets a safe candidate through at exactly the pass mark", () => {
-    expect(routeFirstPass(firstPass({ luna: { confidence: 0.85 } })).kind).toBe(
-      "instant_safe",
-    );
+      expect(outcome.reasons).toEqual(["luna_uncertain"]);
+    }
   });
 
   it("treats a missing filter result differently from a clean one", () => {

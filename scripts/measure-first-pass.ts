@@ -1,8 +1,9 @@
 /**
  * 1단계(Moderation + Luna)를 실제 댓글에 돌려 확신도 분포를 잰다.
  *
- * 문턱값 0.85 는 아직 추측이다. 모델이 실제로 어떤 값을 내놓는지 보고 정하기 위한
- * 도구이며, Terra 없이도 돌아간다.
+ * 확신도가 라우팅 신호로 쓸 만한지 보기 위한 도구다. 소수 0~1 일 때는 값이 다섯 개에
+ * 뭉쳤고 틀린 판단에도 높은 값이 붙었다. 세 단계로 바꾼 뒤에도 전부 clear 로 몰리면
+ * 확신도를 라우팅에서 빼야 한다. Terra 없이도 돌아간다.
  *
  *   npx tsx scripts/measure-first-pass.ts          전체
  *   npx tsx scripts/measure-first-pass.ts 5        앞 5건만 (연결 확인용)
@@ -15,7 +16,11 @@ import type { FirstPassInput } from "../src/features/classification/contracts";
 import { createFirstPassRunner } from "../src/features/classification/first-pass";
 import { createLunaFirstPass } from "../src/features/classification/luna-first-pass";
 import { createModerationScreen } from "../src/features/classification/moderation";
-import { DEFAULT_CLASSIFICATION_PROFILE } from "../src/features/classification/schemas";
+import {
+  CertaintySchema,
+  DEFAULT_CLASSIFICATION_PROFILE,
+  type Certainty,
+} from "../src/features/classification/schemas";
 
 const loadEnvFile = () => {
   const raw = readFileSync(resolve(process.cwd(), ".env.local"), "utf8");
@@ -109,7 +114,7 @@ const main = async () => {
 
   type Row = TestComment & {
     candidate: string;
-    confidence: number;
+    certainty: Certainty;
     routed: string;
     reasons: string[];
     moderationFlagged: boolean | null;
@@ -136,7 +141,7 @@ const main = async () => {
       rows.push({
         ...comment,
         candidate: first.luna.result.candidateLevel,
-        confidence: first.luna.result.confidence,
+        certainty: first.luna.result.certainty,
         routed: outcome.kind,
         reasons: outcome.kind === "verify" ? outcome.reasons : [],
         moderationFlagged: first.moderation?.result.flagged ?? null,
@@ -157,34 +162,35 @@ const main = async () => {
   console.log("확신도 분포");
   console.log("=".repeat(70));
 
-  const bands: Array<[string, (value: number) => boolean]> = [
-    ["1.00       ", (v) => v >= 1],
-    ["0.95 ~ 0.99", (v) => v >= 0.95 && v < 1],
-    ["0.90 ~ 0.94", (v) => v >= 0.9 && v < 0.95],
-    ["0.85 ~ 0.89", (v) => v >= 0.85 && v < 0.9],
-    ["0.80 ~ 0.84", (v) => v >= 0.8 && v < 0.85],
-    ["0.70 ~ 0.79", (v) => v >= 0.7 && v < 0.8],
-    ["0.60 ~ 0.69", (v) => v >= 0.6 && v < 0.7],
-    ["0.60 미만  ", (v) => v < 0.6],
-  ];
-
-  for (const [label, test] of bands) {
-    const hits = rows.filter((row) => test(row.confidence));
-    if (hits.length === 0) continue;
+  for (const certainty of CertaintySchema.options) {
+    const hits = rows.filter((row) => row.certainty === certainty);
     console.log(
-      `  ${label}  ${String(hits.length).padStart(3)}건  ${bar(hits.length, rows.length)}`,
+      `  ${certainty.padEnd(10)}  ${String(hits.length).padStart(3)}건  ` +
+        `${((hits.length / rows.length) * 100).toFixed(1)}%  ${bar(hits.length, rows.length)}`,
     );
   }
 
-  const values = rows.map((row) => row.confidence).sort((a, b) => a - b);
-  const at = (ratio: number) =>
-    values[Math.min(values.length - 1, Math.floor(values.length * ratio))]!;
+  // 전부 clear 로 뭉치면 3단으로 바꾼 것도 소수와 다를 바 없다. 그때는 확신도를
+  // 라우팅에서 빼는 편이 정직하다.
+  const clear = rows.filter((row) => row.certainty === "clear").length;
   console.log(
-    `\n  최저 ${values[0]!.toFixed(2)} / 중앙 ${at(0.5).toFixed(2)} / 최고 ${values.at(-1)!.toFixed(2)}`,
+    `\n  clear 비율 ${((clear / rows.length) * 100).toFixed(1)}% ` +
+      `— 100% 에 가까우면 눈금이 뜻을 갖지 못한 것이다`,
   );
-  console.log(
-    `  서로 다른 값의 개수: ${new Set(values).size}개 (값이 몇 개에 뭉쳐 있는지)`,
-  );
+
+  console.log("\n  후보 등급별로 어디에 떨어졌는가");
+  for (const level of ["safe", "caution", "danger"] as const) {
+    const group = rows.filter((row) => row.candidate === level);
+    if (group.length === 0) continue;
+
+    const counts = CertaintySchema.options.map(
+      (certainty) =>
+        `${certainty} ${group.filter((row) => row.certainty === certainty).length}`,
+    );
+    console.log(
+      `    ${level.padEnd(8)} ${String(group.length).padStart(2)}건 · ${counts.join(" / ")}`,
+    );
+  }
 
   console.log(`\n${"=".repeat(70)}`);
   console.log("분기 결과");
@@ -243,7 +249,7 @@ const main = async () => {
   for (const row of rows) {
     const same = row.expected.includes(label[row.candidate]?.slice(2) ?? "");
     console.log(
-      `  ${same ? " " : "≠"} ${row.id}  ${label[row.candidate]}  ${row.confidence.toFixed(2)}  ` +
+      `  ${same ? " " : "≠"} ${row.id}  ${label[row.candidate]}  ${row.certainty.padEnd(10)}  ` +
         `기대 ${row.expected.padEnd(8)} "${row.text.slice(0, 24)}"`,
     );
   }

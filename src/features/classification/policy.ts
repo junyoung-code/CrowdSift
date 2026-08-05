@@ -1,4 +1,4 @@
-import type { ModerationCategory, RiskLevel } from "./schemas";
+import type { Certainty, ModerationCategory, RiskLevel } from "./schemas";
 
 /**
  * 분류 보완 기준 v0.2 의 수치와 정책표를 코드로 옮긴 것.
@@ -9,13 +9,21 @@ import type { ModerationCategory, RiskLevel } from "./schemas";
 export const CLASSIFICATION_POLICY_VERSION = "crowdsift-classification-v0.2";
 
 /**
- * Luna 후보가 안전이고 이 값 이상이어야 2차 검증 없이 통과할 수 있다.
+ * Luna 후보가 안전이면서 이 확신도일 때만 2차 검증 없이 통과한다.
+ *
+ * 문턱값이 아니라 목록이다. 세 단계 중 어느 것이 통과해도 되는지는 등급을 나누는
+ * 것과 같은 종류의 결정이라, 부등호 뒤에 숨기지 않고 이름으로 적는다.
  */
-export const LUNA_SAFE_PASS_CONFIDENCE = 0.85;
+export const CERTAINTY_ALLOWING_INSTANT_PASS: ReadonlySet<Certainty> = new Set([
+  "clear",
+]);
 
 /**
  * Terra 확신도가 이 값에 못 미치면 등급을 확정하지 않고 사람이 보게 넘긴다.
  * 두 모델 모두 확신하지 못한 댓글을 원문 그대로 내보내지 않기 위한 마지막 문턱이다.
+ *
+ * Terra 는 아직 없다. Luna 를 3단으로 바꾼 결과를 보고 Terra 도 같은 형태로 갈지
+ * 정한다. 그때까지는 v0.2 에 적힌 소수 문턱을 그대로 둔다.
  */
 export const TERRA_REVIEW_QUEUE_CONFIDENCE = 0.6;
 

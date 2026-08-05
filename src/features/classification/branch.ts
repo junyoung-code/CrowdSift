@@ -1,10 +1,10 @@
 import type { FirstPassResult } from "./contracts";
 import {
-  LUNA_SAFE_PASS_CONFIDENCE,
+  CERTAINTY_ALLOWING_INSTANT_PASS,
   treatmentForCategory,
   type ModerationTreatment,
 } from "./policy";
-import type { RiskLevel } from "./schemas";
+import type { Certainty, RiskLevel } from "./schemas";
 
 /**
  * 2. 우선 분기.
@@ -18,8 +18,8 @@ export type BranchReason =
   | "luna_caution"
   /** Luna 가 위험으로 봤다. */
   | "luna_danger"
-  /** Luna 가 안전이라 했지만 확신하지 못했다. */
-  | "luna_low_confidence"
+  /** Luna 가 안전이라 했지만 스스로 확신하지 못했다. */
+  | "luna_uncertain"
   /** 무료 필터가 무언가를 걸었다. */
   | "moderation_flagged"
   /** 무료 필터를 부르지 못했다. 걸린 게 없는 것과 다르다. */
@@ -52,7 +52,7 @@ export type BranchOutcome =
       level: "safe";
       /** 무엇을 근거로 검증 없이 확정했는지. 로그에 그대로 남는다. */
       basis: "luna_safe";
-      confidence: number;
+      certainty: Certainty;
     }
   | {
       kind: "verify";
@@ -125,9 +125,9 @@ const reasonsToVerify = (first: FirstPassResult): BranchReason[] => {
 
   if (
     luna.candidateLevel === "safe" &&
-    luna.confidence < LUNA_SAFE_PASS_CONFIDENCE
+    !CERTAINTY_ALLOWING_INSTANT_PASS.has(luna.certainty)
   ) {
-    reasons.push("luna_low_confidence");
+    reasons.push("luna_uncertain");
   }
 
   // 결과가 없는 것과 깨끗한 것은 다르다. 부르지 못한 것을 무해로 읽으면
@@ -165,7 +165,7 @@ export const routeFirstPass = (first: FirstPassResult): BranchOutcome => {
       kind: "instant_safe",
       level: "safe",
       basis: "luna_safe",
-      confidence: first.luna.result.confidence,
+      certainty: first.luna.result.certainty,
     };
   }
 

@@ -1,18 +1,20 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  LUNA_SAFE_PASS_CONFIDENCE,
+  CERTAINTY_ALLOWING_INSTANT_PASS,
   MODERATION_CATEGORY_POLICY,
-  TERRA_REVIEW_QUEUE_CONFIDENCE,
   treatmentForCategory,
 } from "./policy";
-import { ModerationCategorySchema } from "./schemas";
+import { CertaintySchema, ModerationCategorySchema } from "./schemas";
 
 describe("classification policy", () => {
-  it("keeps the review-queue bar below the instant-pass bar", () => {
-    expect(TERRA_REVIEW_QUEUE_CONFIDENCE).toBeLessThan(
-      LUNA_SAFE_PASS_CONFIDENCE,
-    );
+  it("only lets the top certainty skip verification", () => {
+    // Anything the model hedged on is exactly what the second pass is for.
+    for (const certainty of CertaintySchema.options) {
+      expect(CERTAINTY_ALLOWING_INSTANT_PASS.has(certainty)).toBe(
+        certainty === "clear",
+      );
+    }
   });
 
   it("covers every category the filter can return", () => {

@@ -32,7 +32,7 @@ const clientReturning = (parsed: unknown) =>
 
 const validOutput = {
   candidateLevel: "caution",
-  confidence: 0.72,
+  certainty: "borderline",
   feedbackPresent: true,
   locationOrScheduleMention: false,
   sensitiveTopicMatched: false,
@@ -63,7 +63,7 @@ describe("luna first pass", () => {
       client: clientReturning({
         ...validOutput,
         candidateLevel: "safe",
-        confidence: 0.91,
+        certainty: "clear",
         softRiskFlags: [],
         // "집 근처에서 봤어요" reads as friendly on its own, so the level stays
         // safe while the hint keeps it out of the instant-pass lane.

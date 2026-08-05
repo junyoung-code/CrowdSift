@@ -48,6 +48,22 @@ export const NON_NEGOTIABLE_RISK_FLAGS = new Set<HardRiskFlag>([
 ]);
 
 /**
+ * 후보 등급을 얼마나 믿을 수 있는지.
+ *
+ * 0~1 소수로 받던 것을 세 단계로 바꿨다. 실측 90건에서 소수 값이 0.95~0.99 에
+ * 89건 몰렸고, 틀린 판단에도 0.98~0.99 가 붙었다. 눈금이 촘촘한 것과 눈금이
+ * 뜻을 갖는 것은 다르다. 값의 개수를 줄이는 대신 각 값에 판별 가능한 뜻을 준다.
+ */
+export const CertaintySchema = z.enum([
+  /** 근거가 댓글 본문에 있고 달리 읽을 여지가 없다. */
+  "clear",
+  /** 두 등급 사이에 있다. 어느 쪽으로 읽어도 말이 되지만 한쪽이 조금 더 그럴듯하다. */
+  "borderline",
+  /** 댓글 한 줄만으로는 가릴 수 없다. 더 넓은 맥락이 있어야 한다. */
+  "unclear",
+]);
+
+/**
  * 1-B. Luna 1차 분류 출력.
  *
  * 2차 검증이 필요한지는 모델이 정하지 않는다. 코드가 이 값들과 Moderation 결과를
@@ -56,7 +72,7 @@ export const NON_NEGOTIABLE_RISK_FLAGS = new Set<HardRiskFlag>([
 export const LunaFirstPassSchema = z
   .object({
     candidateLevel: RiskLevelSchema,
-    confidence: z.number().min(0).max(1),
+    certainty: CertaintySchema,
     /**
      * 표현을 걷어내면 콘텐츠에 쓸 만한 내용이 남는지. 있음/없음만 본다.
      * 어떤 종류인지와 핵심 내용은 Terra 가 뽑는다.
@@ -130,6 +146,7 @@ export const ClassificationProfileSchema = z
   .strict();
 
 export type RiskLevel = z.infer<typeof RiskLevelSchema>;
+export type Certainty = z.infer<typeof CertaintySchema>;
 export type HardRiskFlag = z.infer<typeof HardRiskFlagSchema>;
 export type SoftRiskFlag = z.infer<typeof SoftRiskFlagSchema>;
 export type LunaFirstPass = z.infer<typeof LunaFirstPassSchema>;

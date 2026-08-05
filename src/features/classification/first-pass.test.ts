@@ -24,7 +24,7 @@ const lunaReturning = (
     classify: vi.fn().mockResolvedValue({
       result: {
         candidateLevel,
-        confidence: 0.72,
+        certainty: "borderline",
         feedbackPresent: true,
         locationOrScheduleMention: false,
         sensitiveTopicMatched: false,
@@ -86,7 +86,7 @@ describe("first pass runner", () => {
         return {
           result: {
             candidateLevel: "safe" as const,
-            confidence: 0.95,
+            certainty: "clear",
             feedbackPresent: false,
             locationOrScheduleMention: false,
             sensitiveTopicMatched: false,
