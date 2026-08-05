@@ -11,6 +11,8 @@ const actionableRuleKinds = new Set<RuleSignal["kind"]>([
   "repetition",
   "suspicious_url",
   "phishing_pattern",
+  "abuse_lexicon",
+  "spam_lexicon",
 ]);
 
 export const getRuleReviewFloor = (

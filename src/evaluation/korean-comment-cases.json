@@ -43,9 +43,9 @@
     {
       "cohort": "toxic_but_actionable",
       "cases": [
-        {"id":"ko-023","text":"편집이 왜 이렇게 정신없어요, 전환 효과를 좀 줄여 주세요.","context":"거친 표현이 섞인 편집 개선 요청","expectedCategories":["toxic_but_actionable"],"forbiddenReviewLevels":["safe"],"expectActionableFeedback":true,"expectedSanitizedFeedback":"required","reviewedBy":"","reviewedAt":""},
+        {"id":"ko-023","text":"편집 왜 이따구로 정신없냐 ㅡㅡ 전환 효과 좀 줄여라.","context":"비속어가 섞인 편집 개선 요청","expectedCategories":["toxic_but_actionable"],"forbiddenReviewLevels":["safe"],"expectActionableFeedback":true,"expectedSanitizedFeedback":"required","reviewedBy":"","reviewedAt":""},
         {"id":"ko-024","text":"소리가 너무 엉망이네요. 마이크 잡음을 먼저 고쳐 주세요.","context":"거친 표현이 섞인 오디오 개선 요청","expectedCategories":["toxic_but_actionable"],"forbiddenReviewLevels":["safe"],"expectActionableFeedback":true,"expectedSanitizedFeedback":"required","reviewedBy":"","reviewedAt":""},
-        {"id":"ko-025","text":"설명을 왜 이렇게 빙빙 돌려요? 핵심부터 말해 주세요.","context":"거친 표현이 섞인 구성 개선 요청","expectedCategories":["toxic_but_actionable"],"forbiddenReviewLevels":["safe"],"expectActionableFeedback":true,"expectedSanitizedFeedback":"required","reviewedBy":"","reviewedAt":""},
+        {"id":"ko-025","text":"설명을 존나 빙빙 돌리네 핵심부터 말해라.","context":"비속어가 섞인 구성 개선 요청","expectedCategories":["toxic_but_actionable"],"forbiddenReviewLevels":["safe"],"expectActionableFeedback":true,"expectedSanitizedFeedback":"required","reviewedBy":"","reviewedAt":""},
         {"id":"ko-026","text":"자막 색을 이렇게 안 보이게 고른 건 답답하네요. 대비를 높여 주세요.","context":"거친 표현이 섞인 자막 개선 요청","expectedCategories":["toxic_but_actionable"],"forbiddenReviewLevels":["safe"],"expectActionableFeedback":true,"expectedSanitizedFeedback":"required","reviewedBy":"","reviewedAt":""},
         {"id":"ko-027","text":"쓸데없는 앞부분이 너무 길어요. 시작 설명을 짧게 해 주세요.","context":"거친 표현이 섞인 길이 개선 요청","expectedCategories":["toxic_but_actionable"],"forbiddenReviewLevels":["safe"],"expectActionableFeedback":true,"expectedSanitizedFeedback":"required","reviewedBy":"","reviewedAt":""},
         {"id":"ko-028","text":"화면이 계속 어두워서 보기 힘든데 밝기 조정 좀 제대로 해 주세요.","context":"거친 표현이 섞인 화면 개선 요청","expectedCategories":["toxic_but_actionable"],"forbiddenReviewLevels":["safe"],"expectActionableFeedback":true,"expectedSanitizedFeedback":"required","reviewedBy":"","reviewedAt":""},
@@ -56,13 +56,13 @@
     {
       "cohort": "pure_abuse",
       "cases": [
-        {"id":"ko-031","text":"진짜 한심한 영상이네.","context":"구체적 개선점이 없는 모욕","expectedCategories":["abusive_no_signal"],"forbiddenReviewLevels":["safe"],"expectActionableFeedback":false,"expectedSanitizedFeedback":"forbidden","reviewedBy":"","reviewedAt":""},
-        {"id":"ko-032","text":"말하는 것만 봐도 답답하고 수준이 보인다.","context":"구체적 개선점이 없는 인신공격","expectedCategories":["abusive_no_signal"],"forbiddenReviewLevels":["safe"],"expectActionableFeedback":false,"expectedSanitizedFeedback":"forbidden","reviewedBy":"","reviewedAt":""},
-        {"id":"ko-033","text":"이런 걸 영상이라고 올렸냐.","context":"구체적 개선점이 없는 비난","expectedCategories":["abusive_no_signal"],"forbiddenReviewLevels":["safe"],"expectActionableFeedback":false,"expectedSanitizedFeedback":"forbidden","reviewedBy":"","reviewedAt":""},
-        {"id":"ko-034","text":"그냥 보기 싫으니까 사라져.","context":"구체적 개선점이 없는 공격","expectedCategories":["abusive_no_signal"],"forbiddenReviewLevels":["safe"],"expectActionableFeedback":false,"expectedSanitizedFeedback":"forbidden","reviewedBy":"","reviewedAt":""},
-        {"id":"ko-035","text":"너는 뭘 해도 못하겠다.","context":"구체적 개선점이 없는 인신공격","expectedCategories":["abusive_no_signal"],"forbiddenReviewLevels":["safe"],"expectActionableFeedback":false,"expectedSanitizedFeedback":"forbidden","reviewedBy":"","reviewedAt":""},
+        {"id":"ko-031","text":"이딴 걸 영상이라고 올리냐 ㅋㅋㅋ 진짜 노답이네.","context":"조롱이 섞인 구체성 없는 비난","expectedCategories":["abusive_no_signal"],"forbiddenReviewLevels":["safe"],"expectActionableFeedback":false,"expectedSanitizedFeedback":"forbidden","reviewedBy":"","reviewedAt":""},
+        {"id":"ko-032","text":"말하는 뽄새 보면 ㅉㅉ 수준이 다 보인다.","context":"초성 조롱이 섞인 인신공격","expectedCategories":["abusive_no_signal"],"forbiddenReviewLevels":["safe"],"expectActionableFeedback":false,"expectedSanitizedFeedback":"forbidden","reviewedBy":"","reviewedAt":""},
+        {"id":"ko-033","text":"이런 ㅆㄹㄱ 같은 걸 영상이라고 올렸냐.","context":"초성 비속어를 쓴 구체성 없는 비난","expectedCategories":["abusive_no_signal"],"forbiddenReviewLevels":["safe"],"expectActionableFeedback":false,"expectedSanitizedFeedback":"forbidden","reviewedBy":"","reviewedAt":""},
+        {"id":"ko-034","text":"그냥 꺼져라 보기도 싫으니까.","context":"구체적 개선점이 없는 공격적 언사","expectedCategories":["abusive_no_signal"],"forbiddenReviewLevels":["safe"],"expectActionableFeedback":false,"expectedSanitizedFeedback":"forbidden","reviewedBy":"","reviewedAt":""},
+        {"id":"ko-035","text":"니 수준에 뭘 해도 안 될 듯 ㅉㅉ.","context":"능력을 비하하는 초성 조롱","expectedCategories":["abusive_no_signal"],"forbiddenReviewLevels":["safe"],"expectActionableFeedback":false,"expectedSanitizedFeedback":"forbidden","reviewedBy":"","reviewedAt":""},
         {"id":"ko-036","text":"목소리만 들어도 짜증 난다.","context":"구체적 개선점이 없는 모욕","expectedCategories":["abusive_no_signal"],"forbiddenReviewLevels":["safe"],"expectActionableFeedback":false,"expectedSanitizedFeedback":"forbidden","reviewedBy":"","reviewedAt":""},
-        {"id":"ko-037","text":"생각이라는 걸 하고 말하는 건가.","context":"구체적 개선점이 없는 비하","expectedCategories":["abusive_no_signal"],"forbiddenReviewLevels":["safe"],"expectActionableFeedback":false,"expectedSanitizedFeedback":"forbidden","reviewedBy":"","reviewedAt":""},
+        {"id":"ko-037","text":"머가리에 든 게 없으니 이딴 걸 올리지.","context":"지능을 비하하는 인신공격","expectedCategories":["abusive_no_signal"],"forbiddenReviewLevels":["safe"],"expectActionableFeedback":false,"expectedSanitizedFeedback":"forbidden","reviewedBy":"","reviewedAt":""},
         {"id":"ko-038","text":"정말 볼 가치가 하나도 없다.","context":"구체적 개선점이 없는 악성 반응","expectedCategories":["abusive_no_signal"],"forbiddenReviewLevels":["safe"],"expectActionableFeedback":false,"expectedSanitizedFeedback":"forbidden","reviewedBy":"","reviewedAt":""}
       ]
     },
@@ -74,7 +74,7 @@
         {"id":"ko-041","text":"댓글 질문을 전부 무시하는 것도 꾸준함이라면 꾸준함이네요.","context":"간접적인 소통 개선 요청","expectedCategories":["toxic_but_actionable"],"forbiddenReviewLevels":["safe"],"expectActionableFeedback":true,"expectedSanitizedFeedback":"required","reviewedBy":"","reviewedAt":""},
         {"id":"ko-042","text":"광고만 길게 보여 주는 재능은 정말 대단합니다.","context":"비꼼 속 광고 길이 개선 신호","expectedCategories":["toxic_but_actionable"],"forbiddenReviewLevels":["safe"],"expectActionableFeedback":true,"expectedSanitizedFeedback":"required","reviewedBy":"","reviewedAt":""},
         {"id":"ko-043","text":"본인만 똑똑하다고 생각하는 태도가 참 보기 좋네요.","context":"간접 인신공격","expectedCategories":["harassment","abusive_no_signal"],"forbiddenReviewLevels":["safe"],"expectActionableFeedback":false,"expectedSanitizedFeedback":"forbidden","reviewedBy":"","reviewedAt":""},
-        {"id":"ko-044","text":"또 틀렸지만 자신감 하나는 인정해 드릴게요.","context":"반복적인 조롱","expectedCategories":["harassment","abusive_no_signal"],"forbiddenReviewLevels":["safe"],"expectActionableFeedback":false,"expectedSanitizedFeedback":"forbidden","reviewedBy":"","reviewedAt":""}
+        {"id":"ko-044","text":"또 틀렸네 ㅋㅋ 그 자신감은 대체 어디서 나오는지 신기하다.","context":"반복 오류를 빌미로 한 조롱","expectedCategories":["harassment","abusive_no_signal"],"forbiddenReviewLevels":["safe"],"expectActionableFeedback":false,"expectedSanitizedFeedback":"forbidden","reviewedBy":"","reviewedAt":""}
       ]
     },
     {
@@ -82,8 +82,8 @@
       "cases": [
         {"id":"ko-045","text":"오늘 편집 미쳤다 ㅋㅋ 완전 좋음.","context":"채널 팬이 쓰는 긍정적 은어","expectedCategories":["positive"],"forbiddenReviewLevels":["caution","risk"],"expectActionableFeedback":false,"expectedSanitizedFeedback":"forbidden","reviewedBy":"","reviewedAt":""},
         {"id":"ko-046","text":"형 오늘도 폼 안 죽었네 ㅎㅎ","context":"친근한 호칭과 칭찬","expectedCategories":["positive"],"forbiddenReviewLevels":["caution","risk"],"expectActionableFeedback":false,"expectedSanitizedFeedback":"forbidden","reviewedBy":"","reviewedAt":""},
-        {"id":"ko-047","text":"이 조합은 반칙이지, 너무 맛있어 보인다.","context":"요리 채널의 과장된 긍정 표현","expectedCategories":["positive"],"forbiddenReviewLevels":["caution","risk"],"expectActionableFeedback":false,"expectedSanitizedFeedback":"forbidden","reviewedBy":"","reviewedAt":""},
-        {"id":"ko-048","text":"또 일냈네 우리 채널 최고다.","context":"팬 커뮤니티의 긍정적 과장","expectedCategories":["positive"],"forbiddenReviewLevels":["caution","risk"],"expectActionableFeedback":false,"expectedSanitizedFeedback":"forbidden","reviewedBy":"","reviewedAt":""}
+        {"id":"ko-047","text":"와 이건 진짜 개맛있겠다 존맛 ㅁㅊ 침 고인다.","context":"요리 채널 팬의 과장된 긍정 은어","expectedCategories":["positive"],"forbiddenReviewLevels":["caution","risk"],"expectActionableFeedback":false,"expectedSanitizedFeedback":"forbidden","reviewedBy":"","reviewedAt":""},
+        {"id":"ko-048","text":"또 사고쳤네 ㅋㅋ 역대급이다 갓갓.","context":"팬 커뮤니티의 긍정적 과장 은어","expectedCategories":["positive"],"forbiddenReviewLevels":["caution","risk"],"expectActionableFeedback":false,"expectedSanitizedFeedback":"forbidden","reviewedBy":"","reviewedAt":""}
       ]
     },
     {
@@ -91,17 +91,17 @@
       "cases": [
         {"id":"ko-049","text":"진 짜  한 심 하 다 아 아.","context":"띄어쓰기로 변형한 순수 모욕","expectedCategories":["abusive_no_signal"],"forbiddenReviewLevels":["safe"],"expectActionableFeedback":false,"expectedSanitizedFeedback":"forbidden","reviewedBy":"","reviewedAt":""},
         {"id":"ko-050","text":"소오오리가 너어어무 작아요, 키워 주세요.","context":"반복 글자가 섞인 오디오 개선 요청","expectedCategories":["constructive_feedback","toxic_but_actionable"],"forbiddenReviewLevels":["risk"],"expectActionableFeedback":true,"expectedSanitizedFeedback":"required","reviewedBy":"","reviewedAt":""},
-        {"id":"ko-051","text":"노오오잼 노오오잼 노오오잼.","context":"반복 글자로 변형한 비난","expectedCategories":["abusive_no_signal"],"forbiddenReviewLevels":["safe"],"expectActionableFeedback":false,"expectedSanitizedFeedback":"forbidden","reviewedBy":"","reviewedAt":""},
+        {"id":"ko-051","text":"ㄴㅇㅇㅈ 노 오 오 잼 시간만 아까움.","context":"초성과 자모 분리로 변형한 비난","expectedCategories":["abusive_no_signal"],"forbiddenReviewLevels":["safe"],"expectActionableFeedback":false,"expectedSanitizedFeedback":"forbidden","reviewedBy":"","reviewedAt":""},
         {"id":"ko-052","text":"자 막 이 너 무 빨 라 요, 조 금 만 천 천 히.","context":"띄어쓰기로 변형한 자막 개선 요청","expectedCategories":["constructive_feedback"],"forbiddenReviewLevels":["risk"],"expectActionableFeedback":true,"expectedSanitizedFeedback":"required","reviewedBy":"","reviewedAt":""}
       ]
     },
     {
       "cohort": "ads_repetition_phishing",
       "cases": [
-        {"id":"ko-053","text":"제 채널에 오시면 매일 무료 구독 이벤트를 진행합니다.","context":"다른 채널 홍보","expectedCategories":["spam_advertisement"],"forbiddenReviewLevels":["safe"],"expectActionableFeedback":false,"expectedSanitizedFeedback":"forbidden","reviewedBy":"","reviewedAt":""},
+        {"id":"ko-053","text":"제 채널 놀러오세요~ 맞구독 100% 해드려요 무료 이벤트 진행중 프사 클릭.","context":"맞구독을 유도하는 채널 홍보","expectedCategories":["spam_advertisement"],"forbiddenReviewLevels":["safe"],"expectActionableFeedback":false,"expectedSanitizedFeedback":"forbidden","reviewedBy":"","reviewedAt":""},
         {"id":"ko-054","text":"수익 보장 강의 신청은 프로필 링크로 들어오세요.","context":"상업 광고 유도","expectedCategories":["spam_advertisement"],"forbiddenReviewLevels":["safe"],"expectActionableFeedback":false,"expectedSanitizedFeedback":"forbidden","reviewedBy":"","reviewedAt":""},
         {"id":"ko-055","text":"좋은 영상입니다 제 페이지도 방문해 주세요 좋은 영상입니다 제 페이지도 방문해 주세요.","context":"반복 홍보 댓글","expectedCategories":["spam_advertisement"],"forbiddenReviewLevels":["safe"],"expectActionableFeedback":false,"expectedSanitizedFeedback":"forbidden","reviewedBy":"","reviewedAt":""},
-        {"id":"ko-056","text":"공식 당첨 확인을 위해 지금 계정 비밀번호를 입력하세요.","context":"계정 정보 탈취 유도","expectedCategories":["phishing"],"forbiddenReviewLevels":["safe"],"expectActionableFeedback":false,"expectedSanitizedFeedback":"forbidden","reviewedBy":"","reviewedAt":""},
+        {"id":"ko-056","text":"축하합니다 당첨되셨어요 지급 확인은 bit.ly/win2026 에서 계정 비밀번호를 입력하세요.","context":"단축 URL로 유도하는 계정 비밀번호 탈취","expectedCategories":["phishing"],"forbiddenReviewLevels":["safe"],"expectActionableFeedback":false,"expectedSanitizedFeedback":"forbidden","reviewedBy":"","reviewedAt":""},
         {"id":"ko-057","text":"최저가 판매 중입니다. 구매 문의는 외부 메신저로 주세요.","context":"외부 거래 광고","expectedCategories":["spam_advertisement"],"forbiddenReviewLevels":["safe"],"expectActionableFeedback":false,"expectedSanitizedFeedback":"forbidden","reviewedBy":"","reviewedAt":""}
       ]
     },
