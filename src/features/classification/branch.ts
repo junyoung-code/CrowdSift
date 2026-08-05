@@ -50,6 +50,8 @@ export type BranchOutcome =
   | {
       kind: "instant_safe";
       level: "safe";
+      /** 무엇을 근거로 검증 없이 확정했는지. 로그에 그대로 남는다. */
+      basis: "luna_safe";
       confidence: number;
     }
   | {
@@ -162,6 +164,7 @@ export const routeFirstPass = (first: FirstPassResult): BranchOutcome => {
     return {
       kind: "instant_safe",
       level: "safe",
+      basis: "luna_safe",
       confidence: first.luna.result.confidence,
     };
   }

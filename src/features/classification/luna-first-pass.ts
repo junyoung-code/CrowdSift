@@ -1,5 +1,3 @@
-import "server-only";
-
 import { zodTextFormat } from "openai/helpers/zod";
 
 import type { FirstPassInput, ModelRun } from "./contracts";

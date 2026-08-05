@@ -1,5 +1,3 @@
-import "server-only";
-
 import type { FirstPassInput, FirstPassResult } from "./contracts";
 import type { LunaFirstPassClassifier } from "./luna-first-pass";
 import type { ModerationScreen } from "./moderation";

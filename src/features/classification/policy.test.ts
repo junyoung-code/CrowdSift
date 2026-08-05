@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  LUNA_LOW_CONFIDENCE,
   LUNA_SAFE_PASS_CONFIDENCE,
   MODERATION_CATEGORY_POLICY,
   TERRA_REVIEW_QUEUE_CONFIDENCE,
@@ -10,9 +9,8 @@ import {
 import { ModerationCategorySchema } from "./schemas";
 
 describe("classification policy", () => {
-  it("keeps the instant-pass bar above the low-confidence bar", () => {
-    expect(LUNA_SAFE_PASS_CONFIDENCE).toBeGreaterThan(LUNA_LOW_CONFIDENCE);
-    expect(TERRA_REVIEW_QUEUE_CONFIDENCE).toBeLessThanOrEqual(
+  it("keeps the review-queue bar below the instant-pass bar", () => {
+    expect(TERRA_REVIEW_QUEUE_CONFIDENCE).toBeLessThan(
       LUNA_SAFE_PASS_CONFIDENCE,
     );
   });

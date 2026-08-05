@@ -14,11 +14,6 @@ export const CLASSIFICATION_POLICY_VERSION = "crowdsift-classification-v0.2";
 export const LUNA_SAFE_PASS_CONFIDENCE = 0.85;
 
 /**
- * Luna 가 이 값에 못 미치면 Terra 가 판단해도 확신이 서지 않을 수 있다고 본다.
- */
-export const LUNA_LOW_CONFIDENCE = 0.6;
-
-/**
  * Terra 확신도가 이 값에 못 미치면 등급을 확정하지 않고 사람이 보게 넘긴다.
  * 두 모델 모두 확신하지 못한 댓글을 원문 그대로 내보내지 않기 위한 마지막 문턱이다.
  */

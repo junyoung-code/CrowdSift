@@ -1,7 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
 
-vi.mock("server-only", () => ({}));
-
 import type { FirstPassInput } from "./contracts";
 import { createFirstPassRunner } from "./first-pass";
 import type { LunaFirstPassClassifier } from "./luna-first-pass";

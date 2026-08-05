@@ -75,6 +75,7 @@ describe("first pass routing", () => {
     expect(outcome).toEqual({
       kind: "instant_safe",
       level: "safe",
+      basis: "luna_safe",
       confidence: 0.94,
     });
   });
