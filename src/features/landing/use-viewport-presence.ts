@@ -12,8 +12,10 @@ export function useViewportPresence<T extends Element>(
     if (!target) return;
 
     const observer = new IntersectionObserver(([entry]) => {
-      setIsInView(entry.isIntersecting);
-      if (!entry.isIntersecting) notifyLeave();
+      const meetsAmount =
+        entry.isIntersecting && entry.intersectionRatio >= amount;
+      setIsInView(meetsAmount);
+      if (!entry.isIntersecting || entry.intersectionRatio === 0) notifyLeave();
     }, { threshold: amount });
 
     observer.observe(target);

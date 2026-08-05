@@ -5,11 +5,19 @@ import { afterEach } from "vitest";
 class ControlledIntersectionObserver implements IntersectionObserver {
   private static readonly instances = new Set<ControlledIntersectionObserver>();
   private readonly observedTargets = new Set<Element>();
-  readonly root = null;
-  readonly rootMargin = "0px";
-  readonly thresholds = [0];
+  readonly root: Element | Document | null;
+  readonly rootMargin: string;
+  readonly thresholds: number[];
 
-  constructor(private readonly callback: IntersectionObserverCallback) {
+  constructor(
+    private readonly callback: IntersectionObserverCallback,
+    options: IntersectionObserverInit = {},
+  ) {
+    this.root = options.root ?? null;
+    this.rootMargin = options.rootMargin ?? "0px";
+    this.thresholds = Array.isArray(options.threshold)
+      ? [...options.threshold].sort((left, right) => left - right)
+      : [options.threshold ?? 0];
     ControlledIntersectionObserver.instances.add(this);
   }
 
@@ -20,7 +28,7 @@ class ControlledIntersectionObserver implements IntersectionObserver {
 
   observe(target: Element) {
     this.observedTargets.add(target);
-    this.notify(target, true);
+    this.notify(target, 1);
   }
 
   takeRecords() {
@@ -31,13 +39,14 @@ class ControlledIntersectionObserver implements IntersectionObserver {
     this.observedTargets.delete(target);
   }
 
-  private notify(target: Element, isIntersecting: boolean) {
+  private notify(target: Element, intersectionRatio: number) {
     const bounds = target.getBoundingClientRect();
+    const isIntersecting = intersectionRatio > 0;
     this.callback(
       [
         {
           boundingClientRect: bounds,
-          intersectionRatio: isIntersecting ? 1 : 0,
+          intersectionRatio,
           intersectionRect: isIntersecting ? bounds : new DOMRectReadOnly(),
           isIntersecting,
           rootBounds: null,
@@ -49,10 +58,10 @@ class ControlledIntersectionObserver implements IntersectionObserver {
     );
   }
 
-  static setIntersection(target: Element, isIntersecting: boolean) {
+  static setIntersection(target: Element, intersectionRatio: number) {
     for (const observer of ControlledIntersectionObserver.instances) {
       if (observer.observedTargets.has(target)) {
-        observer.notify(target, isIntersecting);
+        observer.notify(target, intersectionRatio);
       }
     }
   }
@@ -66,9 +75,9 @@ globalThis.IntersectionObserver = ControlledIntersectionObserver;
 
 export function setElementIntersection(
   target: Element,
-  isIntersecting: boolean,
+  intersectionRatio: number,
 ) {
-  ControlledIntersectionObserver.setIntersection(target, isIntersecting);
+  ControlledIntersectionObserver.setIntersection(target, intersectionRatio);
 }
 
 afterEach(() => {

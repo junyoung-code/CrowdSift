@@ -124,16 +124,38 @@ describe("ProductPreview", () => {
     fireEvent.click(screen.getByRole("tab", { name: "최종 추천" }));
     const preview = screen.getByLabelText("제품 예시 화면");
 
-    await act(async () => setElementIntersection(preview, false));
+    await act(async () => setElementIntersection(preview, 0));
     expect(screen.getByRole("tab", { name: "댓글 수집" })).toHaveAttribute(
       "aria-selected",
       "true",
     );
 
-    await act(async () => setElementIntersection(preview, true));
+    await act(async () => setElementIntersection(preview, 1));
     await act(async () => vi.advanceTimersByTimeAsync(4500));
 
     expect(screen.getByRole("tab", { name: "1차 분류" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+  });
+
+  it("pauses below 25% visibility without resetting and resumes at the threshold", async () => {
+    render(<ProductPreview />);
+
+    await act(async () => vi.advanceTimersByTimeAsync(4500));
+    const preview = screen.getByLabelText("제품 예시 화면");
+    await act(async () => setElementIntersection(preview, 0.1));
+    await act(async () => vi.advanceTimersByTimeAsync(4500));
+
+    expect(screen.getByRole("tab", { name: "1차 분류" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+
+    await act(async () => setElementIntersection(preview, 0.25));
+    await act(async () => vi.advanceTimersByTimeAsync(4500));
+
+    expect(screen.getByRole("tab", { name: "최종 추천" })).toHaveAttribute(
       "aria-selected",
       "true",
     );

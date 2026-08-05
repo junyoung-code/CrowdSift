@@ -140,14 +140,44 @@ describe("AnalysisScrollStory", () => {
     await act(async () => vi.advanceTimersByTimeAsync(1000));
 
     const story = screen.getByRole("region", { name: "두 단계 분석 과정" });
-    await act(async () => setElementIntersection(story, false));
+    await act(async () => setElementIntersection(story, 0));
 
     expect(screen.getByRole("button", { name: /1차 분석/ })).toHaveAttribute(
       "aria-current",
       "step",
     );
 
-    await act(async () => setElementIntersection(story, true));
+    await act(async () => setElementIntersection(story, 1));
+    await act(async () => vi.advanceTimersByTimeAsync(ANALYSIS_AUTOPLAY_MS));
+
+    expect(
+      screen.getByRole("button", { name: /크리에이터 문맥/ }),
+    ).toHaveAttribute("aria-current", "step");
+  });
+
+  it("pauses below 35% visibility without resetting the active stage", async () => {
+    vi.useFakeTimers();
+    render(<AnalysisScrollStory />);
+
+    await act(async () => vi.advanceTimersByTimeAsync(ANALYSIS_AUTOPLAY_MS));
+    const story = screen.getByRole("region", { name: "두 단계 분석 과정" });
+    await act(async () => setElementIntersection(story, 0.2));
+
+    await act(async () => vi.advanceTimersByTimeAsync(ANALYSIS_AUTOPLAY_MS));
+
+    expect(
+      screen.getByRole("button", { name: /크리에이터 문맥/ }),
+    ).toHaveAttribute("aria-current", "step");
+  });
+
+  it("resumes autoplay when visibility reaches 35%", async () => {
+    vi.useFakeTimers();
+    render(<AnalysisScrollStory />);
+
+    const story = screen.getByRole("region", { name: "두 단계 분석 과정" });
+    await act(async () => setElementIntersection(story, 0.2));
+    await act(async () => vi.advanceTimersByTimeAsync(ANALYSIS_AUTOPLAY_MS));
+    await act(async () => setElementIntersection(story, 0.35));
     await act(async () => vi.advanceTimersByTimeAsync(ANALYSIS_AUTOPLAY_MS));
 
     expect(
