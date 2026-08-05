@@ -6,7 +6,13 @@
  *
  *   npx tsx scripts/measure-pipeline.ts          전체
  *   npx tsx scripts/measure-pipeline.ts 10       앞 10건만
+ *
+ * 결과는 화면과 `measurements/pipeline-<시각>.json` 양쪽에 남는다. 한 번 도는 데
+ * 십수 분이 걸리므로, 결과를 다시 보려고 다시 부르지 않게 한다.
  */
+import { mkdirSync, writeFileSync } from "node:fs";
+import { resolve } from "node:path";
+
 import { routeFirstPass } from "../src/features/classification/branch";
 import type {
   FirstPassInput,
@@ -15,9 +21,12 @@ import type {
 import { createFirstPassRunner } from "../src/features/classification/first-pass";
 import { createLunaFirstPass } from "../src/features/classification/luna-first-pass";
 import { createModerationScreen } from "../src/features/classification/moderation";
+import { LUNA_FIRST_PASS_PROMPT_VERSION } from "../src/features/classification/prompts";
 import {
   DEFAULT_CLASSIFICATION_PROFILE,
+  type Certainty,
   type RiskLevel,
+  type TerraVerdict,
 } from "../src/features/classification/schemas";
 import { createTerraVerification } from "../src/features/classification/terra-verification";
 import { decideVerdict, type Verdict } from "../src/features/classification/verdict";
@@ -82,8 +91,11 @@ const main = async () => {
 
   type Row = TestComment & {
     candidate: RiskLevel;
+    lunaCertainty: Certainty;
     verified: boolean;
     terraLevel: RiskLevel | null;
+    terraCertainty: Certainty | null;
+    terra: TerraVerdict | null;
     verdict: Verdict | null;
     lunaTokens: number;
     terraTokens: number;
@@ -108,8 +120,11 @@ const main = async () => {
       rows.push({
         ...comment,
         candidate: first.luna.result.candidateLevel,
+        lunaCertainty: first.luna.result.certainty,
         verified: false,
         terraLevel: null,
+        terraCertainty: null,
+        terra: null,
         verdict: null,
         lunaTokens: first.luna.run.usage.totalTokens,
         terraTokens: 0,
@@ -128,8 +143,11 @@ const main = async () => {
     rows.push({
       ...comment,
       candidate: first.luna.result.candidateLevel,
+      lunaCertainty: first.luna.result.certainty,
       verified: true,
       terraLevel: verified.result.verdictLevel,
+      terraCertainty: verified.result.certainty,
+      terra: verified.result,
       verdict: decideVerdict({
         candidateLevel: first.luna.result.candidateLevel,
         terra: verified.result,
@@ -222,7 +240,32 @@ const main = async () => {
   if (moderationFailures.length > 0) {
     console.log(`모더레이션 호출 실패 ${moderationFailures.length}건`);
   }
-  console.log("");
+
+  const directory = resolve(process.cwd(), "measurements");
+  mkdirSync(directory, { recursive: true });
+  const path = resolve(
+    directory,
+    `pipeline-${new Date().toISOString().replace(/[:.]/g, "-")}.json`,
+  );
+  writeFileSync(
+    path,
+    JSON.stringify(
+      {
+        ranAt: new Date().toISOString(),
+        models: { luna: lunaModel, terra: terraModel, moderation: moderationModel },
+        prompts: {
+          luna: LUNA_FIRST_PASS_PROMPT_VERSION,
+          terra: terra.promptVersion,
+        },
+        tokens: { luna: lunaTokens, terra: terraTokens },
+        rows,
+      },
+      null,
+      2,
+    ),
+    "utf8",
+  );
+  console.log(`\n결과를 남겼다: ${path}\n`);
 };
 
 main().catch((error) => {
