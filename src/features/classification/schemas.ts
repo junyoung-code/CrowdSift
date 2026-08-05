@@ -99,6 +99,82 @@ export const LunaFirstPassSchema = z
   .strict();
 
 /**
+ * 기획서 6번의 분류 사유 코드. 크리에이터에게 "왜 이 등급인지" 보여줄 때 쓴다.
+ */
+export const ReasonCodeSchema = z.enum([
+  "profanity", // 욕설
+  "vulgarity", // 비속어
+  "mockery", // 조롱
+  "sarcasm", // 비꼼
+  "personal_attack", // 개인 공격
+  "appearance_attack", // 외모 공격
+  "family_attack", // 가족 공격
+  "sexual_harassment", // 성희롱
+  "hate_speech", // 혐오 표현
+  "threat", // 협박
+  "stalking", // 스토킹
+  "personal_info", // 개인정보 노출
+  "self_harm_or_death", // 자해·죽음 유도
+]);
+
+/**
+ * 기획서 6번의 권장 처리 방식. **제안이며 실행이 아니다.**
+ * 삭제·차단·신고는 사용자가 확인해야 일어난다.
+ */
+export const RecommendedActionSchema = z.enum([
+  "show_source", // 원문 표시
+  "show_rewritten_only", // 순화된 내용만 표시
+  "hide_source", // 원문 숨김
+  "consider_delete", // 삭제 검토
+  "consider_block", // 차단 검토
+  "consider_report", // 신고 검토
+  "preserve_evidence", // 증거 보관
+  "notify_now", // 즉시 알림
+]);
+
+/**
+ * 피드백의 성격. 있음/없음은 Luna 가 이미 봤고, 여기서는 종류를 가른다.
+ */
+export const FeedbackTypeSchema = z.enum([
+  "actionable", // 고칠 수 있는 문제 지적
+  "preference", // 선호나 비교
+  "question", // 정보 요청
+  "none",
+]);
+
+/**
+ * 3. Terra 2차 검증 출력.
+ *
+ * **최종 등급이 아니다.** Terra 는 자기 판단만 내고, 코드가 Luna 후보·Moderation
+ * 최소 등급과 함께 읽어 확정한다. Terra 는 Luna 의 답을 보지 못한 채 판단한다.
+ */
+export const TerraVerdictSchema = z
+  .object({
+    /** Terra 자신의 등급 판단. Luna 후보와 같을 수도, 다를 수도 있다. */
+    verdictLevel: RiskLevelSchema,
+    certainty: CertaintySchema,
+    reasonCodes: z.array(ReasonCodeSchema).max(13),
+    hardRiskFlags: z.array(HardRiskFlagSchema).max(9),
+    softRiskFlags: z.array(SoftRiskFlagSchema).max(5),
+    feedbackType: FeedbackTypeSchema,
+    /** 순화를 만들어도 되는지. false 면 4단계를 부르지 않는다. */
+    feedbackActionable: z.boolean(),
+    /**
+     * 순화의 재료. 공격 표현을 걷어낸 뒤 남는 핵심만 적는다.
+     * 없으면 null 이다. 빈 문자열과 구분하려고 nullable 로 둔다.
+     */
+    feedbackCore: z.string().min(1).max(200).nullable(),
+    recommendedActions: z.array(RecommendedActionSchema).max(8),
+    /**
+     * 작성자 본인이 힘들다고 털어놓는 경우. 크리에이터를 향한 공격이 아니므로
+     * 등급과 별개 경로로 다룬다. 크리에이터에게 죽음을 권하는 것은 여기가 아니라
+     * hardRiskFlags 의 self_harm_or_death 다.
+     */
+    safetyCase: z.boolean(),
+  })
+  .strict();
+
+/**
  * 1-A. omni-moderation-latest 가 돌려주는 범주.
  */
 export const ModerationCategorySchema = z.enum([
@@ -150,6 +226,10 @@ export type Certainty = z.infer<typeof CertaintySchema>;
 export type HardRiskFlag = z.infer<typeof HardRiskFlagSchema>;
 export type SoftRiskFlag = z.infer<typeof SoftRiskFlagSchema>;
 export type LunaFirstPass = z.infer<typeof LunaFirstPassSchema>;
+export type ReasonCode = z.infer<typeof ReasonCodeSchema>;
+export type RecommendedAction = z.infer<typeof RecommendedActionSchema>;
+export type FeedbackType = z.infer<typeof FeedbackTypeSchema>;
+export type TerraVerdict = z.infer<typeof TerraVerdictSchema>;
 export type ModerationCategory = z.infer<typeof ModerationCategorySchema>;
 export type ModerationResult = z.infer<typeof ModerationResultSchema>;
 export type ClassificationProfile = z.infer<typeof ClassificationProfileSchema>;

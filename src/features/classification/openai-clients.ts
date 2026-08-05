@@ -7,6 +7,10 @@ import { getServerEnv } from "@/lib/env";
 import { createFirstPassRunner, type FirstPassRunner } from "./first-pass";
 import { createLunaFirstPass, type ResponsesClient } from "./luna-first-pass";
 import { createModerationScreen, type ModerationClient } from "./moderation";
+import {
+  createTerraVerification,
+  type TerraVerification,
+} from "./terra-verification";
 
 /**
  * 부품에 실제 OpenAI 클라이언트를 꽂는다.
@@ -48,5 +52,27 @@ export const createFirstPass = (options?: {
         "omni-moderation-latest",
     }),
     onModerationError: options?.onModerationError,
+  });
+};
+
+/**
+ * 3단계 Terra 검증에 실제 클라이언트를 꽂는다.
+ */
+export const createSecondPass = (options?: {
+  apiKey?: string;
+  terraModel?: string;
+}): TerraVerification => {
+  const environment =
+    options?.apiKey && options.terraModel ? null : getServerEnv();
+  const apiKey = options?.apiKey ?? environment?.OPENAI_API_KEY;
+
+  if (!apiKey) {
+    throw new Error("OPENAI_API_KEY is required to run the second pass");
+  }
+
+  return createTerraVerification({
+    client: new OpenAI({ apiKey }) as unknown as ResponsesClient,
+    model:
+      options?.terraModel ?? environment?.OPENAI_TERRA_MODEL ?? "gpt-5.6-terra",
   });
 };

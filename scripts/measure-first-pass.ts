@@ -8,9 +8,6 @@
  *   npx tsx scripts/measure-first-pass.ts          전체
  *   npx tsx scripts/measure-first-pass.ts 5        앞 5건만 (연결 확인용)
  */
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
-
 import { routeFirstPass } from "../src/features/classification/branch";
 import type { FirstPassInput } from "../src/features/classification/contracts";
 import { createFirstPassRunner } from "../src/features/classification/first-pass";
@@ -21,62 +18,12 @@ import {
   DEFAULT_CLASSIFICATION_PROFILE,
   type Certainty,
 } from "../src/features/classification/schemas";
-
-const loadEnvFile = () => {
-  const raw = readFileSync(resolve(process.cwd(), ".env.local"), "utf8");
-
-  for (const line of raw.split(/\r?\n/)) {
-    const match = /^([A-Z0-9_]+)=(.*)$/.exec(line.trim());
-    if (match && !process.env[match[1]!]) {
-      process.env[match[1]!] = match[2]!;
-    }
-  }
-};
-
-type TestComment = {
-  id: string;
-  text: string;
-  expected: string;
-  video: string;
-};
-
-/**
- * 테스트 계획 문서의 표에서 댓글을 읽는다. 문서가 하나뿐인 출처로 남게 하려는 것이다.
- */
-const readTestComments = (): TestComment[] => {
-  const raw = readFileSync(
-    resolve(process.cwd(), "docs/test-comment-plan.md"),
-    "utf8",
-  );
-  const comments: TestComment[] = [];
-  let video = "";
-
-  for (const line of raw.split(/\r?\n/)) {
-    const heading = /^## 영상 ([ABC]) —/.exec(line);
-    if (heading) {
-      video = heading[1]!;
-      continue;
-    }
-
-    if (!video || !line.startsWith("|")) continue;
-
-    const cells = line
-      .split("|")
-      .slice(1, -1)
-      .map((cell) => cell.trim().replace(/\*\*/g, ""));
-    const [id, , text, expected] = cells;
-
-    if (!id || !text || !expected) continue;
-    if (!/^[ABC]\d{2}$/.test(id)) continue;
-
-    comments.push({ id, text, expected, video });
-  }
-
-  return comments;
-};
-
-const bar = (count: number, total: number, width = 30) =>
-  "█".repeat(Math.round((count / Math.max(total, 1)) * width));
+import {
+  bar,
+  loadEnvFile,
+  readTestComments,
+  type TestComment,
+} from "./test-comments";
 
 const main = async () => {
   loadEnvFile();
