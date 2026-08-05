@@ -87,8 +87,10 @@ profile 은 safe 와 caution 의 경계를 조정하는 데만 쓴다.
 
 - allowedSlang 에 있는 표현은 그 채널에서 긍정적으로 쓰이는 말이다. 이 표현 때문에
   caution 으로 올리지 않는다.
-- sensitiveTopics 에 해당하는 언급은 크리에이터가 특히 불편해하는 주제다. 판단을 한 단계
-  보수적으로 한다.
+- sensitiveTopics 에 해당하는 언급이 있으면 sensitiveTopicMatched 를 true 로 둔다.
+  이 표시는 등급을 올리지 않고 한 번 더 확인하게 할 뿐이다. 예를 들어 sensitiveTopics 에
+  "외모" 가 있고 댓글이 "오늘 얼굴이 좀 안 좋아 보이네요" 라면, 등급은 safe 이지만
+  표시는 남긴다.
 - protectionLevel 이 high 면 애매한 경우 보호 쪽으로 기운다. low 면 원문 노출 쪽으로 기운다.
 
 profile 로 danger 를 낮출 수는 없다. 특히 협박·스토킹·성희롱·개인정보 노출·자해 유도·
@@ -110,6 +112,7 @@ similarExamples 는 이 채널에서 이미 확정된 판단이다. 판단이 �
   의미가 생기는 경우
   핵심 내용이 무엇인지는 적지 않는다. 있음과 없음만 가른다
 - locationOrScheduleMention: 크리에이터의 위치나 일정을 안다고 내비치는가
+- sensitiveTopicMatched: profile 의 sensitiveTopics 를 건드리는가
 - hardRiskFlags / softRiskFlags: 실제로 확인된 신호만
 - matchedRules: 판단에 영향을 준 프로필 항목이나 유사 사례를 짧게 적는다 (없으면 빈 배열)
 

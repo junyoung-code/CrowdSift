@@ -69,6 +69,13 @@ export const LunaFirstPassSchema = z
      * 동안에는 이 한 줄만으로 스토킹 여부를 가릴 수 없어, 한 번 더 보는 쪽을 택한다.
      */
     locationOrScheduleMention: z.boolean(),
+    /**
+     * 채널이 민감하다고 등록한 주제를 건드리는지.
+     *
+     * 주제는 "외모" 같은 낱말이지만 댓글이 거기 해당하는지는 뜻을 읽어야 알 수 있어,
+     * 코드가 문자열 비교로 가릴 수 없다. 등급을 올리지는 않고 즉시 통과만 막는다.
+     */
+    sensitiveTopicMatched: z.boolean(),
     hardRiskFlags: z.array(HardRiskFlagSchema).max(9),
     softRiskFlags: z.array(SoftRiskFlagSchema).max(5),
     matchedRules: z.array(z.string().min(1).max(80)).max(10),

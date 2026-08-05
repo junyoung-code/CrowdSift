@@ -37,6 +37,7 @@ const validOutput = {
   confidence: 0.72,
   feedbackPresent: true,
   locationOrScheduleMention: false,
+  sensitiveTopicMatched: false,
   hardRiskFlags: [],
   softRiskFlags: ["profanity"],
   matchedRules: [],
