@@ -16,6 +16,7 @@ const input: FirstPassInput = {
   channelId: "channel-1",
   profile: DEFAULT_CLASSIFICATION_PROFILE,
   similarExamples: [],
+  parent: null,
 };
 
 const clientReturning = (parsed: unknown) =>

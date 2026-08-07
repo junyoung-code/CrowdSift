@@ -37,6 +37,8 @@ export class ClassificationSchemaError extends Error {
 const toModelInput = (input: FirstPassInput) => ({
   comment: input.sourceText,
   videoTitle: input.videoTitle,
+  // 답글이면 무엇에 답하는 말인지. 없으면 최상위 댓글이다.
+  parent: input.parent ? { text: input.parent.text } : null,
   profile: input.profile,
   similarExamples: input.similarExamples.map((example) => ({
     text: example.text,

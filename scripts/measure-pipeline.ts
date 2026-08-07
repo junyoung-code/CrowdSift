@@ -25,6 +25,7 @@ import { LUNA_FIRST_PASS_PROMPT_VERSION } from "../src/features/classification/p
 import {
   DEFAULT_CLASSIFICATION_PROFILE,
   type Certainty,
+  type LunaFirstPass,
   type RiskLevel,
   type TerraVerdict,
 } from "../src/features/classification/schemas";
@@ -92,6 +93,8 @@ const main = async () => {
   type Row = TestComment & {
     candidate: RiskLevel;
     lunaCertainty: Certainty;
+    /** 왜 그렇게 판단했는지 나중에 되짚을 수 있게 1차 원본을 통째로 남긴다. */
+    luna: LunaFirstPass;
     verified: boolean;
     terraLevel: RiskLevel | null;
     terraCertainty: Certainty | null;
@@ -100,6 +103,9 @@ const main = async () => {
     lunaTokens: number;
     terraTokens: number;
   };
+  // 답글의 부모를 찾기 위한 색인. 계획서 표는 게시 순서라 부모가 항상 앞에 있다.
+  const byId = new Map(all.map((item) => [item.id, item]));
+
   const rows: Row[] = [];
 
   for (const [index, comment] of comments.entries()) {
@@ -111,6 +117,12 @@ const main = async () => {
       channelId: "measurement",
       profile: DEFAULT_CLASSIFICATION_PROFILE,
       similarExamples: [],
+      parent: comment.parentId
+        ? {
+            id: comment.parentId,
+            text: byId.get(comment.parentId)?.text ?? "",
+          }
+        : null,
     };
 
     const first = await firstPass.run(input);
@@ -121,6 +133,7 @@ const main = async () => {
         ...comment,
         candidate: first.luna.result.candidateLevel,
         lunaCertainty: first.luna.result.certainty,
+        luna: first.luna.result,
         verified: false,
         terraLevel: null,
         terraCertainty: null,
@@ -144,6 +157,7 @@ const main = async () => {
       ...comment,
       candidate: first.luna.result.candidateLevel,
       lunaCertainty: first.luna.result.certainty,
+      luna: first.luna.result,
       verified: true,
       terraLevel: verified.result.verdictLevel,
       terraCertainty: verified.result.certainty,

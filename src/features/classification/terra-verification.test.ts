@@ -43,6 +43,7 @@ const input: SecondPassInput = {
     emojiFrequency: "low",
   },
   similarExamples: [],
+  parent: null,
   moderation: {
     flagged: true,
     categories: ["harassment"],
@@ -115,6 +116,35 @@ describe("terra verification", () => {
     const material = await materialSentFor({ ...input, moderation: null });
 
     expect(JSON.parse(material)).toMatchObject({ moderation: null });
+  });
+
+  it("carries the parent comment, which is a fact and not a verdict", async () => {
+    // "ㄹㅇ 인정" means opposite things under an insult and under a compliment,
+    // and the difference is only in the parent.
+    const material = await materialSentFor({
+      ...input,
+      sourceText: "ㄹㅇ 인정.",
+      parent: { id: "comment-0", text: "너 같은 인간은 유튜브 하면 안 된다." },
+    });
+
+    expect(JSON.parse(material).parent).toEqual({
+      text: "너 같은 인간은 유튜브 하면 안 된다.",
+    });
+  });
+
+  it("does not send a level along with the parent", async () => {
+    const material = await materialSentFor({
+      ...input,
+      parent: { id: "comment-0", text: "영상이 조금 길었어요." },
+    });
+
+    // A level attached to the parent transfers to the reply far too readily, and
+    // then a comment telling the abuser to stop is buried with the abuse.
+    expect(Object.keys(JSON.parse(material).parent)).toEqual(["text"]);
+  });
+
+  it("says there is no parent for a top level comment", async () => {
+    expect(JSON.parse(await materialSentFor(input)).parent).toBeNull();
   });
 
   it("reasons about the comment rather than answering straight away", async () => {

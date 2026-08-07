@@ -68,6 +68,9 @@ const main = async () => {
     moderationCategories: string[];
     tokens: number;
   };
+  // 답글의 부모를 찾기 위한 색인. 계획서 표는 게시 순서라 부모가 항상 앞에 있다.
+  const byId = new Map(all.map((item) => [item.id, item]));
+
   const rows: Row[] = [];
 
   for (const [index, comment] of comments.entries()) {
@@ -79,6 +82,12 @@ const main = async () => {
       channelId: "measurement",
       profile: DEFAULT_CLASSIFICATION_PROFILE,
       similarExamples: [],
+      parent: comment.parentId
+        ? {
+            id: comment.parentId,
+            text: byId.get(comment.parentId)?.text ?? "",
+          }
+        : null,
     };
 
     try {

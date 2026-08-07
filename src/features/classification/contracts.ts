@@ -15,6 +15,21 @@ export type SimilarExample = {
   note: string | null;
 };
 
+/**
+ * 이 댓글이 답글일 때 그 부모.
+ *
+ * **원문만 넘기고 등급은 넘기지 않는다.** 등급을 주면 그것이 그대로 옮겨붙기 쉽고,
+ * 그러면 악플을 말리는 답글까지 악플과 함께 걸린다. 모델이 부모 문장을 직접 읽고
+ * 이 답글이 무엇에 답하는지 판단하게 둔다.
+ *
+ * 한 단계만 넘긴다. 유튜브가 3단을 평평하게 펴기도 하고, 스레드 전체를 보는 것은
+ * 훨씬 큰 작업이라 실측을 보고 정한다.
+ */
+export type ParentComment = {
+  id: string;
+  text: string;
+};
+
 export type FirstPassInput = {
   commentId: string;
   workspaceId: string;
@@ -23,6 +38,7 @@ export type FirstPassInput = {
   channelId: string;
   profile: ClassificationProfile;
   similarExamples: SimilarExample[];
+  parent: ParentComment | null;
 };
 
 /**
@@ -40,6 +56,7 @@ export type SecondPassInput = {
   channelId: string;
   profile: ClassificationProfile;
   similarExamples: SimilarExample[];
+  parent: ParentComment | null;
   /** 무료 필터가 본 사실. 부르지 못했으면 null 이다. */
   moderation: ModerationResult | null;
 };
