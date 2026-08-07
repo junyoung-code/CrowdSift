@@ -179,6 +179,20 @@ function ProgressPanel({
             />
           </div>
 
+          {progress.analysis ? (
+            <div
+              aria-label="분류 결과 집계"
+              className="classification-verdict-counts"
+            >
+              <span>안전 {progress.analysis.verdictCounts.safe}</span>
+              <span>주의 {progress.analysis.verdictCounts.caution}</span>
+              <span>위험 {progress.analysis.verdictCounts.risk}</span>
+              <span>
+                판단 보류 {progress.analysis.verdictCounts.reviewQueue}
+              </span>
+            </div>
+          ) : null}
+
           {analysisComplete ? (
             <Link className="button button-primary" href="/app/inbox">
               Comment Inbox에서 보기

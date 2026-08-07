@@ -127,6 +127,12 @@ describe("PublicVideoImportPanel", () => {
             totalCount: 19,
             completedCount: 10,
             failedCount: 0,
+            verdictCounts: {
+              safe: 6,
+              caution: 2,
+              risk: 1,
+              reviewQueue: 1,
+            },
           },
         }}
         mode={{ configured: true, enabled: true }}
@@ -144,6 +150,10 @@ describe("PublicVideoImportPanel", () => {
     expect(within(progress).getByText("최상위 12")).toBeInTheDocument();
     expect(within(progress).getByText("답글 8")).toBeInTheDocument();
     expect(within(progress).getByText("10 / 19")).toBeInTheDocument();
+    expect(within(progress).getByText("안전 6")).toBeInTheDocument();
+    expect(within(progress).getByText("주의 2")).toBeInTheDocument();
+    expect(within(progress).getByText("위험 1")).toBeInTheDocument();
+    expect(within(progress).getByText("판단 보류 1")).toBeInTheDocument();
     expect(within(progress).getByText("TEST FIXTURE")).toBeInTheDocument();
     expect(
       within(progress).getByText("규칙 검사 · 1차 AI · 필요 시 2차 AI"),
