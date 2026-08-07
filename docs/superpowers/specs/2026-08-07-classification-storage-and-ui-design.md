@@ -99,6 +99,18 @@ Moderation 실패는 실패 실행으로 저장하되 Luna가 성공했다면 �
 
 안전 즉시 통과도 반드시 최종 판정 행을 만든다. Terra가 없다는 이유로 최종 결과를 `null`로 두지 않는다.
 
+### `classification_feedback`
+
+기존 `creator_feedback`는 예전 `comment_analyses`를 참조하므로 새 판정 수정에 재사용하지 않는다. 새 피드백은 다음을 별도 행으로 저장한다.
+
+- `workspace_id`, `raw_comment_id`, `classification_verdict_id`, `actor_user_id`
+- `decision`: `approved | rejected | corrected`
+- `corrected_level`: `safe | caution | risk | null`
+- `edited_feedback_core`
+- `use_for_personalization`, `use_for_training`, `created_at`
+
+수정은 모델의 원래 출력이나 최종 판정 행을 덮어쓰지 않는다. Inbox 표시에서 최신 사용자 수정을 별도 오버레이로 적용하고, 원래 AI 판정과 사용자 수정 기록을 모두 남긴다.
+
 ### 데이터 정리
 
 새 마이그레이션은 외래 키 순서에 맞춰 기존 AI 파생 데이터를 삭제한다.
@@ -187,7 +199,7 @@ Inbox 읽기 모델은 `classification_verdicts`의 최신 결과를 기준으�
 - `safe`, `caution`, `risk`는 기존 배지와 필터에 연결한다.
 - `review_queue`는 별도 `판단 보류` 배지와 필터로 제공한다.
 - 기존 카테고리 대신 새 `reason_codes`, `feedback_type`, `recommended_actions`를 읽는다.
-- 사용자 판단 수정 기능은 새 최종 판정 ID를 참조하도록 변경한다.
+- 사용자 판단 수정 기능은 새 최종 판정 ID를 참조하여 `classification_feedback`에 추가하고, AI 원본 판정은 변경하지 않는다.
 - 순화문이 없는 주의 댓글은 `feedback_core`가 있으면 핵심 피드백을 표시하고, 없으면 보존할 피드백이 없다고 표시한다.
 
 ## 테스트와 검증
