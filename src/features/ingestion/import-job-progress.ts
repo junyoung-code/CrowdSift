@@ -49,12 +49,6 @@ export type ImportJobProgress = {
     storedCount: number;
     duplicateCount: number;
     failedCount: number;
-    verdictCounts: {
-      safe: number;
-      caution: number;
-      risk: number;
-      reviewQueue: number;
-    };
     topLevelCount: number;
     replyCount: number;
     youtubeQuotaUnitsUsed: number;
@@ -66,6 +60,12 @@ export type ImportJobProgress = {
     totalCount: number;
     completedCount: number;
     failedCount: number;
+    verdictCounts: {
+      safe: number;
+      caution: number;
+      risk: number;
+      reviewQueue: number;
+    };
   } | null;
 };
 
