@@ -7416,3 +7416,61 @@ a {
 [data-theme="light"] .inbox-page .inbox-search-field input::placeholder {
   color: var(--app-muted);
 }
+.classification-progress-panel {
+  display: grid;
+  gap: 20px;
+  padding: 28px;
+  border: 1px solid #dbe7ff;
+  border-radius: 24px;
+  background: #fff;
+}
+
+.classification-progress-panel > header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.classification-progress-panel > header > span {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border-radius: 14px;
+  color: #2563eb;
+  background: #eef4ff;
+}
+
+.classification-progress-panel h3,
+.classification-progress-panel p {
+  margin: 0;
+}
+
+.classification-progress-summary {
+  display: grid;
+  gap: 8px;
+}
+
+.classification-progress-summary progress {
+  width: 100%;
+}
+
+.classification-verdict-counts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.classification-verdict-counts span {
+  padding: 12px;
+  border-radius: 12px;
+  background: #f7f9fd;
+  text-align: center;
+  font-weight: 700;
+}
+
+@media (max-width: 720px) {
+  .classification-verdict-counts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

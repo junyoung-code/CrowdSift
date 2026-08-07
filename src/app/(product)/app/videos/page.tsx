@@ -11,6 +11,7 @@ import Link from "next/link";
 
 import { requireViewer } from "@/features/auth/require-viewer";
 import { ImportProgress } from "@/features/ingestion/import-progress";
+import { ClassificationProgressPanel } from "@/features/classification/classification-progress-panel";
 import { getImportFailureMessage } from "@/features/ingestion/video-import-contract";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
@@ -280,10 +281,7 @@ export default async function VideosPage({ searchParams }: VideoPageProps) {
           />
           {selectedJob.status === "succeeded" ||
           selectedJob.status === "partially_succeeded" ? (
-            <p className="analysis-queued-note">
-              저장한 댓글의 AI 분석 작업이 준비되었습니다. 다음 단계에서
-              안전·주의·위험 분류를 실행합니다.
-            </p>
+            <ClassificationProgressPanel importJobId={selectedJob.id} />
           ) : null}
         </div>
       ) : null}
