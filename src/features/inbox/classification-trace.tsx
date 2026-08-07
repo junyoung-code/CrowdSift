@@ -18,6 +18,11 @@ const stringArray = (value: unknown) =>
 const stringValue = (value: unknown) =>
   typeof value === "string" ? value : null;
 
+const recordValue = (value: unknown): Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+
 const ModerationValues = ({
   stage,
 }: {
@@ -29,12 +34,7 @@ const ModerationValues = ({
   }
 
   const categories = stringArray(stage.output.categories);
-  const scores =
-    typeof stage.output.categoryScores === "object" &&
-    stage.output.categoryScores &&
-    !Array.isArray(stage.output.categoryScores)
-      ? stage.output.categoryScores
-      : {};
+  const scores = recordValue(stage.output.categoryScores);
   return (
     <p>
       {categories.length === 0
