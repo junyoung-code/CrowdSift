@@ -32,6 +32,7 @@ import type {
   InboxReply,
 } from "./inbox-query";
 import { SourceReveal } from "./source-reveal";
+import { ClassificationTrace } from "./classification-trace";
 
 const LEVEL_DETAILS: Record<
   ReviewLevel,
@@ -111,7 +112,7 @@ const getReplySummary = (reply: InboxReply) =>
   "안전 검토 전까지 답글 원문을 표시하지 않습니다.";
 
 const isInitiallyVisibleSource = (level: ReviewLevel | null) =>
-  level === "safe" || level === "caution";
+  level === "safe";
 
 const getQueuePreview = (item: InboxItem) =>
   isInitiallyVisibleSource(item.reviewLevel) &&
@@ -186,7 +187,16 @@ function Avatar({
   );
 }
 
-function ReviewBadge({ level }: { level: ReviewLevel | null }) {
+function ReviewBadge({
+  classificationStatus,
+  level,
+}: {
+  level: ReviewLevel | null;
+  classificationStatus?: InboxItem["classificationStatus"];
+}) {
+  if (classificationStatus === "review_queue") {
+    return <span className="review-level review-level-caution">판단 보류</span>;
+  }
   if (!level) {
     return <span className="review-level">등급 없음</span>;
   }
@@ -614,7 +624,10 @@ export function CommentInbox({
                         <Heart aria-hidden="true" />
                         {item.likeCount}
                       </span>
-                      <ReviewBadge level={item.reviewLevel} />
+                      <ReviewBadge
+                        classificationStatus={item.classificationStatus}
+                        level={item.reviewLevel}
+                      />
                     </div>
                     <Link className="inbox-reply-disclosure" href={itemHref}>
                       <ChatCircleDots aria-hidden="true" weight="fill" />
@@ -674,7 +687,10 @@ export function CommentInbox({
                         </strong>
                         <span>{getRelativeDate(selectedItem.publishedAt)}</span>
                       </div>
-                      <ReviewBadge level={selectedItem.reviewLevel} />
+                      <ReviewBadge
+                        classificationStatus={selectedItem.classificationStatus}
+                        level={selectedItem.reviewLevel}
+                      />
                     </div>
 
                     {isInitiallyVisibleSource(selectedItem.reviewLevel) &&
@@ -805,7 +821,10 @@ export function CommentInbox({
                 </header>
 
                 <div className="inbox-insight-summary">
-                  <ReviewBadge level={selectedItem.reviewLevel} />
+                  <ReviewBadge
+                    classificationStatus={selectedItem.classificationStatus}
+                    level={selectedItem.reviewLevel}
+                  />
                   <strong>{getPrimarySummary(selectedItem)}</strong>
                   <span>
                     {ANALYSIS_STATE_LABELS[selectedItem.analysisState]}
@@ -861,6 +880,10 @@ export function CommentInbox({
                     <span className="source-readonly-badge">읽기 전용</span>
                   ) : null}
                 </div>
+
+                {selectedItem.classificationTrace ? (
+                  <ClassificationTrace trace={selectedItem.classificationTrace} />
+                ) : null}
 
                 <CorrectionForm
                   correctionAction={correctionAction}

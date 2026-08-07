@@ -18,6 +18,8 @@ const item: InboxItem = {
   sourceAvailable: true,
   safeSourceText: "주의 댓글 원문",
   analysisId: "analysis-1",
+  classificationStatus: "decided",
+  classificationTrace: null,
   category: "toxic_but_actionable",
   reviewLevel: "caution",
   confidence: 0.82,
@@ -87,7 +89,7 @@ const renderInbox = (
   );
 
 describe("CommentInbox", () => {
-  it("shows caution source text in the queue preview", () => {
+  it("hides caution source text and shows the feedback core in the queue", () => {
     render(
       <CommentInbox
         correctionAction={vi.fn()}
@@ -99,12 +101,12 @@ describe("CommentInbox", () => {
     );
 
     expect(
-      screen.getByText("주의 댓글 원문", {
+      screen.getByText("자막 크기를 키워 달라는 요청", {
         selector: ".inbox-sanitized-feedback",
       }),
     ).toBeInTheDocument();
     expect(
-      screen.queryByText("자막 크기를 키워 달라는 요청", {
+      screen.queryByText("주의 댓글 원문", {
         selector: ".inbox-sanitized-feedback",
       }),
     ).not.toBeInTheDocument();
@@ -115,13 +117,13 @@ describe("CommentInbox", () => {
       screen.getByText("유해하지만 참고할 내용 있음", { selector: "dd" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByText("주의 댓글 원문", {
+      screen.queryByText("주의 댓글 원문", {
         selector: ".comment-source-text",
       }),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: "원문 확인" }),
     ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "원문 확인" }),
+    ).toBeInTheDocument();
     expect(
       screen.getByRole("checkbox", {
         name: /^내 기준 개인화에 사용/,
@@ -231,20 +233,20 @@ describe("CommentInbox", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("shows caution source immediately without a reveal button", () => {
+  it("requires acknowledgment before showing caution source", () => {
     renderInbox({
       ...item,
       safeSourceText: "주의 댓글 원문",
     });
 
     expect(
-      screen.getByText("주의 댓글 원문", {
+      screen.queryByText("주의 댓글 원문", {
         selector: ".comment-source-text",
       }),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: "원문 확인" }),
     ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "원문 확인" }),
+    ).toBeInTheDocument();
   });
 
   it("keeps risk source out of the initial card and offers acknowledgment", () => {

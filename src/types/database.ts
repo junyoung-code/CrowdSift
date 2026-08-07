@@ -2475,6 +2475,8 @@ export type Database = {
           author_avatar_url: string
           author_display_name: string
           category: Database["public"]["Enums"]["comment_category"]
+          classification_status: string
+          classification_trace: Json
           confidence: number
           delete_eligible: boolean
           like_count: number

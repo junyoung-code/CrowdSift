@@ -7469,6 +7469,56 @@ a {
   font-weight: 700;
 }
 
+.classification-trace {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid #e1e8f5;
+  border-radius: 18px;
+  background: #f8faff;
+}
+
+.classification-trace h3,
+.classification-trace p {
+  margin: 0;
+}
+
+.classification-trace ol {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.classification-trace li {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.classification-trace li small {
+  color: #63718a;
+}
+
+.classification-trace details summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.classification-trace dl {
+  display: grid;
+  gap: 8px;
+}
+
+.classification-trace dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 @media (max-width: 720px) {
   .classification-verdict-counts {
     grid-template-columns: repeat(2, minmax(0, 1fr));
