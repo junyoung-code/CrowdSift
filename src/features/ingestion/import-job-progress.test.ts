@@ -28,6 +28,12 @@ describe("toImportJobProgress", () => {
           totalCount: 20,
           completedCount: 7,
           failedCount: 1,
+          verdictCounts: {
+            safe: 4,
+            caution: 2,
+            risk: 1,
+            reviewQueue: 0,
+          },
         },
       }),
     ).toEqual({
@@ -54,6 +60,12 @@ describe("toImportJobProgress", () => {
         totalCount: 20,
         completedCount: 7,
         failedCount: 1,
+        verdictCounts: {
+          safe: 4,
+          caution: 2,
+          risk: 1,
+          reviewQueue: 0,
+        },
       },
     });
   });

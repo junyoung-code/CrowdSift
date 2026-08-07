@@ -43,6 +43,50 @@ export async function GET(
     );
   }
 
+  let verdictCounts = {
+    safe: 0,
+    caution: 0,
+    risk: 0,
+    reviewQueue: 0,
+  };
+
+  if (analysisJob) {
+    const { data: items, error: itemsError } = await admin
+      .from("analysis_job_items")
+      .select("id")
+      .eq("analysis_job_id", analysisJob.id);
+    if (itemsError) {
+      return Response.json(
+        { error: "job_progress_unavailable" },
+        { status: 500 },
+      );
+    }
+
+    const itemIds = (items ?? []).map((item) => item.id);
+    const { data: verdicts, error: verdictError } =
+      itemIds.length === 0
+        ? { data: [], error: null }
+        : await admin
+            .from("classification_verdicts")
+            .select("status, level")
+            .in("analysis_job_item_id", itemIds);
+    if (verdictError) {
+      return Response.json(
+        { error: "job_progress_unavailable" },
+        { status: 500 },
+      );
+    }
+
+    verdictCounts = (verdicts ?? []).reduce(
+      (counts, verdict) => {
+        if (verdict.status === "review_queue") counts.reviewQueue += 1;
+        else if (verdict.level) counts[verdict.level] += 1;
+        return counts;
+      },
+      verdictCounts,
+    );
+  }
+
   return Response.json({
     data: toImportJobProgress({
       job: {
@@ -68,6 +112,7 @@ export async function GET(
             totalCount: analysisJob.total_count,
             completedCount: analysisJob.completed_count,
             failedCount: analysisJob.failed_count,
+            verdictCounts,
           }
         : null,
     }),

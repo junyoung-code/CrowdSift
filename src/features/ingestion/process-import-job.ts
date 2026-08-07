@@ -1,7 +1,5 @@
 import "server-only";
 
-import { createHash } from "node:crypto";
-
 import type { Json } from "@/types/database";
 import { getServerEnv } from "@/lib/env";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
@@ -23,6 +21,7 @@ import {
   type CommentImportRepository,
 } from "./comment-import-service";
 import { processPublicImportJobWithSupabase } from "./process-public-import-job";
+import { createClassificationConfigurationKey } from "@/features/classification/configuration";
 
 export { ImportProcessingError } from "./import-errors";
 
@@ -199,16 +198,13 @@ export const processImportJob = async (jobId: string) => {
         .eq("workspace_id", job.workspace_id);
     },
   });
-  const configurationKey = createHash("sha256")
-    .update(
-      JSON.stringify({
-        policyVersion: currentPolicy?.version ?? 1,
-        promptVersion: "stage-1-v1",
-        model: environment.OPENAI_ANALYSIS_MODEL,
-        schemaVersion: "comment-analysis-v1",
-      }),
-    )
-    .digest("hex");
+  const configurationKey = createClassificationConfigurationKey({
+    policyVersion: currentPolicy?.version ?? 1,
+    providerMode: environment.EXTERNAL_PROVIDER_MODE,
+    moderationModel: environment.OPENAI_MODERATION_MODEL,
+    lunaModel: environment.OPENAI_LUNA_MODEL,
+    terraModel: environment.OPENAI_TERRA_MODEL,
+  });
 
   const repository: CommentImportRepository = {
     async getJob(targetJobId) {
