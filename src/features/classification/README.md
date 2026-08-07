@@ -1,7 +1,9 @@
 # 댓글 분류 파이프라인 v1
 
-이어서 작업하거나 직접 돌려보려는 사람을 위한 안내다.
-기준과 측정 기록은 [`docs/comment-service-roadmap.md`](../../../docs/comment-service-roadmap.md)에 있고, 이 문서는 **어디까지 됐고 어떻게 돌리는지**만 다룬다.
+이어서 작업하거나 직접 돌려보려는 사람을 위한 안내다. 이 문서는 **어떻게 돌리는지**만 다룬다.
+
+- 화면에 붙이려는 사람 → [`docs/handoff-classification.md`](../../../docs/handoff-classification.md)
+- 기준과 실측 기록 → [`docs/comment-service-roadmap.md`](../../../docs/comment-service-roadmap.md)
 
 ## 먼저 알아야 할 것 세 가지
 
