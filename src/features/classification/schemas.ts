@@ -175,6 +175,38 @@ export const TerraVerdictSchema = z
   .strict();
 
 /**
+ * 순화문의 말투. 기획서 3번 「AI 순화 지침」의 세 갈래를 그대로 옮겼다.
+ *
+ * 무작위로 고르는 것이 아니라 원문의 내용과 감정에 맞는 것을 고른다.
+ */
+export const ToneVariantSchema = z.enum([
+  "neutral", // 차분하고 일반적인 말투
+  "friendly", // ! : ) ^^ 등을 가볍게 사용
+  "soft_disappointment", // 아쉬움을 부드럽게
+]);
+
+/**
+ * 4. Luna 순화 출력.
+ *
+ * 최종 등급이 주의이고 순화할 재료가 있는 댓글에만 만든다. 위험 댓글에는 만들지
+ * 않으며, 재료가 없으면 아예 부르지 않는다.
+ */
+export const RewriteSchema = z
+  .object({
+    /** 크리에이터가 원문 대신 읽게 될 문장. */
+    rewritten: z.string().min(1).max(200),
+    toneVariant: ToneVariantSchema,
+    /**
+     * 원문에 없는 칭찬·호감·해결책을 넣지 않았다는 모델 자신의 확인.
+     *
+     * 이 답을 믿어서 두는 것이 아니라, false 로 돌아오면 그 순화문을 버리기 위한
+     * 그물이다. 검사 자체는 코드가 따로 한다.
+     */
+    addedNothing: z.boolean(),
+  })
+  .strict();
+
+/**
  * 1-A. omni-moderation-latest 가 돌려주는 범주.
  */
 export const ModerationCategorySchema = z.enum([
@@ -230,6 +262,8 @@ export type ReasonCode = z.infer<typeof ReasonCodeSchema>;
 export type RecommendedAction = z.infer<typeof RecommendedActionSchema>;
 export type FeedbackType = z.infer<typeof FeedbackTypeSchema>;
 export type TerraVerdict = z.infer<typeof TerraVerdictSchema>;
+export type ToneVariant = z.infer<typeof ToneVariantSchema>;
+export type Rewrite = z.infer<typeof RewriteSchema>;
 export type ModerationCategory = z.infer<typeof ModerationCategorySchema>;
 export type ModerationResult = z.infer<typeof ModerationResultSchema>;
 export type ClassificationProfile = z.infer<typeof ClassificationProfileSchema>;

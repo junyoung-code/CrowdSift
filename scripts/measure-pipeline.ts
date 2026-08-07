@@ -25,9 +25,13 @@ import { LUNA_FIRST_PASS_PROMPT_VERSION } from "../src/features/classification/p
 import {
   DEFAULT_CLASSIFICATION_PROFILE,
   type Certainty,
+  type LunaFirstPass,
   type RiskLevel,
+  type Rewrite,
   type TerraVerdict,
 } from "../src/features/classification/schemas";
+import { createLunaRewrite } from "../src/features/classification/luna-rewrite";
+import type { RewriteInspection } from "../src/features/classification/rewrite-guard";
 import { createTerraVerification } from "../src/features/classification/terra-verification";
 import { decideVerdict, type Verdict } from "../src/features/classification/verdict";
 import {
@@ -85,6 +89,10 @@ const main = async () => {
     client: client as never,
     model: terraModel,
   });
+  const rewriter = createLunaRewrite({
+    client: client as never,
+    model: lunaModel,
+  });
 
   console.log(`\n모델: ${lunaModel} / ${terraModel} / ${moderationModel}`);
   console.log(`댓글 ${comments.length}건 처리 중...\n`);
@@ -92,14 +100,25 @@ const main = async () => {
   type Row = TestComment & {
     candidate: RiskLevel;
     lunaCertainty: Certainty;
+    /** 왜 그렇게 판단했는지 나중에 되짚을 수 있게 1차 원본을 통째로 남긴다. */
+    luna: LunaFirstPass;
     verified: boolean;
     terraLevel: RiskLevel | null;
     terraCertainty: Certainty | null;
     terra: TerraVerdict | null;
     verdict: Verdict | null;
+    rewrite: Rewrite | null;
+    inspection: RewriteInspection | null;
     lunaTokens: number;
     terraTokens: number;
+    rewriteTokens: number;
   };
+  // 답글의 부모를 찾기 위한 색인. 계획서 표는 게시 순서라 부모가 항상 앞에 있다.
+  const byId = new Map(all.map((item) => [item.id, item]));
+
+  /** 최근 순화문. 같은 말투가 줄줄이 이어지지 않게 다음 호출에 넘긴다. */
+  const accepted: string[] = [];
+
   const rows: Row[] = [];
 
   for (const [index, comment] of comments.entries()) {
@@ -111,6 +130,12 @@ const main = async () => {
       channelId: "measurement",
       profile: DEFAULT_CLASSIFICATION_PROFILE,
       similarExamples: [],
+      parent: comment.parentId
+        ? {
+            id: comment.parentId,
+            text: byId.get(comment.parentId)?.text ?? "",
+          }
+        : null,
     };
 
     const first = await firstPass.run(input);
@@ -121,13 +146,17 @@ const main = async () => {
         ...comment,
         candidate: first.luna.result.candidateLevel,
         lunaCertainty: first.luna.result.certainty,
+        luna: first.luna.result,
         verified: false,
         terraLevel: null,
         terraCertainty: null,
         terra: null,
         verdict: null,
+        rewrite: null,
+        inspection: null,
         lunaTokens: first.luna.run.usage.totalTokens,
         terraTokens: 0,
+        rewriteTokens: 0,
       });
       process.stdout.write(`\r  ${index + 1}/${comments.length}  ${comment.id}      `);
       continue;
@@ -139,22 +168,44 @@ const main = async () => {
       moderation: first.moderation?.result ?? null,
     };
     const verified = await terra.verify(secondInput);
+    const verdict = decideVerdict({
+      candidateLevel: first.luna.result.candidateLevel,
+      terra: verified.result,
+      moderationMinimumLevel: routed.protection.moderationMinimumLevel,
+    });
+
+    // 4. 순화. 부를지 말지는 코드가 이미 정해 두었다.
+    const rewritten =
+      verdict.allowRewrite && verified.result.feedbackCore
+        ? await rewriter.rewrite({
+            commentId: comment.id,
+            sourceText: comment.text,
+            feedbackCore: verified.result.feedbackCore,
+            profile: DEFAULT_CLASSIFICATION_PROFILE,
+            recentRewrites: accepted,
+          })
+        : null;
+
+    // 검사를 통과한 것만 다음 순화의 참고 문체가 된다.
+    if (rewritten?.inspection.accepted) {
+      accepted.push(rewritten.result.rewritten);
+    }
 
     rows.push({
       ...comment,
       candidate: first.luna.result.candidateLevel,
       lunaCertainty: first.luna.result.certainty,
+      luna: first.luna.result,
       verified: true,
       terraLevel: verified.result.verdictLevel,
       terraCertainty: verified.result.certainty,
       terra: verified.result,
-      verdict: decideVerdict({
-        candidateLevel: first.luna.result.candidateLevel,
-        terra: verified.result,
-        moderationMinimumLevel: routed.protection.moderationMinimumLevel,
-      }),
+      verdict,
+      rewrite: rewritten?.result ?? null,
+      inspection: rewritten?.inspection ?? null,
       lunaTokens: first.luna.run.usage.totalTokens,
       terraTokens: verified.run.usage.totalTokens,
+      rewriteTokens: rewritten?.run.usage.totalTokens ?? 0,
     });
     process.stdout.write(`\r  ${index + 1}/${comments.length}  ${comment.id}      `);
   }
@@ -209,11 +260,49 @@ const main = async () => {
     );
   }
 
-  section("순화를 만들 댓글");
+  section("순화");
   const rewritable = rows.filter((row) => row.verdict?.allowRewrite);
-  console.log(`  ${rewritable.length}건 — 최종 주의이면서 순화할 재료가 있는 것\n`);
+  const passed = rewritable.filter((row) => row.inspection?.accepted);
+  console.log(
+    `  대상 ${rewritable.length}건 · 통과 ${passed.length}건 · ` +
+      `걸러냄 ${rewritable.length - passed.length}건`,
+  );
+
+  const rejections = new Map<string, number>();
   for (const row of rewritable) {
-    console.log(`    ${row.id}  "${row.text.slice(0, 30)}"`);
+    for (const reason of row.inspection?.rejections ?? []) {
+      rejections.set(reason, (rejections.get(reason) ?? 0) + 1);
+    }
+  }
+  if (rejections.size > 0) {
+    console.log("\n  걸러낸 이유");
+    for (const [reason, count] of [...rejections].sort((a, b) => b[1] - a[1])) {
+      console.log(`    ${reason.padEnd(26)} ${count}건`);
+    }
+  }
+
+  console.log("\n  원문 → 재료 → 순화문\n");
+  for (const row of rewritable) {
+    const mark = row.inspection?.accepted ? " " : "✗";
+    console.log(`  ${mark} ${row.id}  ${row.text}`);
+    console.log(`       재료  ${row.terra!.feedbackCore}`);
+    console.log(
+      `       순화  ${row.rewrite?.rewritten ?? "(없음)"}` +
+        `   [${row.rewrite?.toneVariant ?? "-"}]`,
+    );
+    if (row.inspection && !row.inspection.accepted) {
+      console.log(`       버림  ${row.inspection.rejections.join(", ")}`);
+    }
+    console.log("");
+  }
+
+  section("순화를 만들지 않은 주의 댓글");
+  const noRewrite = rows.filter(
+    (row) => row.verdict?.level === "caution" && !row.verdict.allowRewrite,
+  );
+  console.log(`  ${noRewrite.length}건 — 뽑아낼 의견이 없어 만들지 않는다\n`);
+  for (const row of noRewrite) {
+    console.log(`    ${row.id}  ${row.text}`);
   }
 
   section("전체 대조");
@@ -232,10 +321,12 @@ const main = async () => {
 
   const lunaTokens = rows.reduce((sum, row) => sum + row.lunaTokens, 0);
   const terraTokens = rows.reduce((sum, row) => sum + row.terraTokens, 0);
+  const rewriteTokens = rows.reduce((sum, row) => sum + row.rewriteTokens, 0);
   console.log(
     `\n토큰 — Luna ${lunaTokens.toLocaleString()} / ` +
       `Terra ${terraTokens.toLocaleString()} (${checked.length}회) / ` +
-      `합계 ${(lunaTokens + terraTokens).toLocaleString()}`,
+      `순화 ${rewriteTokens.toLocaleString()} (${rewritable.length}회) / ` +
+      `합계 ${(lunaTokens + terraTokens + rewriteTokens).toLocaleString()}`,
   );
   if (moderationFailures.length > 0) {
     console.log(`모더레이션 호출 실패 ${moderationFailures.length}건`);
@@ -257,7 +348,7 @@ const main = async () => {
           luna: LUNA_FIRST_PASS_PROMPT_VERSION,
           terra: terra.promptVersion,
         },
-        tokens: { luna: lunaTokens, terra: terraTokens },
+        tokens: { luna: lunaTokens, terra: terraTokens, rewrite: rewriteTokens },
         rows,
       },
       null,

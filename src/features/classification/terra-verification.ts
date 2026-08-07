@@ -21,6 +21,8 @@ import type { ModelRun } from "./contracts";
 const toModelInput = (input: SecondPassInput) => ({
   comment: input.sourceText,
   videoTitle: input.videoTitle,
+  // 부모 원문은 1차 판단이 아니라 이 댓글이 무엇에 답하는지를 알려주는 사실이다.
+  parent: input.parent ? { text: input.parent.text } : null,
   profile: input.profile,
   similarExamples: input.similarExamples.map((example) => ({
     text: example.text,

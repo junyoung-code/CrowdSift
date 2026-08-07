@@ -21,6 +21,8 @@ export type TestComment = {
   text: string;
   expected: string;
   video: string;
+  /** 답글이면 부모 ID. 계획서 표의 `↳ A05` 표시에서 읽는다. */
+  parentId: string | null;
 };
 
 /**
@@ -47,12 +49,20 @@ export const readTestComments = (): TestComment[] => {
       .split("|")
       .slice(1, -1)
       .map((cell) => cell.trim().replace(/\*\*/g, ""));
-    const [id, , text, expected] = cells;
+    const [id, kind, text, expected] = cells;
 
     if (!id || !text || !expected) continue;
     if (!/^[ABC]\d{2}$/.test(id)) continue;
 
-    comments.push({ id, text, expected, video });
+    const parent = /^↳\s*([ABC]\d{2})$/.exec(kind ?? "");
+
+    comments.push({
+      id,
+      text,
+      expected,
+      video,
+      parentId: parent ? parent[1]! : null,
+    });
   }
 
   return comments;
