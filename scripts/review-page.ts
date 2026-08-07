@@ -26,6 +26,10 @@ type Row = {
     feedbackActionable: boolean;
     safetyCase: boolean;
   } | null;
+  rewrite: {
+    rewritten: string;
+    toneVariant: string;
+  } | null;
   verdict: {
     status: "decided" | "review_queue";
     level: "safe" | "caution" | "danger" | null;
@@ -84,7 +88,7 @@ const BUCKETS: Array<{
     key: "caution",
     title: "주의",
     blurb:
-      "원문은 숨기고, 순화할 재료가 있으면 순화문으로 전달한다. 없으면 통계로만 남는다.",
+      "원문은 숨긴다. 순화문이 있으면 크리에이터는 그 문장만 본다. 아래에서 큰 글씨가 크리에이터가 보는 것이고, 원문과 재료는 우리가 확인하려고 붙여 둔 것이다.",
   },
   {
     key: "safe",
@@ -175,7 +179,13 @@ const rowMarkup = (row: Row) => {
   return `<article class="row lv-${bucket}${off ? " off" : ""}" data-off="${off}">
   <div class="stripe" aria-hidden="true"></div>
   <div class="body">
-    <p class="text">${escape(row.text)}</p>
+    ${
+      row.rewrite
+        ? `<p class="shown">${escape(row.rewrite.rewritten)}</p>
+           <p class="source"><span class="tag">원문</span>${escape(row.text)}</p>
+           <p class="source"><span class="tag">재료</span>${escape(row.terra?.feedbackCore ?? "")}</p>`
+        : `<p class="text">${escape(row.text)}</p>`
+    }
     <div class="meta">
       <span class="id">${row.id}</span>
       ${pathChip(row)}
@@ -494,6 +504,40 @@ const main = () => {
     line-height: 1.45;
     word-break: keep-all;
     overflow-wrap: anywhere;
+  }
+
+  /* 크리에이터가 실제로 보게 되는 문장. 원문 자리에 이것이 온다. */
+  .shown {
+    margin: 0 0 0.5rem;
+    font-size: 1rem;
+    line-height: 1.45;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+  }
+
+  .source {
+    margin: 0 0 0.25rem;
+    font-size: 0.8rem;
+    color: var(--muted);
+    display: flex;
+    gap: 0.5rem;
+    align-items: baseline;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+  }
+
+  .source:last-of-type { margin-bottom: 0.5rem; }
+
+  .tag {
+    font-family: var(--mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.08em;
+    color: var(--faint);
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    padding: 0 0.25rem;
+    flex: none;
+    align-self: center;
   }
 
   .meta {
