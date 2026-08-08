@@ -111,7 +111,7 @@ values
     true
   );
 
-select plan(45);
+select plan(52);
 
 set local role authenticated;
 select set_config(
@@ -222,21 +222,92 @@ select results_eq(
         '55555555-5555-5555-5555-555555555555'::uuid
       )
     )
-    select requested.lease_until, requested.backfill_page_token, r.claim_token
+    select requested.lease_until, requested.backfill_page_token
     from requested
-    join public.channel_comment_sync_runs r
-      on r.id = (select run_id from first_backfill_claim)
   $$,
   $$
-    select lease_until, backfill_page_token, claim_token
+    select lease_until, backfill_page_token
     from active_claim_state
   $$,
-  'request-now preserves an active lease, cursor, and fencing token'
+  'request-now preserves an active lease and cursor'
+);
+
+select is(
+  has_column_privilege(
+    'authenticated',
+    'public.channel_comment_sync_runs',
+    'claim_token',
+    'select'
+  ),
+  false,
+  'authenticated members have no select privilege on run claim tokens'
+);
+
+select throws_ok(
+  $$
+    select claim_token
+    from public.channel_comment_sync_runs
+    where id = (select run_id from first_backfill_claim)
+  $$,
+  '42501',
+  null,
+  'authenticated members cannot read a run claim token'
+);
+
+select is(
+  has_column_privilege(
+    'authenticated',
+    'public.channel_comment_sync_runs',
+    'status',
+    'select'
+  ),
+  true,
+  'authenticated members retain select privilege on safe run metadata'
+);
+
+select results_eq(
+  $$
+    select kind, status
+    from public.channel_comment_sync_runs
+    where id = (select run_id from first_backfill_claim)
+  $$,
+  $$ values ('backfill_recent'::text, 'running'::text) $$,
+  'workspace RLS still exposes intended run progress metadata'
+);
+
+select is(
+  has_table_privilege(
+    'authenticated',
+    'public.channel_comment_sync_runs',
+    'insert'
+  ),
+  false,
+  'authenticated members do not gain run insert privilege'
+);
+
+select is(
+  has_table_privilege(
+    'authenticated',
+    'public.channel_comment_sync_runs',
+    'update'
+  ),
+  false,
+  'authenticated members do not gain run update privilege'
 );
 
 set local role service_role;
 select set_config('request.jwt.claim.role', 'service_role', true);
 select set_config('request.jwt.claim.sub', '', true);
+
+select is(
+  (
+    select claim_token
+    from public.channel_comment_sync_runs
+    where id = (select run_id from first_backfill_claim)
+  ),
+  (select claim_token from active_claim_state),
+  'request-now preserves the active fencing token'
+);
 
 select results_eq(
   $$

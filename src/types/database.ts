@@ -2327,7 +2327,7 @@ export type Database = {
         Args: {
           target_lease_seconds: number
           target_limit: number
-          target_workspace_id: string
+          target_workspace_id: string | null
         }
         Returns: {
           backfill_start_at: string
@@ -2987,6 +2987,11 @@ export type ChannelCommentSyncDatabaseTypeAssertions = {
   workspaceClaimIncrementalScanStartedAt: ExpectTrue<
     IsNullable<
       Database["public"]["Functions"]["claim_channel_comment_sync_work_for_workspace"]["Returns"][number]["incremental_scan_started_at"]
+    >
+  >
+  internalClaimWorkspaceSentinel: ExpectTrue<
+    IsNullable<
+      Database["public"]["Functions"]["claim_channel_comment_sync_work_internal"]["Args"]["target_workspace_id"]
     >
   >
   completeNextPageToken: ExpectTrue<

@@ -4,6 +4,29 @@ alter table public.channel_comment_sync_settings
 alter table public.channel_comment_sync_runs
   add column claim_token uuid;
 
+revoke select on public.channel_comment_sync_runs from authenticated;
+
+grant select (
+  id,
+  setting_id,
+  workspace_id,
+  kind,
+  status,
+  input_page_token,
+  output_page_token,
+  observed_count,
+  stored_count,
+  updated_count,
+  duplicate_count,
+  failed_count,
+  analyzed_count,
+  quota_units_used,
+  error_code,
+  started_at,
+  finished_at,
+  created_at
+) on public.channel_comment_sync_runs to authenticated;
+
 create unique index comment_import_jobs_channel_run_video_unique
   on public.comment_import_jobs(channel_sync_run_id, youtube_video_id)
   where trigger_kind = 'channel_sync';
