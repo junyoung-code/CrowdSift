@@ -441,7 +441,6 @@ export class GoogleYouTubeProvider
       const response = await youtube.videos.list({
         part: ["snippet"],
         id: ids,
-        maxResults: ids.length,
       });
 
       for (const video of response.data.items ?? []) {

@@ -155,6 +155,22 @@ const channelInlineReply = createComment({
   publishedAt: "2026-08-08T01:30:00.000Z",
 });
 
+const channelFixtureReplies: ProviderComment[] = [
+  channelInlineReply,
+  createComment({
+    id: "fixture-channel-reply-2",
+    parentId: "fixture-channel-comment-1",
+    text: "두 번째 채널 댓글 답글",
+    publishedAt: "2026-08-08T01:40:00.000Z",
+  }),
+  createComment({
+    id: "fixture-channel-reply-3",
+    parentId: "fixture-channel-comment-1",
+    text: "세 번째 채널 댓글 답글",
+    publishedAt: "2026-08-08T01:50:00.000Z",
+  }),
+];
+
 const channelFixturePages: Record<"first" | "next-1", ChannelCommentThread[]> = {
   first: [
     {
@@ -200,6 +216,61 @@ const channelFixturePages: Record<"first" | "next-1", ChannelCommentThread[]> = 
       totalReplyCount: 0,
     },
   ],
+};
+
+type ScriptedFixturePageKey = keyof typeof channelFixturePages;
+
+const readScriptedFixturePage = <Item>({
+  boundaryToken,
+  maxResults,
+  offsetTokenPrefix,
+  pageToken,
+  pages,
+}: {
+  pages: Record<ScriptedFixturePageKey, Item[]>;
+  boundaryToken: string;
+  offsetTokenPrefix: string;
+  maxResults: number;
+  pageToken?: string;
+}) => {
+  let pageKey: ScriptedFixturePageKey = "first";
+  let offset = 0;
+
+  if (pageToken === boundaryToken) {
+    pageKey = "next-1";
+  } else if (pageToken) {
+    const [prefix, encodedPageKey, encodedOffset] = pageToken.split(":");
+    const parsedOffset = Number.parseInt(encodedOffset ?? "", 10);
+
+    if (
+      prefix !== offsetTokenPrefix ||
+      (encodedPageKey !== "first" && encodedPageKey !== "next-1") ||
+      !Number.isFinite(parsedOffset) ||
+      parsedOffset < 0
+    ) {
+      return { items: [], nextPageToken: null };
+    }
+
+    pageKey = encodedPageKey;
+    offset = parsedOffset;
+  }
+
+  const pageSize = Number.isFinite(maxResults)
+    ? Math.min(100, Math.max(1, Math.trunc(maxResults)))
+    : 1;
+  const sourceItems = pages[pageKey];
+  const end = Math.min(offset + pageSize, sourceItems.length);
+  const nextPageToken =
+    end < sourceItems.length
+      ? `${offsetTokenPrefix}:${pageKey}:${end}`
+      : pageKey === "first"
+        ? boundaryToken
+        : null;
+
+  return {
+    items: sourceItems.slice(offset, end),
+    nextPageToken,
+  };
 };
 
 export class FixturePublicYouTubeReadProvider
@@ -341,13 +412,17 @@ export class FixtureYouTubeProvider implements ChannelCommentProvider {
       };
     }
 
-    const items = pageToken
-      ? channelFixturePages[pageToken as keyof typeof channelFixturePages] ?? []
-      : channelFixturePages.first;
+    const page = readScriptedFixturePage({
+      pages: channelFixturePages,
+      boundaryToken: "next-1",
+      offsetTokenPrefix: "fixture-channel-page",
+      maxResults,
+      pageToken,
+    });
 
     return {
-      items: items.slice(0, Math.min(100, maxResults)),
-      nextPageToken: pageToken ? null : "next-1",
+      items: page.items,
+      nextPageToken: page.nextPageToken,
       quotaUnitsUsed: 0,
       invalidItemCount: 0,
     };
@@ -375,6 +450,7 @@ export class FixtureYouTubeProvider implements ChannelCommentProvider {
   }
 
   async listReplies({
+    maxResults = 100,
     pageToken,
     parentYoutubeCommentId,
   }: {
@@ -387,32 +463,20 @@ export class FixtureYouTubeProvider implements ChannelCommentProvider {
     quotaUnitsUsed: number;
   }> {
     if (parentYoutubeCommentId === "fixture-channel-comment-1") {
-      if (pageToken === "fixture-channel-replies-next-1") {
-        return {
-          items: [
-            createComment({
-              id: "fixture-channel-reply-3",
-              parentId: parentYoutubeCommentId,
-              text: "세 번째 채널 댓글 답글",
-              publishedAt: "2026-08-08T01:50:00.000Z",
-            }),
-          ],
-          nextPageToken: null,
-          quotaUnitsUsed: 0,
-        };
-      }
+      const page = readScriptedFixturePage({
+        pages: {
+          first: channelFixtureReplies.slice(0, 2),
+          "next-1": channelFixtureReplies.slice(2),
+        },
+        boundaryToken: "fixture-channel-replies-next-1",
+        offsetTokenPrefix: "fixture-channel-reply-page",
+        maxResults,
+        pageToken,
+      });
 
       return {
-        items: [
-          channelInlineReply,
-          createComment({
-            id: "fixture-channel-reply-2",
-            parentId: parentYoutubeCommentId,
-            text: "두 번째 채널 댓글 답글",
-            publishedAt: "2026-08-08T01:40:00.000Z",
-          }),
-        ],
-        nextPageToken: "fixture-channel-replies-next-1",
+        items: page.items,
+        nextPageToken: page.nextPageToken,
         quotaUnitsUsed: 0,
       };
     }

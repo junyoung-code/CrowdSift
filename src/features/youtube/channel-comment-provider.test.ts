@@ -109,6 +109,53 @@ describe("FixtureYouTubeProvider channel comment reads", () => {
     ]);
   });
 
+  it("traverses channel pages one item at a time without gaps or duplicates", async () => {
+    const provider: ChannelCommentProvider = new FixtureYouTubeProvider();
+    const commentIds: string[] = [];
+    let pageToken: string | undefined;
+
+    do {
+      const page = await provider.listChannelCommentThreads({
+        youtubeChannelId: "fixture-channel-1",
+        maxResults: 1,
+        pageToken,
+      });
+      expect(page.items).toHaveLength(1);
+      commentIds.push(page.items[0]!.topLevelComment.id);
+      pageToken = page.nextPageToken ?? undefined;
+    } while (pageToken);
+
+    expect(commentIds).toEqual([
+      "fixture-channel-comment-1",
+      "fixture-channel-comment-2",
+      "fixture-channel-boundary-comment",
+      "fixture-channel-older-comment",
+    ]);
+  });
+
+  it("traverses reply pages one item at a time without gaps or duplicates", async () => {
+    const provider: ChannelCommentProvider = new FixtureYouTubeProvider();
+    const replyIds: string[] = [];
+    let pageToken: string | undefined;
+
+    do {
+      const page = await provider.listReplies({
+        parentYoutubeCommentId: "fixture-channel-comment-1",
+        maxResults: 1,
+        pageToken,
+      });
+      expect(page.items).toHaveLength(1);
+      replyIds.push(page.items[0]!.id);
+      pageToken = page.nextPageToken ?? undefined;
+    } while (pageToken);
+
+    expect(replyIds).toEqual([
+      "fixture-channel-reply-1",
+      "fixture-channel-reply-2",
+      "fixture-channel-reply-3",
+    ]);
+  });
+
   it("returns metadata only for requested fixture videos", async () => {
     const provider: ChannelCommentProvider = new FixtureYouTubeProvider();
 

@@ -144,6 +144,16 @@ describe("GoogleYouTubeProvider comment reads", () => {
               },
             },
           },
+          {
+            id: "thread-with-invalid-top-level-comment",
+            snippet: {
+              videoId: "video-2",
+              topLevelComment: {
+                id: "comment-without-text",
+                snippet: {},
+              },
+            },
+          },
         ],
       },
     });
@@ -181,9 +191,27 @@ describe("GoogleYouTubeProvider comment reads", () => {
       ],
       nextPageToken: "page-3",
       quotaUnitsUsed: 1,
-      invalidItemCount: 1,
+      invalidItemCount: 2,
     });
     expect(JSON.stringify(result)).not.toContain("server-api-key");
+  });
+
+  it("caps channel-wide thread pages at 100 items", async () => {
+    const provider = new GoogleYouTubeProvider({
+      clientId: "client-id",
+      clientSecret: "client-secret",
+      redirectUri: "http://localhost:3000/api/youtube/oauth/callback",
+      commentReadApiKey: "server-api-key",
+    });
+
+    await provider.listChannelCommentThreads({
+      youtubeChannelId: "channel-1",
+      maxResults: 101,
+    });
+
+    expect(commentThreadsList).toHaveBeenCalledWith(
+      expect.objectContaining({ maxResults: 100 }),
+    );
   });
 
   it("returns paginated replies with an explicit one-unit quota cost", async () => {
@@ -228,6 +256,24 @@ describe("GoogleYouTubeProvider comment reads", () => {
       nextPageToken: "reply-page-3",
       quotaUnitsUsed: 1,
     });
+  });
+
+  it("caps reply pages at 100 items", async () => {
+    const provider = new GoogleYouTubeProvider({
+      clientId: "client-id",
+      clientSecret: "client-secret",
+      redirectUri: "http://localhost:3000/api/youtube/oauth/callback",
+      commentReadApiKey: "server-api-key",
+    });
+
+    await provider.listReplies({
+      parentYoutubeCommentId: "comment-1",
+      maxResults: 101,
+    });
+
+    expect(commentsList).toHaveBeenCalledWith(
+      expect.objectContaining({ maxResults: 100 }),
+    );
   });
 
   it("loads video metadata in batches of at most 50 IDs", async () => {
@@ -285,12 +331,23 @@ describe("GoogleYouTubeProvider comment reads", () => {
     expect(videosList).toHaveBeenNthCalledWith(1, {
       part: ["snippet"],
       id: videoIds.slice(0, 50),
-      maxResults: 50,
     });
     expect(videosList).toHaveBeenNthCalledWith(2, {
       part: ["snippet"],
       id: ["video-51"],
-      maxResults: 1,
     });
+  });
+
+  it("does not call YouTube when no video IDs are requested", async () => {
+    const provider = new GoogleYouTubeProvider({
+      clientId: "client-id",
+      clientSecret: "client-secret",
+      redirectUri: "http://localhost:3000/api/youtube/oauth/callback",
+      commentReadApiKey: "server-api-key",
+    });
+
+    await expect(provider.listVideosByIds([])).resolves.toEqual([]);
+    expect(youtubeClient).not.toHaveBeenCalled();
+    expect(videosList).not.toHaveBeenCalled();
   });
 });
