@@ -72,6 +72,9 @@ describe("ClassificationTrace", () => {
   it("shows the values used at all five decision stages", () => {
     render(<ClassificationTrace trace={trace} />);
 
+    const decisionDetails = screen.getByText("판단 과정").closest("details");
+    expect(decisionDetails).toBeInTheDocument();
+    expect(decisionDetails).not.toHaveAttribute("open");
     expect(screen.getByText("Moderation")).toBeInTheDocument();
     expect(screen.getByText("harassment · 0.82")).toBeInTheDocument();
     expect(screen.getByText("Luna 1차 분석")).toBeInTheDocument();

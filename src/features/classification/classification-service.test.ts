@@ -19,6 +19,7 @@ const item: ClassificationWorkItem = {
   policyVersion: 1,
   profile: DEFAULT_CLASSIFICATION_PROFILE,
   similarExamples: [],
+  parent: null,
 };
 
 const lunaRun: ModelRun = {
@@ -185,6 +186,34 @@ describe("classification job service", () => {
       feedbackCore: "편집 흐름이 끊긴다",
       verdict: { status: "decided", level: "caution" },
     });
+  });
+
+  it("passes a reply's parent source to both model stages", async () => {
+    const replyItem: ClassificationWorkItem = {
+      ...item,
+      parent: {
+        id: "comment-parent",
+        text: "영상이 조금 길었어요.",
+      },
+    };
+    const memory = createMemoryRepository();
+    memory.repository.claimItems = vi.fn(async () => [replyItem]);
+    const run = vi.fn(async () => firstPassResult("caution"));
+    const verify = vi.fn(async () => ({ result: terraResult, run: terraRun }));
+    const service = createClassificationService({
+      firstPass: { run },
+      secondPass: { verify },
+      repository: memory.repository,
+    });
+
+    await service.processChunk("job-1", 5);
+
+    expect(run).toHaveBeenCalledWith(
+      expect.objectContaining({ parent: replyItem.parent }),
+    );
+    expect(verify).toHaveBeenCalledWith(
+      expect.objectContaining({ parent: replyItem.parent }),
+    );
   });
 
   it("forces Terra when Moderation was unavailable", async () => {

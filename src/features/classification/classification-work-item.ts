@@ -11,6 +11,8 @@ type RawComment = {
   id: string;
   workspaceId: string;
   youtubeVideoId: string;
+  youtubeCommentId: string;
+  parentYoutubeCommentId: string | null;
   textDisplay: string;
 };
 
@@ -30,6 +32,9 @@ export const buildClassificationWorkItems = ({
   policyVersion: number;
 }): ClassificationWorkItem[] => {
   const rawById = new Map(rawComments.map((comment) => [comment.id, comment]));
+  const rawByYoutubeId = new Map(
+    rawComments.map((comment) => [comment.youtubeCommentId, comment]),
+  );
   const videoById = new Map(videos.map((video) => [video.youtubeVideoId, video]));
 
   return claims.map((claim) => {
@@ -37,6 +42,9 @@ export const buildClassificationWorkItems = ({
     if (!raw || raw.workspaceId !== claim.workspaceId) {
       throw new Error("classification_source_missing");
     }
+    const parent = raw.parentYoutubeCommentId
+      ? rawByYoutubeId.get(raw.parentYoutubeCommentId)
+      : null;
 
     return {
       id: claim.itemId,
@@ -48,6 +56,10 @@ export const buildClassificationWorkItems = ({
       policyVersion,
       profile: DEFAULT_CLASSIFICATION_PROFILE,
       similarExamples: [],
+      parent:
+        parent && parent.workspaceId === claim.workspaceId
+          ? { id: parent.id, text: parent.textDisplay }
+          : null,
     };
   });
 };

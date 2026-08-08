@@ -1,3 +1,5 @@
+import { CaretDown } from "@phosphor-icons/react/dist/ssr";
+
 import type {
   InboxClassificationStageTrace,
   InboxClassificationTrace,
@@ -90,60 +92,71 @@ export function ClassificationTrace({
   trace: InboxClassificationTrace;
 }) {
   return (
-    <section className="classification-trace" aria-label="단계별 판단 과정">
-      <h3>판단 과정</h3>
-      <ol>
-        <li>
-          <strong>Moderation</strong>
-          <ModerationValues stage={trace.moderation} />
-        </li>
-        <li>
-          <strong>Luna 1차 분석</strong>
-          <ModelValues kind="luna" stage={trace.luna} />
-        </li>
-        <li>
-          <strong>코드 분기</strong>
-          <p>
-            {trace.branch?.outcome === "instant_safe"
-              ? "안전 즉시 통과"
-              : trace.branch?.reasons.join(" · ") || "분기 정보 없음"}
-          </p>
-        </li>
-        <li>
-          <strong>Terra 2차 검증</strong>
-          <ModelValues kind="terra" stage={trace.terra} />
-        </li>
-        <li>
-          <strong>최종 판정</strong>
-          <p>
-            {trace.final?.status === "review_queue"
-              ? "판단 보류"
-              : trace.final?.level
-                ? LEVEL_LABELS[trace.final.level]
-                : "결과 없음"}
-            {trace.final?.basis ? ` · ${trace.final.basis}` : ""}
-          </p>
-        </li>
-      </ol>
+    <details className="classification-trace" aria-label="단계별 판단 과정">
+      <summary>
+        <span>
+          <strong>판단 과정</strong>
+          <small>Moderation부터 최종 판정까지 확인</small>
+        </span>
+        <CaretDown aria-hidden="true" weight="bold" />
+      </summary>
+      <div className="classification-trace-body">
+        <ol>
+          <li>
+            <strong>Moderation</strong>
+            <ModerationValues stage={trace.moderation} />
+          </li>
+          <li>
+            <strong>Luna 1차 분석</strong>
+            <ModelValues kind="luna" stage={trace.luna} />
+          </li>
+          <li>
+            <strong>코드 분기</strong>
+            <p>
+              {trace.branch?.outcome === "instant_safe"
+                ? "안전 즉시 통과"
+                : trace.branch?.reasons.join(" · ") || "분기 정보 없음"}
+            </p>
+          </li>
+          <li>
+            <strong>Terra 2차 검증</strong>
+            <ModelValues kind="terra" stage={trace.terra} />
+          </li>
+          <li>
+            <strong>최종 판정</strong>
+            <p>
+              {trace.final?.status === "review_queue"
+                ? "판단 보류"
+                : trace.final?.level
+                  ? LEVEL_LABELS[trace.final.level]
+                  : "결과 없음"}
+              {trace.final?.basis ? ` · ${trace.final.basis}` : ""}
+            </p>
+          </li>
+        </ol>
 
-      <details>
-        <summary>기술 정보 보기</summary>
-        <dl>
-          {[trace.moderation, trace.luna, trace.terra]
-            .filter(
-              (stage): stage is InboxClassificationStageTrace =>
-                stage !== null,
-            )
-            .map((stage) => (
-              <div key={`${stage.modelIdentifier}:${stage.providerResponseId}`}>
-                <dt>{stage.modelIdentifier}</dt>
-                <dd>
-                  {stage.latencyMs ?? 0}ms · 입력 {stage.usage.inputTokens ?? 0} · 출력 {stage.usage.outputTokens ?? 0}
-                </dd>
-              </div>
-            ))}
-        </dl>
-      </details>
-    </section>
+        <details>
+          <summary>기술 정보 보기</summary>
+          <dl>
+            {[trace.moderation, trace.luna, trace.terra]
+              .filter(
+                (stage): stage is InboxClassificationStageTrace =>
+                  stage !== null,
+              )
+              .map((stage) => (
+                <div
+                  key={`${stage.modelIdentifier}:${stage.providerResponseId}`}
+                >
+                  <dt>{stage.modelIdentifier}</dt>
+                  <dd>
+                    {stage.latencyMs ?? 0}ms · 입력 {stage.usage.inputTokens ?? 0}
+                    · 출력 {stage.usage.outputTokens ?? 0}
+                  </dd>
+                </div>
+              ))}
+          </dl>
+        </details>
+      </div>
+    </details>
   );
 }

@@ -98,9 +98,23 @@ export class GoogleYouTubeProvider implements YouTubeProvider {
       clientId: string;
       clientSecret: string;
       redirectUri: string;
+      commentReadApiKey?: string;
       onTokenRefresh?: TokenRefreshHandler;
     },
   ) {}
+
+  private createPublishedCommentReadClient() {
+    if (!this.configuration.commentReadApiKey) {
+      throw new Error(
+        "YouTube public API key is required for published comment reads",
+      );
+    }
+
+    return google.youtube({
+      version: "v3",
+      auth: this.configuration.commentReadApiKey,
+    });
+  }
 
   private createOAuthClient({
     listenForRefresh = false,
@@ -274,7 +288,6 @@ export class GoogleYouTubeProvider implements YouTubeProvider {
   async listCommentThreads({
     maxResults,
     pageToken,
-    tokens,
     youtubeVideoId,
   }: {
     youtubeVideoId: string;
@@ -285,8 +298,7 @@ export class GoogleYouTubeProvider implements YouTubeProvider {
     items: ProviderCommentThread[];
     nextPageToken: string | null;
   }> {
-    const client = this.createAuthorizedClient(tokens);
-    const youtube = google.youtube({ version: "v3", auth: client });
+    const youtube = this.createPublishedCommentReadClient();
     const response = await youtube.commentThreads.list({
       part: ["id", "snippet", "replies"],
       videoId: youtubeVideoId,
@@ -327,7 +339,6 @@ export class GoogleYouTubeProvider implements YouTubeProvider {
   async listReplies({
     pageToken,
     parentYoutubeCommentId,
-    tokens,
   }: {
     parentYoutubeCommentId: string;
     pageToken?: string;
@@ -336,8 +347,7 @@ export class GoogleYouTubeProvider implements YouTubeProvider {
     items: ProviderComment[];
     nextPageToken: string | null;
   }> {
-    const client = this.createAuthorizedClient(tokens);
-    const youtube = google.youtube({ version: "v3", auth: client });
+    const youtube = this.createPublishedCommentReadClient();
     const response = await youtube.comments.list({
       part: ["id", "snippet"],
       parentId: parentYoutubeCommentId,

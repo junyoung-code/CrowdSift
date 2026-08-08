@@ -2,6 +2,7 @@ import type {
   FirstPassInput,
   FirstPassResult,
   ModelRun,
+  ParentComment,
   SecondPassInput,
   SimilarExample,
 } from "./contracts";
@@ -28,6 +29,7 @@ export type ClassificationWorkItem = {
   policyVersion: number;
   profile: ClassificationProfile;
   similarExamples: SimilarExample[];
+  parent: ParentComment | null;
 };
 
 export type StoredTerraResult = {
@@ -104,6 +106,7 @@ const toFirstPassInput = (item: ClassificationWorkItem): FirstPassInput => ({
   channelId: item.channelId,
   profile: item.profile,
   similarExamples: item.similarExamples,
+  parent: item.parent,
 });
 
 const toSecondPassInput = (
@@ -117,6 +120,7 @@ const toSecondPassInput = (
   channelId: item.channelId,
   profile: item.profile,
   similarExamples: item.similarExamples,
+  parent: item.parent,
   moderation: firstPass.moderation?.result ?? null,
 });
 

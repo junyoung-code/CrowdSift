@@ -239,10 +239,35 @@ export const processClassificationChunk = async (
       const rawIds = claims.map((claim) => claim.raw_comment_id);
       const { data: rawComments, error: rawError } = await admin
         .from("raw_comments")
-        .select("id, workspace_id, youtube_video_id, text_display")
+        .select(
+          "id, workspace_id, youtube_video_id, youtube_comment_id, parent_youtube_comment_id, text_display",
+        )
         .eq("workspace_id", workspaceId)
         .in("id", rawIds);
       if (rawError || !rawComments) throw rawError ?? new Error("raw_missing");
+
+      const parentYoutubeIds = [
+        ...new Set(
+          rawComments
+            .map((row) => row.parent_youtube_comment_id)
+            .filter((id): id is string => Boolean(id)),
+        ),
+      ];
+      const parentRows = parentYoutubeIds.length
+        ? await admin
+            .from("raw_comments")
+            .select(
+              "id, workspace_id, youtube_video_id, youtube_comment_id, parent_youtube_comment_id, text_display",
+            )
+            .eq("workspace_id", workspaceId)
+            .in("youtube_comment_id", parentYoutubeIds)
+        : { data: [], error: null };
+      if (parentRows.error) throw parentRows.error;
+
+      const rawCommentsWithParents = [
+        ...rawComments,
+        ...(parentRows.data ?? []),
+      ];
 
       const videoIds = [...new Set(rawComments.map((row) => row.youtube_video_id))];
       const [{ data: videos, error: videoError }, { data: policy, error: policyError }] =
@@ -270,10 +295,12 @@ export const processClassificationChunk = async (
           rawCommentId: claim.raw_comment_id,
           workspaceId: claim.workspace_id,
         })),
-        rawComments: rawComments.map((row) => ({
+        rawComments: rawCommentsWithParents.map((row) => ({
           id: row.id,
           workspaceId: row.workspace_id,
           youtubeVideoId: row.youtube_video_id,
+          youtubeCommentId: row.youtube_comment_id,
+          parentYoutubeCommentId: row.parent_youtube_comment_id,
           textDisplay: row.text_display,
         })),
         videos: videos.map((video) => ({

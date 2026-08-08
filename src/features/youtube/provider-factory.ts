@@ -18,6 +18,7 @@ type ProviderFactoryConfiguration = {
     clientSecret: string;
     redirectUri: string;
     appOrigin?: string;
+    commentReadApiKey?: string;
   };
   onTokenRefresh?: (
     tokens: RefreshedGoogleTokens,
@@ -43,6 +44,7 @@ export const createProviderFactory = (
     clientId: configuration.google.clientId,
     clientSecret: configuration.google.clientSecret,
     redirectUri: configuration.google.redirectUri,
+    commentReadApiKey: configuration.google.commentReadApiKey,
     onTokenRefresh: configuration.onTokenRefresh,
   });
 };
@@ -64,6 +66,7 @@ export const createYouTubeProvider = (options?: {
       clientSecret: environment.GOOGLE_CLIENT_SECRET,
       redirectUri: environment.GOOGLE_REDIRECT_URI,
       appOrigin: environment.APP_ORIGIN,
+      commentReadApiKey: environment.YOUTUBE_PUBLIC_API_KEY,
     },
     onTokenRefresh: options?.onTokenRefresh,
   });
