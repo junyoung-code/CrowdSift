@@ -17,6 +17,7 @@ import {
   type ChannelSyncBatchResult,
   type ChannelSyncClaim,
   type ChannelSyncRepository,
+  type CompleteChannelSyncRunInput,
 } from "./channel-comment-sync-service";
 import {
   ChannelSyncProcessingError,
@@ -28,6 +29,57 @@ type ClassificationProgress = ClassificationJobProgress;
 
 const LEASE_SECONDS = 240;
 const nullableText = (value: string | null): string => value as string;
+
+type ChannelSyncConfigurationInput = {
+  policyVersion: number;
+  providerMode: "live" | "fixture";
+  moderationModel: string;
+  lunaModel: string;
+  terraModel: string;
+};
+
+export const createChannelSyncAnalysisConfigurationKey = (
+  input: ChannelSyncConfigurationInput,
+) => createClassificationConfigurationKey(input);
+
+export const buildChannelSyncImportJobInsert = (
+  input: {
+    runId: string;
+    workspaceId: string;
+    youtubeVideoId: string;
+    providerMode: "live" | "fixture";
+  },
+  startedAt: string,
+) => ({
+  workspace_id: input.workspaceId,
+  youtube_video_id: input.youtubeVideoId,
+  requested_top_level_count: null,
+  requested_total_count: null,
+  source_kind: "owned_oauth" as const,
+  source_video_url: null,
+  provider_mode: input.providerMode,
+  channel_sync_run_id: input.runId,
+  trigger_kind: "channel_sync",
+  status: "running" as const,
+  started_at: startedAt,
+});
+
+export const buildCompleteChannelSyncRunRpcArgs = (
+  input: CompleteChannelSyncRunInput,
+) => ({
+  target_run_id: input.runId,
+  target_claim_token: input.claimToken,
+  target_next_page_token: input.nextPageToken,
+  target_reached_boundary: input.reachedBoundary,
+  target_observed_count: input.observedCount,
+  target_stored_count: input.storedCount,
+  target_updated_count: input.updatedCount,
+  target_duplicate_count: input.duplicateCount,
+  target_failed_count: input.failedCount,
+  target_analyzed_count: input.analyzedCount,
+  target_quota_units_used: input.quotaUnitsUsed,
+  target_reply_cursor: null,
+});
 
 const assertWorkspaceViewer = async (workspaceId: string) => {
   const viewer = await requireViewer();
@@ -134,19 +186,7 @@ const createRepository = (
 
     const { data, error } = await admin
       .from("comment_import_jobs")
-      .insert({
-        workspace_id: input.workspaceId,
-        youtube_video_id: input.youtubeVideoId,
-        requested_top_level_count: null,
-        requested_total_count: null,
-        source_kind: "owned_oauth",
-        source_video_url: null,
-        provider_mode: input.providerMode,
-        channel_sync_run_id: input.runId,
-        trigger_kind: "channel_sync",
-        status: "running",
-        started_at: new Date().toISOString(),
-      })
+      .insert(buildChannelSyncImportJobInsert(input, new Date().toISOString()))
       .select("id")
       .single();
 
@@ -232,12 +272,54 @@ const createRepository = (
         failed_count: input.failedCount,
         top_level_count: input.topLevelCount,
         reply_count: input.replyCount,
+        last_error_code: input.errorCode,
         next_page_token: null,
         finished_at: new Date().toISOString(),
       })
       .eq("id", input.importJobId)
       .eq("trigger_kind", "channel_sync");
     if (error) throw error;
+  },
+
+  async listUnanalyzedFirstSeenRawCommentIds({
+    configurationKey,
+    importJobId,
+    workspaceId,
+  }) {
+    const { data: rawComments, error: rawError } = await admin
+      .from("raw_comments")
+      .select("id")
+      .eq("workspace_id", workspaceId)
+      .eq("first_import_job_id", importJobId);
+    if (rawError || !rawComments) {
+      throw rawError ?? new Error("channel_first_seen_comments_missing");
+    }
+    const rawCommentIds = rawComments.map((row) => row.id);
+    if (rawCommentIds.length === 0) return [];
+
+    const { data: analysisJob, error: analysisJobError } = await admin
+      .from("analysis_jobs")
+      .select("id")
+      .eq("workspace_id", workspaceId)
+      .eq("import_job_id", importJobId)
+      .eq("configuration_key", configurationKey)
+      .maybeSingle();
+    if (analysisJobError) throw analysisJobError;
+    if (!analysisJob) return rawCommentIds;
+
+    const { data: existingItems, error: itemError } = await admin
+      .from("analysis_job_items")
+      .select("raw_comment_id")
+      .eq("workspace_id", workspaceId)
+      .eq("analysis_job_id", analysisJob.id)
+      .in("raw_comment_id", rawCommentIds);
+    if (itemError || !existingItems) {
+      throw itemError ?? new Error("channel_analysis_items_missing");
+    }
+    const existingRawCommentIds = new Set(
+      existingItems.map((item) => item.raw_comment_id),
+    );
+    return rawCommentIds.filter((id) => !existingRawCommentIds.has(id));
   },
 
   async ensureAnalysisJob({
@@ -247,27 +329,47 @@ const createRepository = (
     workspaceId,
   }) {
     if (rawCommentIds.length === 0) return null;
-    const { data: analysisJob, error: analysisJobError } = await admin
-      .from("analysis_jobs")
-      .upsert(
-        {
+    const findAnalysisJob = () =>
+      admin
+        .from("analysis_jobs")
+        .select("id")
+        .eq("workspace_id", workspaceId)
+        .eq("import_job_id", importJobId)
+        .eq("configuration_key", configurationKey)
+        .maybeSingle();
+    const existingAnalysisJob = await findAnalysisJob();
+    if (existingAnalysisJob.error) throw existingAnalysisJob.error;
+    let analysisJobId = existingAnalysisJob.data?.id ?? null;
+
+    if (!analysisJobId) {
+      const inserted = await admin
+        .from("analysis_jobs")
+        .insert({
           workspace_id: workspaceId,
           import_job_id: importJobId,
           configuration_key: configurationKey,
           status: "pending",
-          total_count: rawCommentIds.length,
-        },
-        { onConflict: "import_job_id,configuration_key" },
-      )
-      .select("id")
-      .single();
-    if (analysisJobError || !analysisJob) {
-      throw analysisJobError ?? new Error("channel_analysis_job_missing");
+          total_count: 0,
+        })
+        .select("id")
+        .single();
+      if (inserted.error?.code === "23505") {
+        const racedAnalysisJob = await findAnalysisJob();
+        if (racedAnalysisJob.error) throw racedAnalysisJob.error;
+        analysisJobId = racedAnalysisJob.data?.id ?? null;
+      } else if (inserted.error || !inserted.data) {
+        throw inserted.error ?? new Error("channel_analysis_job_missing");
+      } else {
+        analysisJobId = inserted.data.id;
+      }
+    }
+    if (!analysisJobId) {
+      throw new Error("channel_analysis_job_missing");
     }
 
     const { error: itemError } = await admin.from("analysis_job_items").upsert(
       rawCommentIds.map((rawCommentId) => ({
-        analysis_job_id: analysisJob.id,
+        analysis_job_id: analysisJobId,
         workspace_id: workspaceId,
         raw_comment_id: rawCommentId,
         status: "pending" as const,
@@ -275,24 +377,31 @@ const createRepository = (
       { onConflict: "analysis_job_id,raw_comment_id", ignoreDuplicates: true },
     );
     if (itemError) throw itemError;
-    return analysisJob;
+
+    const itemCountResult = await admin
+      .from("analysis_job_items")
+      .select("id", { count: "exact", head: true })
+      .eq("analysis_job_id", analysisJobId);
+    if (itemCountResult.error || itemCountResult.count === null) {
+      throw itemCountResult.error ?? new Error("channel_analysis_count_missing");
+    }
+    const { error: progressError } = await admin
+      .from("analysis_jobs")
+      .update({
+        status: "pending",
+        total_count: itemCountResult.count,
+        finished_at: null,
+      })
+      .eq("id", analysisJobId);
+    if (progressError) throw progressError;
+    return { id: analysisJobId };
   },
 
   async completeRun(input) {
-    const { error } = await admin.rpc("complete_channel_comment_sync_run", {
-      target_run_id: input.runId,
-      target_claim_token: input.claimToken,
-      target_next_page_token: input.nextPageToken,
-      target_reached_boundary: input.reachedBoundary,
-      target_observed_count: input.observedCount,
-      target_stored_count: input.storedCount,
-      target_updated_count: input.updatedCount,
-      target_duplicate_count: input.duplicateCount,
-      target_failed_count: input.failedCount,
-      target_analyzed_count: input.analyzedCount,
-      target_quota_units_used: input.quotaUnitsUsed,
-      target_reply_cursor: null,
-    });
+    const { error } = await admin.rpc(
+      "complete_channel_comment_sync_run",
+      buildCompleteChannelSyncRunRpcArgs(input),
+    );
     if (error) throw error;
   },
 
@@ -362,7 +471,7 @@ export async function processOneChannelSyncWork(input: {
   const environment = getServerEnv();
   const provider = createYouTubeProvider();
   const repository = createRepository(admin);
-  const analysisConfigurationKey = createClassificationConfigurationKey({
+  const analysisConfigurationKey = createChannelSyncAnalysisConfigurationKey({
     policyVersion,
     providerMode: environment.EXTERNAL_PROVIDER_MODE,
     moderationModel: environment.OPENAI_MODERATION_MODEL,

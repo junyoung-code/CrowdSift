@@ -5,7 +5,10 @@ export type ImportFailureCode =
   | "provider_mode_mismatch"
   | "provider_error";
 
-export type ChannelSyncErrorCode = ImportFailureCode | "unsupported_sync_kind";
+export type ChannelSyncErrorCode =
+  | ImportFailureCode
+  | "unsupported_sync_kind"
+  | "video_metadata_unavailable";
 
 export class ImportProcessingError extends Error {
   constructor(

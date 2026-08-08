@@ -84,6 +84,7 @@ const repository = (): ChannelSyncRepository => ({
   })),
   recordFailedItem: vi.fn(async () => undefined),
   completeVideoImportJob: vi.fn(async () => undefined),
+  listUnanalyzedFirstSeenRawCommentIds: vi.fn(async () => []),
   ensureAnalysisJob: vi.fn(async ({ importJobId }) => ({
     id: `analysis-${importJobId}`,
   })),
@@ -120,6 +121,9 @@ describe("channel comment sync service", () => {
         rawCommentId: "raw-2",
       })
       .mockResolvedValueOnce({ disposition: "updated", rawCommentId: "raw-3" });
+    vi.mocked(
+      targetRepository.listUnanalyzedFirstSeenRawCommentIds,
+    ).mockResolvedValue(["raw-1"]);
     const page = collection([
       ["real-video-1", [comment("comment-1"), comment("comment-2"), comment("comment-3")]],
     ]);
@@ -192,11 +196,13 @@ describe("channel comment sync service", () => {
     );
   });
 
-  it("preserves a real video ID without inventing metadata when lookup omits it", async () => {
+  it("stores the real video ID but fails retryably without analysis when metadata is omitted", async () => {
     const targetRepository = repository();
     const page = collection([["real-video-id", [comment("comment-1")]]]);
 
-    await service(targetRepository, source(page, [])).process(claim);
+    await expect(
+      service(targetRepository, source(page, [])).process(claim),
+    ).rejects.toMatchObject({ code: "video_metadata_unavailable" });
 
     expect(targetRepository.upsertVideoMetadata).not.toHaveBeenCalled();
     expect(targetRepository.createOrGetVideoImportJob).toHaveBeenCalledWith(
@@ -205,6 +211,128 @@ describe("channel comment sync service", () => {
     expect(targetRepository.storeComment).toHaveBeenCalledWith(
       expect.objectContaining({ youtubeVideoId: "real-video-id" }),
     );
+    expect(targetRepository.ensureAnalysisJob).not.toHaveBeenCalled();
+    expect(targetRepository.completeVideoImportJob).toHaveBeenCalledWith(
+      expect.objectContaining({
+        importJobId: "job-real-video-id",
+        errorCode: "video_metadata_unavailable",
+        status: "partially_succeeded",
+      }),
+    );
+    expect(targetRepository.failRun).toHaveBeenCalledWith({
+      runId: "run-1",
+      claimToken: "claim-token-1",
+      errorCode: "video_metadata_unavailable",
+    });
+    expect(targetRepository.completeRun).not.toHaveBeenCalled();
+  });
+
+  it("stores source comments before failing a rejected metadata lookup", async () => {
+    const targetRepository = repository();
+    const page = collection([["real-video-id", [comment("comment-1")]]]);
+    const targetSource = source(page);
+    vi.mocked(targetSource.listVideosByIds).mockRejectedValue({
+      response: {
+        data: { error: { errors: [{ reason: "backendError" }] } },
+        status: 500,
+      },
+    });
+
+    await expect(
+      service(targetRepository, targetSource).process(claim),
+    ).rejects.toMatchObject({ code: "provider_error" });
+
+    expect(targetRepository.storeComment).toHaveBeenCalledWith(
+      expect.objectContaining({ youtubeVideoId: "real-video-id" }),
+    );
+    expect(targetRepository.ensureAnalysisJob).not.toHaveBeenCalled();
+    expect(targetRepository.completeVideoImportJob).toHaveBeenCalledWith(
+      expect.objectContaining({ errorCode: "provider_error" }),
+    );
+  });
+
+  it("recovers durable first-seen comments after metadata becomes available", async () => {
+    const targetRepository = repository();
+    const page = collection([["real-video-id", [comment("comment-1")]]]);
+    const targetSource = source(page, []);
+    vi.mocked(targetSource.listVideosByIds)
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([video("real-video-id")]);
+    vi.mocked(targetRepository.storeComment)
+      .mockResolvedValueOnce({ disposition: "stored", rawCommentId: "raw-1" })
+      .mockResolvedValueOnce({
+        disposition: "duplicate",
+        rawCommentId: "raw-1",
+      });
+    vi.mocked(
+      targetRepository.listUnanalyzedFirstSeenRawCommentIds,
+    ).mockResolvedValueOnce(["raw-1"]);
+    const targetService = service(targetRepository, targetSource);
+
+    await expect(targetService.process(claim)).rejects.toMatchObject({
+      code: "video_metadata_unavailable",
+    });
+    await expect(targetService.process(claim)).resolves.toMatchObject({
+      analyzedCount: 1,
+      duplicateCount: 1,
+    });
+
+    expect(targetRepository.ensureAnalysisJob).toHaveBeenCalledTimes(1);
+    expect(targetRepository.ensureAnalysisJob).toHaveBeenCalledWith(
+      expect.objectContaining({ rawCommentIds: ["raw-1"] }),
+    );
+  });
+
+  it("recovers a missing analysis item after an ensure failure without re-enqueueing existing items", async () => {
+    const targetRepository = repository();
+    const page = collection([
+      ["real-video-id", [comment("comment-1"), comment("comment-2")]],
+    ]);
+    vi.mocked(targetRepository.storeComment)
+      .mockResolvedValueOnce({
+        disposition: "stored",
+        rawCommentId: "raw-missing",
+      })
+      .mockResolvedValueOnce({
+        disposition: "stored",
+        rawCommentId: "raw-existing",
+      })
+      .mockResolvedValueOnce({
+        disposition: "duplicate",
+        rawCommentId: "raw-missing",
+      })
+      .mockResolvedValueOnce({
+        disposition: "updated",
+        rawCommentId: "raw-existing",
+      });
+    vi.mocked(
+      targetRepository.listUnanalyzedFirstSeenRawCommentIds,
+    )
+      .mockResolvedValueOnce(["raw-missing"])
+      .mockResolvedValueOnce(["raw-missing"]);
+    vi.mocked(targetRepository.ensureAnalysisJob)
+      .mockRejectedValueOnce(new Error("analysis write interrupted"))
+      .mockResolvedValueOnce({ id: "analysis-job-1" });
+    const targetService = service(targetRepository, source(page));
+
+    await expect(targetService.process(claim)).rejects.toMatchObject({
+      code: "provider_error",
+    });
+    await expect(targetService.process(claim)).resolves.toMatchObject({
+      analyzedCount: 1,
+      duplicateCount: 1,
+      updatedCount: 1,
+    });
+
+    expect(targetRepository.ensureAnalysisJob).toHaveBeenCalledTimes(2);
+    expect(targetRepository.ensureAnalysisJob).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ rawCommentIds: ["raw-missing"] }),
+    );
+    expect(targetRepository.ensureAnalysisJob).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ rawCommentIds: ["raw-missing"] }),
+    );
   });
 
   it("continues storing sibling comments when one item fails", async () => {
@@ -212,6 +340,9 @@ describe("channel comment sync service", () => {
     vi.mocked(targetRepository.storeComment)
       .mockRejectedValueOnce(new Error("write failed"))
       .mockResolvedValueOnce({ disposition: "stored", rawCommentId: "raw-2" });
+    vi.mocked(
+      targetRepository.listUnanalyzedFirstSeenRawCommentIds,
+    ).mockResolvedValue(["raw-2"]);
     const page = collection([
       ["real-video-1", [comment("comment-1"), comment("comment-2")]],
     ]);
@@ -285,6 +416,9 @@ describe("channel comment sync service", () => {
         rawCommentId: "raw-3",
       })
       .mockRejectedValueOnce(new Error("write failed"));
+    vi.mocked(
+      targetRepository.listUnanalyzedFirstSeenRawCommentIds,
+    ).mockResolvedValue(["raw-1"]);
     const page = collection(
       [
         [
@@ -317,10 +451,34 @@ describe("channel comment sync service", () => {
       storedCount: 1,
       updatedCount: 1,
       duplicateCount: 1,
-      failedCount: 1,
+      failedCount: 3,
       analyzedCount: 1,
       quotaUnitsUsed: 7,
     });
+  });
+
+  it("counts provider-invalid items as failed even when every group is empty", async () => {
+    const targetRepository = repository();
+    const page = collection([], {
+      observedCount: 3,
+      invalidCount: 3,
+      nextPageToken: null,
+      reachedBoundary: false,
+      quotaUnitsUsed: 1,
+    });
+
+    const result = await service(targetRepository, source(page)).process(claim);
+
+    expect(result).toMatchObject({
+      observedCount: 3,
+      storedCount: 0,
+      updatedCount: 0,
+      duplicateCount: 0,
+      failedCount: 3,
+    });
+    expect(targetRepository.completeRun).toHaveBeenCalledWith(
+      expect.objectContaining({ observedCount: 3, failedCount: 3 }),
+    );
   });
 });
 
@@ -369,5 +527,113 @@ describe("channel comment sync Supabase adapter", () => {
     vi.doUnmock("server-only");
     vi.doUnmock("@/lib/supabase/admin");
     vi.doUnmock("@/features/auth/require-viewer");
+  });
+
+  it("builds the exact channel-sync import row without manual requested counts", async () => {
+    vi.resetModules();
+    vi.doMock("server-only", () => ({}));
+    const adapter = await import("./process-channel-comment-sync");
+    const build = Reflect.get(adapter, "buildChannelSyncImportJobInsert");
+    const actual =
+      typeof build === "function"
+        ? build(
+            {
+              runId: "run-1",
+              workspaceId: "workspace-1",
+              youtubeVideoId: "real-video-1",
+              providerMode: "live",
+            },
+            "2026-08-08T12:00:00.000Z",
+          )
+        : null;
+
+    expect(actual).toEqual({
+      workspace_id: "workspace-1",
+      youtube_video_id: "real-video-1",
+      requested_top_level_count: null,
+      requested_total_count: null,
+      source_kind: "owned_oauth",
+      source_video_url: null,
+      provider_mode: "live",
+      channel_sync_run_id: "run-1",
+      trigger_kind: "channel_sync",
+      status: "running",
+      started_at: "2026-08-08T12:00:00.000Z",
+    });
+    vi.doUnmock("server-only");
+  });
+
+  it("builds the exact fenced completion RPC payload", async () => {
+    vi.resetModules();
+    vi.doMock("server-only", () => ({}));
+    const adapter = await import("./process-channel-comment-sync");
+    const build = Reflect.get(adapter, "buildCompleteChannelSyncRunRpcArgs");
+    const actual =
+      typeof build === "function"
+        ? build({
+            runId: "run-1",
+            claimToken: "private-claim-token",
+            nextPageToken: "next-page",
+            reachedBoundary: false,
+            observedCount: 8,
+            storedCount: 2,
+            updatedCount: 1,
+            duplicateCount: 3,
+            failedCount: 2,
+            analyzedCount: 2,
+            quotaUnitsUsed: 7,
+          })
+        : null;
+
+    expect(actual).toEqual({
+      target_run_id: "run-1",
+      target_claim_token: "private-claim-token",
+      target_next_page_token: "next-page",
+      target_reached_boundary: false,
+      target_observed_count: 8,
+      target_stored_count: 2,
+      target_updated_count: 1,
+      target_duplicate_count: 3,
+      target_failed_count: 2,
+      target_analyzed_count: 2,
+      target_quota_units_used: 7,
+      target_reply_cursor: null,
+    });
+    vi.doUnmock("server-only");
+  });
+
+  it("passes the current Moderation, Luna, and Terra identifiers into the configuration key", async () => {
+    vi.resetModules();
+    const createClassificationConfigurationKey = vi.fn(() => "derived-key");
+    vi.doMock("server-only", () => ({}));
+    vi.doMock("@/features/classification/configuration", () => ({
+      createClassificationConfigurationKey,
+    }));
+    const adapter = await import("./process-channel-comment-sync");
+    const createKey = Reflect.get(
+      adapter,
+      "createChannelSyncAnalysisConfigurationKey",
+    );
+    const actual =
+      typeof createKey === "function"
+        ? createKey({
+            policyVersion: 7,
+            providerMode: "live",
+            moderationModel: "moderation-current",
+            lunaModel: "luna-current",
+            terraModel: "terra-current",
+          })
+        : null;
+
+    expect(actual).toBe("derived-key");
+    expect(createClassificationConfigurationKey).toHaveBeenCalledWith({
+      policyVersion: 7,
+      providerMode: "live",
+      moderationModel: "moderation-current",
+      lunaModel: "luna-current",
+      terraModel: "terra-current",
+    });
+    vi.doUnmock("server-only");
+    vi.doUnmock("@/features/classification/configuration");
   });
 });

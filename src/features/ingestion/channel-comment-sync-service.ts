@@ -59,6 +59,7 @@ export type CompleteChannelVideoImportInput = {
   failedCount: number;
   topLevelCount: number;
   replyCount: number;
+  errorCode: ChannelSyncErrorCode | null;
   status: "succeeded" | "partially_succeeded" | "failed";
 };
 
@@ -85,6 +86,11 @@ export interface ChannelSyncRepository {
     errorCode: string;
   }): Promise<void>;
   completeVideoImportJob(input: CompleteChannelVideoImportInput): Promise<void>;
+  listUnanalyzedFirstSeenRawCommentIds(input: {
+    importJobId: string;
+    workspaceId: string;
+    configurationKey: string;
+  }): Promise<string[]>;
   ensureAnalysisJob(input: {
     importJobId: string;
     workspaceId: string;
@@ -151,6 +157,16 @@ const importStatus = ({
   return "failed";
 };
 
+const importStatusWithMetadata = (
+  counts: VideoCounts,
+  metadataError: ChannelSyncProcessingError | null,
+): CompleteChannelVideoImportInput["status"] => {
+  const status = importStatus(counts);
+  return metadataError && status === "succeeded"
+    ? "partially_succeeded"
+    : status;
+};
+
 const collectionInput = (
   claim: ChannelSyncClaim,
 ): { boundaryAt: string; kind: ChannelCommentCollectionKind } => {
@@ -175,7 +191,7 @@ export const createChannelCommentSyncService = ({
   repository: ChannelSyncRepository;
   source: ChannelSyncSource;
   analysisConfigurationKey: string;
-    providerMode: "live" | "fixture";
+  providerMode: "live" | "fixture";
 }) => ({
   async process(claim: ChannelSyncClaim): Promise<ChannelSyncBatchResult> {
     try {
@@ -187,8 +203,16 @@ export const createChannelCommentSyncService = ({
         kind,
       });
       const youtubeVideoIds = [...page.groups.keys()];
-      const videos = await source.listVideosByIds(youtubeVideoIds);
       const requestedVideoIds = new Set(youtubeVideoIds);
+      const metadataVideoIds = new Set<string>();
+      let metadataLookupError: ChannelSyncProcessingError | null = null;
+      let videos: YouTubeVideo[] = [];
+
+      try {
+        videos = await source.listVideosByIds(youtubeVideoIds);
+      } catch (error) {
+        metadataLookupError = toChannelSyncProcessingError(error);
+      }
 
       for (const targetVideo of videos) {
         if (!requestedVideoIds.has(targetVideo.id)) continue;
@@ -197,14 +221,23 @@ export const createChannelCommentSyncService = ({
           youtubeChannelId: claim.youtubeChannelId,
           video: targetVideo,
         });
+        metadataVideoIds.add(targetVideo.id);
       }
 
       const totals = emptyCounts();
+      totals.failedCount = page.invalidCount;
       const importJobIds: string[] = [];
       const analysisJobIds: string[] = [];
       let analyzedCount = 0;
+      let runMetadataError = metadataLookupError;
 
       for (const [youtubeVideoId, comments] of page.groups) {
+        const groupMetadataError =
+          metadataLookupError ??
+          (metadataVideoIds.has(youtubeVideoId)
+            ? null
+            : new ChannelSyncProcessingError("video_metadata_unavailable"));
+        runMetadataError ??= groupMetadataError;
         const importJob = await repository.createOrGetVideoImportJob({
           runId: claim.runId,
           workspaceId: claim.workspaceId,
@@ -213,7 +246,6 @@ export const createChannelCommentSyncService = ({
         });
         importJobIds.push(importJob.id);
         const counts = emptyCounts();
-        const firstSeenRawCommentIds: string[] = [];
 
         for (const sourceComment of comments) {
           try {
@@ -224,9 +256,6 @@ export const createChannelCommentSyncService = ({
               comment: sourceComment,
             });
             counts[`${stored.disposition}Count`] += 1;
-            if (stored.disposition === "stored") {
-              firstSeenRawCommentIds.push(stored.rawCommentId);
-            }
           } catch {
             counts.failedCount += 1;
             try {
@@ -252,25 +281,38 @@ export const createChannelCommentSyncService = ({
           replyCount: comments.filter(
             (item) => item.parentYoutubeCommentId !== null,
           ).length,
-          status: importStatus(counts),
+          errorCode: groupMetadataError?.code ?? null,
+          status: importStatusWithMetadata(counts, groupMetadataError),
         });
 
-        const uniqueFirstSeenIds = [...new Set(firstSeenRawCommentIds)];
-        if (uniqueFirstSeenIds.length > 0) {
-          const analysisJob = await repository.ensureAnalysisJob({
-            importJobId: importJob.id,
-            workspaceId: claim.workspaceId,
-            configurationKey: analysisConfigurationKey,
-            rawCommentIds: uniqueFirstSeenIds,
-          });
-          analyzedCount += uniqueFirstSeenIds.length;
-          if (analysisJob) analysisJobIds.push(analysisJob.id);
+        if (!groupMetadataError) {
+          const missingRawCommentIds =
+            await repository.listUnanalyzedFirstSeenRawCommentIds({
+              importJobId: importJob.id,
+              workspaceId: claim.workspaceId,
+              configurationKey: analysisConfigurationKey,
+            });
+          const uniqueMissingIds = [...new Set(missingRawCommentIds)];
+          if (uniqueMissingIds.length > 0) {
+            const analysisJob = await repository.ensureAnalysisJob({
+              importJobId: importJob.id,
+              workspaceId: claim.workspaceId,
+              configurationKey: analysisConfigurationKey,
+              rawCommentIds: uniqueMissingIds,
+            });
+            analyzedCount += uniqueMissingIds.length;
+            if (analysisJob) analysisJobIds.push(analysisJob.id);
+          }
         }
 
         totals.storedCount += counts.storedCount;
         totals.updatedCount += counts.updatedCount;
         totals.duplicateCount += counts.duplicateCount;
         totals.failedCount += counts.failedCount;
+      }
+
+      if (runMetadataError) {
+        throw runMetadataError;
       }
 
       const completion: CompleteChannelSyncRunInput = {
