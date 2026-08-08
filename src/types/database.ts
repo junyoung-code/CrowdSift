@@ -395,6 +395,7 @@ export type Database = {
           enabled: boolean
           id: string
           incremental_page_token: string | null
+          incremental_scan_started_at: string | null
           last_error_code: string | null
           last_reply_reconciliation_at: string | null
           last_successful_sync_at: string | null
@@ -417,6 +418,7 @@ export type Database = {
           enabled?: boolean
           id?: string
           incremental_page_token?: string | null
+          incremental_scan_started_at?: string | null
           last_error_code?: string | null
           last_reply_reconciliation_at?: string | null
           last_successful_sync_at?: string | null
@@ -439,6 +441,7 @@ export type Database = {
           enabled?: boolean
           id?: string
           incremental_page_token?: string | null
+          incremental_scan_started_at?: string | null
           last_error_code?: string | null
           last_reply_reconciliation_at?: string | null
           last_successful_sync_at?: string | null
@@ -2286,6 +2289,41 @@ export type Database = {
         Returns: {
           backfill_start_at: string
           connection_id: string
+          incremental_scan_started_at: string
+          last_successful_sync_at: string
+          page_token: string
+          run_id: string
+          run_kind: string
+          setting_id: string
+          workspace_id: string
+          youtube_channel_id: string
+        }[]
+      }
+      claim_channel_comment_sync_work_for_workspace: {
+        Args: { target_lease_seconds?: number; target_workspace_id: string }
+        Returns: {
+          backfill_start_at: string
+          connection_id: string
+          incremental_scan_started_at: string
+          last_successful_sync_at: string
+          page_token: string
+          run_id: string
+          run_kind: string
+          setting_id: string
+          workspace_id: string
+          youtube_channel_id: string
+        }[]
+      }
+      claim_channel_comment_sync_work_internal: {
+        Args: {
+          target_lease_seconds: number
+          target_limit: number
+          target_workspace_id: string
+        }
+        Returns: {
+          backfill_start_at: string
+          connection_id: string
+          incremental_scan_started_at: string
           last_successful_sync_at: string
           page_token: string
           run_id: string
@@ -2313,6 +2351,47 @@ export type Database = {
           target_workspace_id: string
         }
         Returns: boolean
+      }
+      complete_channel_comment_sync_run: {
+        Args: {
+          target_analyzed_count: number
+          target_duplicate_count: number
+          target_failed_count: number
+          target_next_page_token: string
+          target_observed_count: number
+          target_quota_units_used: number
+          target_reached_boundary: boolean
+          target_reply_cursor?: string
+          target_run_id: string
+          target_stored_count: number
+          target_updated_count: number
+        }
+        Returns: {
+          analyzed_count: number
+          created_at: string
+          duplicate_count: number
+          error_code: string | null
+          failed_count: number
+          finished_at: string | null
+          id: string
+          input_page_token: string | null
+          kind: string
+          observed_count: number
+          output_page_token: string | null
+          quota_units_used: number
+          setting_id: string
+          started_at: string | null
+          status: string
+          stored_count: number
+          updated_count: number
+          workspace_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "channel_comment_sync_runs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       complete_moderation_request: {
         Args: {
@@ -2354,6 +2433,7 @@ export type Database = {
           enabled: boolean
           id: string
           incremental_page_token: string | null
+          incremental_scan_started_at: string | null
           last_error_code: string | null
           last_reply_reconciliation_at: string | null
           last_successful_sync_at: string | null
@@ -2411,6 +2491,35 @@ export type Database = {
         Returns: undefined
       }
       ensure_owner_workspace: { Args: never; Returns: string }
+      fail_channel_comment_sync_run: {
+        Args: { target_error_code: string; target_run_id: string }
+        Returns: {
+          analyzed_count: number
+          created_at: string
+          duplicate_count: number
+          error_code: string | null
+          failed_count: number
+          finished_at: string | null
+          id: string
+          input_page_token: string | null
+          kind: string
+          observed_count: number
+          output_page_token: string | null
+          quota_units_used: number
+          setting_id: string
+          started_at: string | null
+          status: string
+          stored_count: number
+          updated_count: number
+          workspace_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "channel_comment_sync_runs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       get_acknowledged_comment_source: {
         Args: { target_raw_comment_id: string; target_workspace_id: string }
         Returns: {
@@ -2581,6 +2690,7 @@ export type Database = {
           enabled: boolean
           id: string
           incremental_page_token: string | null
+          incremental_scan_started_at: string | null
           last_error_code: string | null
           last_reply_reconciliation_at: string | null
           last_successful_sync_at: string | null
@@ -2616,6 +2726,7 @@ export type Database = {
           enabled: boolean
           id: string
           incremental_page_token: string | null
+          incremental_scan_started_at: string | null
           last_error_code: string | null
           last_reply_reconciliation_at: string | null
           last_successful_sync_at: string | null
