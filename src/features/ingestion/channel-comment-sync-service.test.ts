@@ -90,9 +90,9 @@ const repository = (): ChannelSyncRepository => ({
   })),
   recordFailedItem: vi.fn(async () => undefined),
   completeVideoImportJob: vi.fn(async () => undefined),
-  listUnanalyzedFirstSeenRawCommentIds: vi.fn(async () => []),
-  ensureAnalysisJob: vi.fn(async ({ importJobId }) => ({
-    id: `analysis-${importJobId}`,
+  attachRecoverableAnalysisItems: vi.fn(async () => ({
+    analysisJobId: null,
+    attachedRawCommentIds: [],
   })),
   completeRun: vi.fn(async () => undefined),
   failRun: vi.fn(async () => undefined),
@@ -128,19 +128,24 @@ describe("channel comment sync service", () => {
       })
       .mockResolvedValueOnce({ disposition: "updated", rawCommentId: "raw-3" });
     vi.mocked(
-      targetRepository.listUnanalyzedFirstSeenRawCommentIds,
-    ).mockResolvedValue(["raw-1"]);
+      targetRepository.attachRecoverableAnalysisItems,
+    ).mockResolvedValue({
+      analysisJobId: "analysis-job-1",
+      attachedRawCommentIds: ["raw-1"],
+    });
     const page = collection([
       ["real-video-1", [comment("comment-1"), comment("comment-2"), comment("comment-3")]],
     ]);
 
     const result = await service(targetRepository, source(page)).process(claim);
 
-    expect(targetRepository.ensureAnalysisJob).toHaveBeenCalledWith({
+    expect(targetRepository.attachRecoverableAnalysisItems).toHaveBeenCalledWith({
       importJobId: "job-real-video-1",
+      runId: "run-1",
+      claimToken: "claim-token-1",
       workspaceId: "workspace-1",
+      youtubeVideoId: "real-video-1",
       configurationKey: "classification-v1-key",
-      rawCommentIds: ["raw-1"],
     });
     expect(result).toMatchObject({
       storedCount: 1,
@@ -165,6 +170,7 @@ describe("channel comment sync service", () => {
       1,
       {
         runId: "run-1",
+        claimToken: "claim-token-1",
         workspaceId: "workspace-1",
         youtubeVideoId: "real-video-1",
         providerMode: "live",
@@ -174,6 +180,7 @@ describe("channel comment sync service", () => {
       2,
       {
         runId: "run-1",
+        claimToken: "claim-token-1",
         workspaceId: "workspace-1",
         youtubeVideoId: "real-video-2",
         providerMode: "live",
@@ -185,6 +192,14 @@ describe("channel comment sync service", () => {
         importJobId: "job-real-video-1",
         runId: "run-1",
         claimToken: "claim-token-1",
+      }),
+    );
+    expect(targetRepository.storeComment).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        runId: "run-1",
+        claimToken: "claim-token-1",
+        importJobId: "job-real-video-1",
       }),
     );
   });
@@ -225,7 +240,7 @@ describe("channel comment sync service", () => {
     expect(targetRepository.storeComment).toHaveBeenCalledWith(
       expect.objectContaining({ youtubeVideoId: "real-video-id" }),
     );
-    expect(targetRepository.ensureAnalysisJob).not.toHaveBeenCalled();
+    expect(targetRepository.attachRecoverableAnalysisItems).not.toHaveBeenCalled();
     expect(targetRepository.completeVideoImportJob).toHaveBeenCalledWith(
       expect.objectContaining({
         importJobId: "job-real-video-id",
@@ -259,7 +274,7 @@ describe("channel comment sync service", () => {
     expect(targetRepository.storeComment).toHaveBeenCalledWith(
       expect.objectContaining({ youtubeVideoId: "real-video-id" }),
     );
-    expect(targetRepository.ensureAnalysisJob).not.toHaveBeenCalled();
+    expect(targetRepository.attachRecoverableAnalysisItems).not.toHaveBeenCalled();
     expect(targetRepository.completeVideoImportJob).toHaveBeenCalledWith(
       expect.objectContaining({ errorCode: "provider_error" }),
     );
@@ -279,8 +294,11 @@ describe("channel comment sync service", () => {
         rawCommentId: "raw-1",
       });
     vi.mocked(
-      targetRepository.listUnanalyzedFirstSeenRawCommentIds,
-    ).mockResolvedValueOnce(["raw-1"]);
+      targetRepository.attachRecoverableAnalysisItems,
+    ).mockResolvedValueOnce({
+      analysisJobId: "analysis-job-1",
+      attachedRawCommentIds: ["raw-1"],
+    });
     vi.mocked(targetRepository.createOrGetVideoImportJob).mockImplementation(
       async ({ runId }) => ({ id: `job-${runId}-real-video-id` }),
     );
@@ -293,19 +311,10 @@ describe("channel comment sync service", () => {
       targetService.process(claimForRun("run-new", "claim-new")),
     ).resolves.toMatchObject({ analyzedCount: 1, duplicateCount: 1 });
 
-    expect(targetRepository.ensureAnalysisJob).toHaveBeenCalledTimes(1);
-    expect(targetRepository.ensureAnalysisJob).toHaveBeenCalledWith(
+    expect(targetRepository.attachRecoverableAnalysisItems).toHaveBeenCalledTimes(1);
+    expect(targetRepository.attachRecoverableAnalysisItems).toHaveBeenCalledWith(
       expect.objectContaining({
         importJobId: "job-run-new-real-video-id",
-        rawCommentIds: ["raw-1"],
-      }),
-    );
-    expect(
-      targetRepository.listUnanalyzedFirstSeenRawCommentIds,
-    ).toHaveBeenCalledWith(
-      expect.objectContaining({
-        importJobId: "job-run-new-real-video-id",
-        youtubeVideoId: "real-video-id",
       }),
     );
   });
@@ -332,14 +341,12 @@ describe("channel comment sync service", () => {
         disposition: "updated",
         rawCommentId: "raw-existing",
       });
-    vi.mocked(
-      targetRepository.listUnanalyzedFirstSeenRawCommentIds,
-    )
-      .mockResolvedValueOnce(["raw-missing"])
-      .mockResolvedValueOnce(["raw-missing"]);
-    vi.mocked(targetRepository.ensureAnalysisJob)
+    vi.mocked(targetRepository.attachRecoverableAnalysisItems)
       .mockRejectedValueOnce(new Error("analysis write interrupted"))
-      .mockResolvedValueOnce({ id: "analysis-job-1" });
+      .mockResolvedValueOnce({
+        analysisJobId: "analysis-job-1",
+        attachedRawCommentIds: ["raw-missing"],
+      });
     vi.mocked(targetRepository.createOrGetVideoImportJob).mockImplementation(
       async ({ runId }) => ({ id: `job-${runId}-real-video-id` }),
     );
@@ -356,19 +363,17 @@ describe("channel comment sync service", () => {
       updatedCount: 1,
     });
 
-    expect(targetRepository.ensureAnalysisJob).toHaveBeenCalledTimes(2);
-    expect(targetRepository.ensureAnalysisJob).toHaveBeenNthCalledWith(
+    expect(targetRepository.attachRecoverableAnalysisItems).toHaveBeenCalledTimes(2);
+    expect(targetRepository.attachRecoverableAnalysisItems).toHaveBeenNthCalledWith(
       1,
       expect.objectContaining({
         importJobId: "job-run-old-real-video-id",
-        rawCommentIds: ["raw-missing"],
       }),
     );
-    expect(targetRepository.ensureAnalysisJob).toHaveBeenNthCalledWith(
+    expect(targetRepository.attachRecoverableAnalysisItems).toHaveBeenNthCalledWith(
       2,
       expect.objectContaining({
         importJobId: "job-run-new-real-video-id",
-        rawCommentIds: ["raw-missing"],
       }),
     );
   });
@@ -407,9 +412,15 @@ describe("channel comment sync service", () => {
         disposition: "duplicate",
         rawCommentId: "raw-missing",
       });
-    vi.mocked(targetRepository.listUnanalyzedFirstSeenRawCommentIds)
-      .mockResolvedValueOnce(["raw-analyzed"])
-      .mockResolvedValueOnce(["raw-missing"]);
+    vi.mocked(targetRepository.attachRecoverableAnalysisItems)
+      .mockResolvedValueOnce({
+        analysisJobId: "analysis-old-analyzed",
+        attachedRawCommentIds: ["raw-analyzed"],
+      })
+      .mockResolvedValueOnce({
+        analysisJobId: "analysis-new-missing",
+        attachedRawCommentIds: ["raw-missing"],
+      });
     const targetService = service(targetRepository, targetSource);
 
     await expect(
@@ -419,18 +430,22 @@ describe("channel comment sync service", () => {
       targetService.process(claimForRun("run-new", "claim-new")),
     ).resolves.toMatchObject({ analyzedCount: 1 });
 
-    expect(targetRepository.ensureAnalysisJob).toHaveBeenCalledTimes(2);
-    expect(targetRepository.ensureAnalysisJob).toHaveBeenNthCalledWith(1, {
+    expect(targetRepository.attachRecoverableAnalysisItems).toHaveBeenCalledTimes(2);
+    expect(targetRepository.attachRecoverableAnalysisItems).toHaveBeenNthCalledWith(1, {
       importJobId: "job-run-old-video-analyzed",
+      runId: "run-old",
+      claimToken: "claim-old",
       workspaceId: "workspace-1",
+      youtubeVideoId: "video-analyzed",
       configurationKey: "classification-v1-key",
-      rawCommentIds: ["raw-analyzed"],
     });
-    expect(targetRepository.ensureAnalysisJob).toHaveBeenNthCalledWith(2, {
+    expect(targetRepository.attachRecoverableAnalysisItems).toHaveBeenNthCalledWith(2, {
       importJobId: "job-run-new-video-missing-metadata",
+      runId: "run-new",
+      claimToken: "claim-new",
       workspaceId: "workspace-1",
+      youtubeVideoId: "video-missing-metadata",
       configurationKey: "classification-v1-key",
-      rawCommentIds: ["raw-missing"],
     });
   });
 
@@ -440,8 +455,11 @@ describe("channel comment sync service", () => {
       .mockRejectedValueOnce(new Error("write failed"))
       .mockResolvedValueOnce({ disposition: "stored", rawCommentId: "raw-2" });
     vi.mocked(
-      targetRepository.listUnanalyzedFirstSeenRawCommentIds,
-    ).mockResolvedValue(["raw-2"]);
+      targetRepository.attachRecoverableAnalysisItems,
+    ).mockResolvedValue({
+      analysisJobId: "analysis-job-1",
+      attachedRawCommentIds: ["raw-2"],
+    });
     const page = collection([
       ["real-video-1", [comment("comment-1"), comment("comment-2")]],
     ]);
@@ -451,14 +469,39 @@ describe("channel comment sync service", () => {
     expect(targetRepository.storeComment).toHaveBeenCalledTimes(2);
     expect(targetRepository.recordFailedItem).toHaveBeenCalledWith({
       importJobId: "job-real-video-1",
+      runId: "run-1",
+      claimToken: "claim-token-1",
       workspaceId: "workspace-1",
       youtubeCommentId: "comment-1",
       errorCode: "source_store_failed",
     });
-    expect(targetRepository.ensureAnalysisJob).toHaveBeenCalledWith(
-      expect.objectContaining({ rawCommentIds: ["raw-2"] }),
+    expect(targetRepository.attachRecoverableAnalysisItems).toHaveBeenCalledWith(
+      expect.objectContaining({ youtubeVideoId: "real-video-1" }),
     );
     expect(result).toMatchObject({ failedCount: 1, storedCount: 1 });
+  });
+
+  it("counts only raw comments won by the atomic analysis attachment", async () => {
+    const targetRepository = repository();
+    vi.mocked(targetRepository.attachRecoverableAnalysisItems).mockResolvedValue({
+      analysisJobId: "analysis-current-run",
+      attachedRawCommentIds: ["raw-winner"],
+    });
+    const page = collection([
+      ["real-video-1", [comment("comment-1"), comment("comment-2")]],
+    ]);
+
+    const result = await service(targetRepository, source(page)).process(claim);
+
+    expect(result.analyzedCount).toBe(1);
+    expect(targetRepository.attachRecoverableAnalysisItems).toHaveBeenCalledWith({
+      importJobId: "job-real-video-1",
+      runId: "run-1",
+      claimToken: "claim-token-1",
+      workspaceId: "workspace-1",
+      youtubeVideoId: "real-video-1",
+      configurationKey: "classification-v1-key",
+    });
   });
 
   it("does not abandon siblings when recording the failed item also fails", async () => {
@@ -516,8 +559,11 @@ describe("channel comment sync service", () => {
       })
       .mockRejectedValueOnce(new Error("write failed"));
     vi.mocked(
-      targetRepository.listUnanalyzedFirstSeenRawCommentIds,
-    ).mockResolvedValue(["raw-1"]);
+      targetRepository.attachRecoverableAnalysisItems,
+    ).mockResolvedValue({
+      analysisJobId: "analysis-job-1",
+      attachedRawCommentIds: ["raw-1"],
+    });
     const page = collection(
       [
         [
@@ -628,36 +674,101 @@ describe("channel comment sync Supabase adapter", () => {
     vi.doUnmock("@/features/auth/require-viewer");
   });
 
-  it("builds the exact channel-sync import row without manual requested counts", async () => {
+  it("builds the exact claim-fenced import create RPC payload", async () => {
     vi.resetModules();
     vi.doMock("server-only", () => ({}));
     const adapter = await import("./process-channel-comment-sync");
-    const build = Reflect.get(adapter, "buildChannelSyncImportJobInsert");
+    const build = Reflect.get(
+      adapter,
+      "buildCreateChannelSyncVideoImportRpcArgs",
+    );
     const actual =
       typeof build === "function"
-        ? build(
-            {
-              runId: "run-1",
-              workspaceId: "workspace-1",
-              youtubeVideoId: "real-video-1",
-              providerMode: "live",
-            },
-            "2026-08-08T12:00:00.000Z",
-          )
+        ? build({
+            runId: "run-1",
+            claimToken: "private-claim-token",
+            workspaceId: "workspace-1",
+            youtubeVideoId: "real-video-1",
+            providerMode: "live",
+          })
         : null;
 
     expect(actual).toEqual({
-      workspace_id: "workspace-1",
-      youtube_video_id: "real-video-1",
-      requested_top_level_count: null,
-      requested_total_count: null,
-      source_kind: "owned_oauth",
-      source_video_url: null,
-      provider_mode: "live",
-      channel_sync_run_id: "run-1",
-      trigger_kind: "channel_sync",
-      status: "running",
-      started_at: "2026-08-08T12:00:00.000Z",
+      target_run_id: "run-1",
+      target_claim_token: "private-claim-token",
+      target_workspace_id: "workspace-1",
+      target_youtube_video_id: "real-video-1",
+      target_provider_mode: "live",
+    });
+    vi.doUnmock("server-only");
+  });
+
+  it("builds the exact claim-fenced source storage RPC payload", async () => {
+    vi.resetModules();
+    vi.doMock("server-only", () => ({}));
+    const adapter = await import("./process-channel-comment-sync");
+    const build = Reflect.get(adapter, "buildStoreChannelSyncCommentRpcArgs");
+    const actual =
+      typeof build === "function"
+        ? build({
+            importJobId: "import-job-1",
+            runId: "run-1",
+            claimToken: "private-claim-token",
+            workspaceId: "workspace-1",
+            youtubeVideoId: "real-video-1",
+            comment: comment("comment-1", "parent-1"),
+          })
+        : null;
+
+    expect(actual).toEqual({
+      target_import_job_id: "import-job-1",
+      target_run_id: "run-1",
+      target_claim_token: "private-claim-token",
+      target_workspace_id: "workspace-1",
+      target_youtube_video_id: "real-video-1",
+      target_youtube_comment_id: "comment-1",
+      target_parent_youtube_comment_id: "parent-1",
+      target_author_channel_id: "author-comment-1",
+      target_author_display_name: "Author comment-1",
+      target_author_avatar_url: null,
+      target_text_display: "text-comment-1",
+      target_text_original: "original-comment-1",
+      target_like_count: 0,
+      target_source_moderation_status: "published",
+      target_published_at: "2026-08-02T00:00:00.000Z",
+      target_updated_at: "2026-08-02T00:00:00.000Z",
+      target_payload: { id: "comment-1" },
+    });
+    vi.doUnmock("server-only");
+  });
+
+  it("builds the exact claim-fenced failed-item RPC payload", async () => {
+    vi.resetModules();
+    vi.doMock("server-only", () => ({}));
+    const adapter = await import("./process-channel-comment-sync");
+    const build = Reflect.get(
+      adapter,
+      "buildRecordChannelSyncItemFailureRpcArgs",
+    );
+    const actual =
+      typeof build === "function"
+        ? build({
+            importJobId: "import-job-1",
+            runId: "run-1",
+            claimToken: "private-claim-token",
+            workspaceId: "workspace-1",
+            youtubeCommentId: "comment-1",
+            errorCode: "source_store_failed",
+          })
+        : null;
+
+    expect(actual).toEqual({
+      target_import_job_id: "import-job-1",
+      target_run_id: "run-1",
+      target_claim_token: "private-claim-token",
+      target_workspace_id: "workspace-1",
+      target_youtube_comment_id: "comment-1",
+      target_error_code: "source_store_failed",
     });
     vi.doUnmock("server-only");
   });
@@ -744,18 +855,20 @@ describe("channel comment sync Supabase adapter", () => {
     vi.doUnmock("server-only");
   });
 
-  it("builds the scoped cross-run recovery RPC payload", async () => {
+  it("builds the exact fenced atomic analysis attachment RPC payload", async () => {
     vi.resetModules();
     vi.doMock("server-only", () => ({}));
     const adapter = await import("./process-channel-comment-sync");
     const build = Reflect.get(
       adapter,
-      "buildListRecoverableChannelRawCommentRpcArgs",
+      "buildAttachChannelSyncAnalysisItemsRpcArgs",
     );
     const actual =
       typeof build === "function"
         ? build({
             importJobId: "current-import-job",
+            runId: "run-new",
+            claimToken: "private-claim-token",
             workspaceId: "workspace-1",
             youtubeVideoId: "real-video-1",
             configurationKey: "classification-v1-key",
@@ -763,6 +876,9 @@ describe("channel comment sync Supabase adapter", () => {
         : null;
 
     expect(actual).toEqual({
+      target_import_job_id: "current-import-job",
+      target_run_id: "run-new",
+      target_claim_token: "private-claim-token",
       target_workspace_id: "workspace-1",
       target_youtube_video_id: "real-video-1",
       target_configuration_key: "classification-v1-key",

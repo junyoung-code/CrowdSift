@@ -31,6 +31,8 @@ export type ChannelSyncClaim = {
 
 export type StoreChannelCommentInput = {
   importJobId: string;
+  runId: string;
+  claimToken: string;
   workspaceId: string;
   youtubeVideoId: string;
   comment: SourceComment;
@@ -73,6 +75,7 @@ export interface ChannelSyncRepository {
   }): Promise<void>;
   createOrGetVideoImportJob(input: {
     runId: string;
+    claimToken: string;
     workspaceId: string;
     youtubeVideoId: string;
     providerMode: "live" | "fixture";
@@ -83,23 +86,24 @@ export interface ChannelSyncRepository {
   }>;
   recordFailedItem(input: {
     importJobId: string;
+    runId: string;
+    claimToken: string;
     workspaceId: string;
     youtubeCommentId: string;
     errorCode: string;
   }): Promise<void>;
   completeVideoImportJob(input: CompleteChannelVideoImportInput): Promise<void>;
-  listUnanalyzedFirstSeenRawCommentIds(input: {
+  attachRecoverableAnalysisItems(input: {
     importJobId: string;
+    runId: string;
+    claimToken: string;
     workspaceId: string;
     youtubeVideoId: string;
     configurationKey: string;
-  }): Promise<string[]>;
-  ensureAnalysisJob(input: {
-    importJobId: string;
-    workspaceId: string;
-    configurationKey: string;
-    rawCommentIds: string[];
-  }): Promise<{ id: string } | null>;
+  }): Promise<{
+    analysisJobId: string | null;
+    attachedRawCommentIds: string[];
+  }>;
   completeRun(input: CompleteChannelSyncRunInput): Promise<void>;
   failRun(input: {
     runId: string;
@@ -243,6 +247,7 @@ export const createChannelCommentSyncService = ({
         runMetadataError ??= groupMetadataError;
         const importJob = await repository.createOrGetVideoImportJob({
           runId: claim.runId,
+          claimToken: claim.claimToken,
           workspaceId: claim.workspaceId,
           youtubeVideoId,
           providerMode,
@@ -254,6 +259,8 @@ export const createChannelCommentSyncService = ({
           try {
             const stored = await repository.storeComment({
               importJobId: importJob.id,
+              runId: claim.runId,
+              claimToken: claim.claimToken,
               workspaceId: claim.workspaceId,
               youtubeVideoId,
               comment: sourceComment,
@@ -264,6 +271,8 @@ export const createChannelCommentSyncService = ({
             try {
               await repository.recordFailedItem({
                 importJobId: importJob.id,
+                runId: claim.runId,
+                claimToken: claim.claimToken,
                 workspaceId: claim.workspaceId,
                 youtubeCommentId: sourceComment.youtubeCommentId,
                 errorCode: "source_store_failed",
@@ -291,23 +300,18 @@ export const createChannelCommentSyncService = ({
         });
 
         if (!groupMetadataError) {
-          const missingRawCommentIds =
-            await repository.listUnanalyzedFirstSeenRawCommentIds({
+          const attachment =
+            await repository.attachRecoverableAnalysisItems({
               importJobId: importJob.id,
+              runId: claim.runId,
+              claimToken: claim.claimToken,
               workspaceId: claim.workspaceId,
               youtubeVideoId,
               configurationKey: analysisConfigurationKey,
             });
-          const uniqueMissingIds = [...new Set(missingRawCommentIds)];
-          if (uniqueMissingIds.length > 0) {
-            const analysisJob = await repository.ensureAnalysisJob({
-              importJobId: importJob.id,
-              workspaceId: claim.workspaceId,
-              configurationKey: analysisConfigurationKey,
-              rawCommentIds: uniqueMissingIds,
-            });
-            analyzedCount += uniqueMissingIds.length;
-            if (analysisJob) analysisJobIds.push(analysisJob.id);
+          analyzedCount += attachment.attachedRawCommentIds.length;
+          if (attachment.analysisJobId) {
+            analysisJobIds.push(attachment.analysisJobId);
           }
         }
 

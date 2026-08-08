@@ -489,6 +489,65 @@ export type Database = {
           },
         ]
       }
+      channel_sync_analysis_assignments: {
+        Row: {
+          analysis_job_id: string | null
+          assigned_import_job_id: string
+          attached_at: string | null
+          configuration_key: string
+          created_at: string
+          raw_comment_id: string
+          workspace_id: string
+        }
+        Insert: {
+          analysis_job_id?: string | null
+          assigned_import_job_id: string
+          attached_at?: string | null
+          configuration_key: string
+          created_at?: string
+          raw_comment_id: string
+          workspace_id: string
+        }
+        Update: {
+          analysis_job_id?: string | null
+          assigned_import_job_id?: string
+          attached_at?: string | null
+          configuration_key?: string
+          created_at?: string
+          raw_comment_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "channel_sync_analysis_assignments_analysis_job_id_fkey"
+            columns: ["analysis_job_id"]
+            isOneToOne: false
+            referencedRelation: "analysis_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "channel_sync_analysis_assignments_assigned_import_job_id_fkey"
+            columns: ["assigned_import_job_id"]
+            isOneToOne: false
+            referencedRelation: "comment_import_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "channel_sync_analysis_assignments_raw_comment_id_fkey"
+            columns: ["raw_comment_id"]
+            isOneToOne: false
+            referencedRelation: "raw_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "channel_sync_analysis_assignments_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       classification_branches: {
         Row: {
           analysis_job_item_id: string
@@ -2279,6 +2338,20 @@ export type Database = {
       }
     }
     Functions: {
+      attach_channel_sync_analysis_items: {
+        Args: {
+          target_claim_token: string
+          target_configuration_key: string
+          target_import_job_id: string
+          target_run_id: string
+          target_workspace_id: string
+          target_youtube_video_id: string
+        }
+        Returns: {
+          analysis_job_id: string
+          raw_comment_id: string
+        }[]
+      }
       claim_analysis_job_items: {
         Args: { target_analysis_job_id: string; target_max_items: number }
         Returns: {
@@ -2496,6 +2569,19 @@ export type Database = {
         Returns: {
           request_id: string
           request_state: Database["public"]["Enums"]["action_state"]
+        }[]
+      }
+      create_or_get_channel_sync_video_import_job: {
+        Args: {
+          target_claim_token: string
+          target_provider_mode: string
+          target_run_id: string
+          target_workspace_id: string
+          target_youtube_video_id: string
+        }
+        Returns: {
+          id: string
+          status: Database["public"]["Enums"]["job_status"]
         }[]
       }
       disconnect_youtube_channel: {
@@ -2729,6 +2815,40 @@ export type Database = {
           raw_comment_id: string
         }[]
       }
+      lock_active_channel_sync_claim: {
+        Args: {
+          target_claim_token: string
+          target_run_id: string
+          target_workspace_id: string
+        }
+        Returns: {
+          analyzed_count: number
+          claim_token: string | null
+          created_at: string
+          duplicate_count: number
+          error_code: string | null
+          failed_count: number
+          finished_at: string | null
+          id: string
+          input_page_token: string | null
+          kind: string
+          observed_count: number
+          output_page_token: string | null
+          quota_units_used: number
+          setting_id: string
+          started_at: string | null
+          status: string
+          stored_count: number
+          updated_count: number
+          workspace_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "channel_comment_sync_runs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       match_creator_feedback: {
         Args: {
           match_count?: number
@@ -2754,6 +2874,17 @@ export type Database = {
           target_workspace_id: string
         }
         Returns: boolean
+      }
+      record_channel_sync_import_item_failure: {
+        Args: {
+          target_claim_token: string
+          target_error_code: string
+          target_import_job_id: string
+          target_run_id: string
+          target_workspace_id: string
+          target_youtube_comment_id: string
+        }
+        Returns: undefined
       }
       request_channel_comment_sync_now: {
         Args: { target_workspace_id: string }
@@ -2823,7 +2954,55 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      store_channel_sync_comment_item: {
+        Args: {
+          target_author_avatar_url: string
+          target_author_channel_id: string
+          target_author_display_name: string
+          target_claim_token: string
+          target_import_job_id: string
+          target_like_count: number
+          target_parent_youtube_comment_id: string
+          target_payload: Json
+          target_published_at: string
+          target_run_id: string
+          target_source_moderation_status: string
+          target_text_display: string
+          target_text_original: string
+          target_updated_at: string
+          target_workspace_id: string
+          target_youtube_comment_id: string
+          target_youtube_video_id: string
+        }
+        Returns: {
+          disposition: string
+          raw_comment_id: string
+        }[]
+      }
       store_import_comment_item: {
+        Args: {
+          target_author_avatar_url: string
+          target_author_channel_id: string
+          target_author_display_name: string
+          target_import_job_id: string
+          target_like_count: number
+          target_parent_youtube_comment_id: string
+          target_payload: Json
+          target_published_at: string
+          target_source_moderation_status: string
+          target_text_display: string
+          target_text_original: string
+          target_updated_at: string
+          target_workspace_id: string
+          target_youtube_comment_id: string
+          target_youtube_video_id: string
+        }
+        Returns: {
+          disposition: string
+          raw_comment_id: string
+        }[]
+      }
+      store_import_comment_item_internal: {
         Args: {
           target_author_avatar_url: string
           target_author_channel_id: string
