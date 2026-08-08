@@ -2537,6 +2537,55 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      finalize_channel_sync_video_import_job: {
+        Args: {
+          target_claim_token: string
+          target_duplicate_count: number
+          target_error_code: string | null
+          target_failed_count: number
+          target_import_job_id: string
+          target_observed_count: number
+          target_reply_count: number
+          target_run_id: string
+          target_status: Database["public"]["Enums"]["job_status"]
+          target_stored_count: number
+          target_top_level_count: number
+          target_updated_count: number
+        }
+        Returns: {
+          attempt_count: number
+          channel_sync_run_id: string | null
+          created_at: string
+          duplicate_count: number
+          failed_count: number
+          fetched_count: number
+          finished_at: string | null
+          id: string
+          last_error_code: string | null
+          next_page_token: string | null
+          provider_mode: string
+          reply_count: number
+          requested_top_level_count: number | null
+          requested_total_count: number | null
+          source_kind: Database["public"]["Enums"]["comment_source_kind"]
+          source_video_url: string | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["job_status"]
+          stored_count: number
+          top_level_count: number
+          trigger_kind: string
+          updated_count: number
+          workspace_id: string
+          youtube_quota_units_used: number
+          youtube_video_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "comment_import_jobs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       get_acknowledged_comment_source: {
         Args: { target_raw_comment_id: string; target_workspace_id: string }
         Returns: {
@@ -2670,6 +2719,16 @@ export type Database = {
         }[]
       }
       is_workspace_member: { Args: { target: string }; Returns: boolean }
+      list_unanalyzed_channel_sync_raw_comment_ids: {
+        Args: {
+          target_configuration_key: string
+          target_workspace_id: string
+          target_youtube_video_id: string
+        }
+        Returns: {
+          raw_comment_id: string
+        }[]
+      }
       match_creator_feedback: {
         Args: {
           match_count?: number

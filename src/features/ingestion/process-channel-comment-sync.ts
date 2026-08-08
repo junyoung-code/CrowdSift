@@ -18,6 +18,7 @@ import {
   type ChannelSyncClaim,
   type ChannelSyncRepository,
   type CompleteChannelSyncRunInput,
+  type CompleteChannelVideoImportInput,
 } from "./channel-comment-sync-service";
 import {
   ChannelSyncProcessingError,
@@ -79,6 +80,34 @@ export const buildCompleteChannelSyncRunRpcArgs = (
   target_analyzed_count: input.analyzedCount,
   target_quota_units_used: input.quotaUnitsUsed,
   target_reply_cursor: null,
+});
+
+export const buildFinalizeChannelVideoImportRpcArgs = (
+  input: CompleteChannelVideoImportInput,
+) => ({
+  target_import_job_id: input.importJobId,
+  target_run_id: input.runId,
+  target_claim_token: input.claimToken,
+  target_observed_count: input.observedCount,
+  target_stored_count: input.storedCount,
+  target_updated_count: input.updatedCount,
+  target_duplicate_count: input.duplicateCount,
+  target_failed_count: input.failedCount,
+  target_top_level_count: input.topLevelCount,
+  target_reply_count: input.replyCount,
+  target_error_code: input.errorCode,
+  target_status: input.status,
+});
+
+export const buildListRecoverableChannelRawCommentRpcArgs = (input: {
+  importJobId: string;
+  workspaceId: string;
+  youtubeVideoId: string;
+  configurationKey: string;
+}) => ({
+  target_workspace_id: input.workspaceId,
+  target_youtube_video_id: input.youtubeVideoId,
+  target_configuration_key: input.configurationKey,
 });
 
 const assertWorkspaceViewer = async (workspaceId: string) => {
@@ -261,65 +290,22 @@ const createRepository = (
   },
 
   async completeVideoImportJob(input) {
-    const { error } = await admin
-      .from("comment_import_jobs")
-      .update({
-        status: input.status,
-        fetched_count: input.observedCount,
-        stored_count: input.storedCount,
-        updated_count: input.updatedCount,
-        duplicate_count: input.duplicateCount,
-        failed_count: input.failedCount,
-        top_level_count: input.topLevelCount,
-        reply_count: input.replyCount,
-        last_error_code: input.errorCode,
-        next_page_token: null,
-        finished_at: new Date().toISOString(),
-      })
-      .eq("id", input.importJobId)
-      .eq("trigger_kind", "channel_sync");
+    const { error } = await admin.rpc(
+      "finalize_channel_sync_video_import_job",
+      buildFinalizeChannelVideoImportRpcArgs(input),
+    );
     if (error) throw error;
   },
 
-  async listUnanalyzedFirstSeenRawCommentIds({
-    configurationKey,
-    importJobId,
-    workspaceId,
-  }) {
-    const { data: rawComments, error: rawError } = await admin
-      .from("raw_comments")
-      .select("id")
-      .eq("workspace_id", workspaceId)
-      .eq("first_import_job_id", importJobId);
-    if (rawError || !rawComments) {
-      throw rawError ?? new Error("channel_first_seen_comments_missing");
-    }
-    const rawCommentIds = rawComments.map((row) => row.id);
-    if (rawCommentIds.length === 0) return [];
-
-    const { data: analysisJob, error: analysisJobError } = await admin
-      .from("analysis_jobs")
-      .select("id")
-      .eq("workspace_id", workspaceId)
-      .eq("import_job_id", importJobId)
-      .eq("configuration_key", configurationKey)
-      .maybeSingle();
-    if (analysisJobError) throw analysisJobError;
-    if (!analysisJob) return rawCommentIds;
-
-    const { data: existingItems, error: itemError } = await admin
-      .from("analysis_job_items")
-      .select("raw_comment_id")
-      .eq("workspace_id", workspaceId)
-      .eq("analysis_job_id", analysisJob.id)
-      .in("raw_comment_id", rawCommentIds);
-    if (itemError || !existingItems) {
-      throw itemError ?? new Error("channel_analysis_items_missing");
-    }
-    const existingRawCommentIds = new Set(
-      existingItems.map((item) => item.raw_comment_id),
+  async listUnanalyzedFirstSeenRawCommentIds(input) {
+    const { data, error } = await admin.rpc(
+      "list_unanalyzed_channel_sync_raw_comment_ids",
+      buildListRecoverableChannelRawCommentRpcArgs(input),
     );
-    return rawCommentIds.filter((id) => !existingRawCommentIds.has(id));
+    if (error || !data) {
+      throw error ?? new Error("channel_first_seen_comments_missing");
+    }
+    return data.map((row) => row.raw_comment_id);
   },
 
   async ensureAnalysisJob({

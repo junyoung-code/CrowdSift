@@ -111,7 +111,7 @@ values
     true
   );
 
-select plan(52);
+select plan(61);
 
 set local role authenticated;
 select set_config(
@@ -457,6 +457,162 @@ select results_eq(
   'rejected stale transitions leave the active run and cursor unchanged'
 );
 
+insert into public.comment_import_jobs (
+  id,
+  workspace_id,
+  youtube_video_id,
+  source_kind,
+  trigger_kind,
+  channel_sync_run_id,
+  status,
+  started_at
+)
+values (
+  '10101010-1010-1010-1010-101010101010',
+  '55555555-5555-5555-5555-555555555555',
+  'fenced-video',
+  'owned_oauth',
+  'channel_sync',
+  (select run_id from reclaimed_backfill_claim),
+  'running',
+  now()
+);
+
+insert into public.comment_import_jobs (
+  id,
+  workspace_id,
+  youtube_video_id,
+  source_kind,
+  trigger_kind,
+  channel_sync_run_id,
+  status,
+  started_at
+)
+values (
+  '11111111-1010-1010-1010-101010101010',
+  '55555555-5555-5555-5555-555555555555',
+  'wrong-run-video',
+  'owned_oauth',
+  'channel_sync',
+  (select run_id from first_backfill_claim),
+  'running',
+  now()
+);
+
+select throws_ok(
+  format(
+    $$
+      select public.finalize_channel_sync_video_import_job(
+        '10101010-1010-1010-1010-101010101010'::uuid,
+        %L::uuid,
+        %L::uuid,
+        2,
+        1,
+        0,
+        1,
+        0,
+        1,
+        1,
+        null,
+        'succeeded'::public.job_status
+      )
+    $$,
+    (select run_id from second_backfill_claim),
+    (select claim_token from second_backfill_claim)
+  ),
+  '40001',
+  'channel sync lease claim is stale',
+  'a stale worker cannot finalize a per-video import after reclaim'
+);
+
+select results_eq(
+  $$
+    select status, fetched_count, finished_at is null
+    from public.comment_import_jobs
+    where id = '10101010-1010-1010-1010-101010101010'
+  $$,
+  $$ values ('running'::public.job_status, 0, true) $$,
+  'rejected stale finalization leaves the import job unchanged'
+);
+
+select throws_ok(
+  format(
+    $$
+      select public.finalize_channel_sync_video_import_job(
+        '11111111-1010-1010-1010-101010101010'::uuid,
+        %L::uuid,
+        %L::uuid,
+        1,
+        1,
+        0,
+        0,
+        0,
+        1,
+        0,
+        null,
+        'succeeded'::public.job_status
+      )
+    $$,
+    (select run_id from reclaimed_backfill_claim),
+    (select claim_token from reclaimed_backfill_claim)
+  ),
+  '22023',
+  'channel sync import job does not belong to claim',
+  'an active claim cannot finalize another run import job'
+);
+
+select results_eq(
+  format(
+    $$
+      select status, fetched_count, stored_count, duplicate_count
+      from public.finalize_channel_sync_video_import_job(
+        '10101010-1010-1010-1010-101010101010'::uuid,
+        %L::uuid,
+        %L::uuid,
+        2,
+        1,
+        0,
+        1,
+        0,
+        1,
+        1,
+        null,
+        'succeeded'::public.job_status
+      )
+    $$,
+    (select run_id from reclaimed_backfill_claim),
+    (select claim_token from reclaimed_backfill_claim)
+  ),
+  $$ values ('succeeded'::public.job_status, 2, 1, 1) $$,
+  'the active claim atomically finalizes its per-video import'
+);
+
+select results_eq(
+  format(
+    $$
+      select status, fetched_count, stored_count, duplicate_count
+      from public.finalize_channel_sync_video_import_job(
+        '10101010-1010-1010-1010-101010101010'::uuid,
+        %L::uuid,
+        %L::uuid,
+        99,
+        99,
+        0,
+        0,
+        0,
+        99,
+        0,
+        'ignored_retry_error',
+        'failed'::public.job_status
+      )
+    $$,
+    (select run_id from reclaimed_backfill_claim),
+    (select claim_token from reclaimed_backfill_claim)
+  ),
+  $$ values ('succeeded'::public.job_status, 2, 1, 1) $$,
+  'repeating finalization with the active claim is idempotent'
+);
+
 select lives_ok(
   format(
     $$
@@ -756,6 +912,27 @@ select results_eq(
   'due incremental work can be claimed again'
 );
 
+insert into public.comment_import_jobs (
+  id,
+  workspace_id,
+  youtube_video_id,
+  source_kind,
+  trigger_kind,
+  channel_sync_run_id,
+  status,
+  started_at
+)
+values (
+  '20202020-2020-2020-2020-202020202020',
+  '55555555-5555-5555-5555-555555555555',
+  'orphan-on-failure',
+  'owned_oauth',
+  'channel_sync',
+  (select run_id from failed_incremental_claim),
+  'running',
+  now()
+);
+
 select results_eq(
   format(
     $$
@@ -792,6 +969,16 @@ select results_eq(
 
 select results_eq(
   $$
+    select status, last_error_code, finished_at is not null
+    from public.comment_import_jobs
+    where id = '20202020-2020-2020-2020-202020202020'
+  $$,
+  $$ values ('failed'::public.job_status, 'youtube_quota_exceeded'::text, true) $$,
+  'failing a run atomically fails its still-running video imports'
+);
+
+select results_eq(
+  $$
     select last_error_code, lease_until, next_sync_at > now()
     from public.channel_comment_sync_settings
     where workspace_id = '55555555-5555-5555-5555-555555555555'
@@ -814,6 +1001,7 @@ select is(
 );
 
 insert into public.comment_import_jobs (
+  id,
   workspace_id,
   youtube_video_id,
   source_kind,
@@ -821,11 +1009,228 @@ insert into public.comment_import_jobs (
   channel_sync_run_id
 )
 values (
+  '30303030-3030-3030-3030-303030303030',
   '55555555-5555-5555-5555-555555555555',
   'sync-video-1',
   'owned_oauth',
   'channel_sync',
   (select run_id from failed_incremental_claim)
+);
+
+insert into public.comment_import_jobs (
+  id,
+  workspace_id,
+  youtube_video_id,
+  requested_top_level_count,
+  source_kind,
+  trigger_kind
+)
+values
+  (
+    '40404040-4040-4040-4040-404040404040',
+    '55555555-5555-5555-5555-555555555555',
+    'sync-video-1',
+    20,
+    'owned_oauth',
+    'manual'
+  ),
+  (
+    '50505050-5050-5050-5050-505050505050',
+    '55555555-5555-5555-5555-555555555555',
+    'other-video',
+    20,
+    'owned_oauth',
+    'manual'
+  );
+
+insert into public.comment_import_jobs (
+  id,
+  workspace_id,
+  youtube_video_id,
+  requested_total_count,
+  source_kind,
+  source_video_url,
+  trigger_kind
+)
+values (
+  '60606060-6060-6060-6060-606060606060',
+  '55555555-5555-5555-5555-555555555555',
+  'sync-video-1',
+  20,
+  'public_url',
+  'https://www.youtube.com/watch?v=abcdefghijk',
+  'manual'
+);
+
+insert into public.comment_import_jobs (
+  id,
+  workspace_id,
+  youtube_video_id,
+  source_kind,
+  trigger_kind,
+  channel_sync_run_id
+)
+values (
+  '70707070-7070-7070-7070-707070707070',
+  '55555555-5555-5555-5555-555555555555',
+  'other-video',
+  'owned_oauth',
+  'channel_sync',
+  (select run_id from failed_incremental_claim)
+);
+
+insert into public.channel_comment_sync_settings (
+  id,
+  workspace_id,
+  connection_id,
+  youtube_channel_id,
+  backfill_start_at,
+  backfill_status,
+  enabled,
+  next_sync_at
+)
+values (
+  '80808080-8080-8080-8080-808080808080',
+  '44444444-4444-4444-4444-444444444444',
+  '77777777-7777-7777-7777-777777777777',
+  'channel-sync-b',
+  '2026-08-01T00:00:00Z',
+  'failed',
+  false,
+  now() + interval '1 hour'
+);
+
+insert into public.channel_comment_sync_runs (
+  id,
+  setting_id,
+  workspace_id,
+  kind,
+  status,
+  error_code,
+  finished_at
+)
+values (
+  '90909090-9090-9090-9090-909090909090',
+  '80808080-8080-8080-8080-808080808080',
+  '44444444-4444-4444-4444-444444444444',
+  'backfill_recent',
+  'failed',
+  'provider_error',
+  now()
+);
+
+insert into public.comment_import_jobs (
+  id,
+  workspace_id,
+  youtube_video_id,
+  source_kind,
+  trigger_kind,
+  channel_sync_run_id
+)
+values (
+  'a0a0a0a0-a0a0-a0a0-a0a0-a0a0a0a0a0a0',
+  '44444444-4444-4444-4444-444444444444',
+  'sync-video-1',
+  'owned_oauth',
+  'channel_sync',
+  '90909090-9090-9090-9090-909090909090'
+);
+
+insert into public.raw_comments (
+  id,
+  workspace_id,
+  youtube_video_id,
+  youtube_comment_id,
+  text_display,
+  first_import_job_id
+)
+values
+  (
+    'b0b0b0b0-b0b0-b0b0-b0b0-b0b0b0b0b0b0',
+    '55555555-5555-5555-5555-555555555555',
+    'sync-video-1',
+    'recover-missing',
+    'recover me',
+    '30303030-3030-3030-3030-303030303030'
+  ),
+  (
+    'b1b1b1b1-b1b1-b1b1-b1b1-b1b1b1b1b1b1',
+    '55555555-5555-5555-5555-555555555555',
+    'sync-video-1',
+    'already-analyzed',
+    'already analyzed',
+    '30303030-3030-3030-3030-303030303030'
+  ),
+  (
+    'b2b2b2b2-b2b2-b2b2-b2b2-b2b2b2b2b2b2',
+    '55555555-5555-5555-5555-555555555555',
+    'sync-video-1',
+    'manual-owned',
+    'manual source',
+    '40404040-4040-4040-4040-404040404040'
+  ),
+  (
+    'b3b3b3b3-b3b3-b3b3-b3b3-b3b3b3b3b3b3',
+    '55555555-5555-5555-5555-555555555555',
+    'sync-video-1',
+    'manual-public',
+    'public source',
+    '60606060-6060-6060-6060-606060606060'
+  ),
+  (
+    'b4b4b4b4-b4b4-b4b4-b4b4-b4b4b4b4b4b4',
+    '55555555-5555-5555-5555-555555555555',
+    'other-video',
+    'other-video-comment',
+    'other video',
+    '70707070-7070-7070-7070-707070707070'
+  ),
+  (
+    'b5b5b5b5-b5b5-b5b5-b5b5-b5b5b5b5b5b5',
+    '44444444-4444-4444-4444-444444444444',
+    'sync-video-1',
+    'other-workspace-comment',
+    'other workspace',
+    'a0a0a0a0-a0a0-a0a0-a0a0-a0a0a0a0a0a0'
+  );
+
+insert into public.analysis_jobs (
+  id,
+  workspace_id,
+  import_job_id,
+  configuration_key,
+  total_count
+)
+values (
+  'c0c0c0c0-c0c0-c0c0-c0c0-c0c0c0c0c0c0',
+  '55555555-5555-5555-5555-555555555555',
+  '30303030-3030-3030-3030-303030303030',
+  'classification-v1-key',
+  1
+);
+
+insert into public.analysis_job_items (
+  analysis_job_id,
+  workspace_id,
+  raw_comment_id
+)
+values (
+  'c0c0c0c0-c0c0-c0c0-c0c0-c0c0c0c0c0c0',
+  '55555555-5555-5555-5555-555555555555',
+  'b1b1b1b1-b1b1-b1b1-b1b1-b1b1b1b1b1b1'
+);
+
+select results_eq(
+  $$
+    select raw_comment_id
+    from public.list_unanalyzed_channel_sync_raw_comment_ids(
+      '55555555-5555-5555-5555-555555555555'::uuid,
+      'sync-video-1',
+      'classification-v1-key'
+    )
+  $$,
+  $$ values ('b0b0b0b0-b0b0-b0b0-b0b0-b0b0b0b0b0b0'::uuid) $$,
+  'cross-run recovery returns only same-workspace same-video channel-sync first-seen source without current-config analysis'
 );
 
 select throws_ok(
@@ -951,6 +1356,34 @@ select is(
   ),
   true,
   'authenticated members retain the request-now RPC'
+);
+
+select ok(
+  has_function_privilege(
+    'service_role',
+    'public.finalize_channel_sync_video_import_job(uuid,uuid,uuid,integer,integer,integer,integer,integer,integer,integer,text,public.job_status)',
+    'execute'
+  )
+  and has_function_privilege(
+    'service_role',
+    'public.list_unanalyzed_channel_sync_raw_comment_ids(uuid,text,text)',
+    'execute'
+  ),
+  'service workers can finalize fenced imports and list recoverable source'
+);
+
+select ok(
+  not has_function_privilege(
+    'authenticated',
+    'public.finalize_channel_sync_video_import_job(uuid,uuid,uuid,integer,integer,integer,integer,integer,integer,integer,text,public.job_status)',
+    'execute'
+  )
+  and not has_function_privilege(
+    'authenticated',
+    'public.list_unanalyzed_channel_sync_raw_comment_ids(uuid,text,text)',
+    'execute'
+  ),
+  'authenticated clients cannot bypass channel worker fencing or recovery scope'
 );
 
 select * from finish();

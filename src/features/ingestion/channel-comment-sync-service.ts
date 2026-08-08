@@ -52,6 +52,8 @@ export type CompleteChannelSyncRunInput = {
 
 export type CompleteChannelVideoImportInput = {
   importJobId: string;
+  runId: string;
+  claimToken: string;
   observedCount: number;
   storedCount: number;
   updatedCount: number;
@@ -89,6 +91,7 @@ export interface ChannelSyncRepository {
   listUnanalyzedFirstSeenRawCommentIds(input: {
     importJobId: string;
     workspaceId: string;
+    youtubeVideoId: string;
     configurationKey: string;
   }): Promise<string[]>;
   ensureAnalysisJob(input: {
@@ -273,6 +276,8 @@ export const createChannelCommentSyncService = ({
 
         await repository.completeVideoImportJob({
           importJobId: importJob.id,
+          runId: claim.runId,
+          claimToken: claim.claimToken,
           observedCount: comments.length,
           ...counts,
           topLevelCount: comments.filter(
@@ -290,6 +295,7 @@ export const createChannelCommentSyncService = ({
             await repository.listUnanalyzedFirstSeenRawCommentIds({
               importJobId: importJob.id,
               workspaceId: claim.workspaceId,
+              youtubeVideoId,
               configurationKey: analysisConfigurationKey,
             });
           const uniqueMissingIds = [...new Set(missingRawCommentIds)];
