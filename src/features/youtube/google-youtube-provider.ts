@@ -12,6 +12,11 @@ import type {
   ProviderComment,
   ProviderCommentThread,
 } from "@/features/ingestion/comment-mapper";
+import type {
+  ChannelCommentPage,
+  ChannelCommentProvider,
+  ChannelCommentThread,
+} from "./channel-comment-contracts";
 import type { YouTubeVideo } from "./video-service";
 
 export type RefreshedGoogleTokens = {
@@ -92,7 +97,9 @@ const mapGoogleComment = (
   };
 };
 
-export class GoogleYouTubeProvider implements YouTubeProvider {
+export class GoogleYouTubeProvider
+  implements YouTubeProvider, ChannelCommentProvider
+{
   constructor(
     private readonly configuration: {
       clientId: string;
@@ -336,22 +343,77 @@ export class GoogleYouTubeProvider implements YouTubeProvider {
     };
   }
 
+  async listChannelCommentThreads({
+    maxResults,
+    pageToken,
+    youtubeChannelId,
+  }: {
+    youtubeChannelId: string;
+    maxResults: number;
+    pageToken?: string;
+  }): Promise<ChannelCommentPage> {
+    const youtube = this.createPublishedCommentReadClient();
+    const response = await youtube.commentThreads.list({
+      part: ["id", "snippet", "replies"],
+      allThreadsRelatedToChannelId: youtubeChannelId,
+      maxResults: Math.min(100, maxResults),
+      order: "time",
+      textFormat: "plainText",
+      pageToken,
+    });
+    const items: ChannelCommentThread[] = [];
+    let invalidItemCount = 0;
+
+    for (const thread of response.data.items ?? []) {
+      const youtubeVideoId = thread.snippet?.videoId;
+      const topLevel = mapGoogleComment(
+        thread.snippet?.topLevelComment ?? {},
+        thread.snippet?.topLevelComment ?? {},
+      );
+
+      if (!youtubeVideoId || !topLevel) {
+        invalidItemCount += 1;
+        continue;
+      }
+
+      items.push({
+        youtubeVideoId,
+        topLevelComment: topLevel,
+        inlineReplies: (thread.replies?.comments ?? []).flatMap((reply) => {
+          const mapped = mapGoogleComment(reply, reply);
+          return mapped ? [mapped] : [];
+        }),
+        totalReplyCount: thread.snippet?.totalReplyCount ?? 0,
+      });
+    }
+
+    return {
+      items,
+      nextPageToken: response.data.nextPageToken ?? null,
+      quotaUnitsUsed: 1,
+      invalidItemCount,
+    };
+  }
+
   async listReplies({
+    maxResults = 100,
     pageToken,
     parentYoutubeCommentId,
   }: {
     parentYoutubeCommentId: string;
+    maxResults?: number;
     pageToken?: string;
-    tokens: OAuthTokens;
+    tokens?: OAuthTokens;
   }): Promise<{
     items: ProviderComment[];
     nextPageToken: string | null;
+    quotaUnitsUsed: number;
   }> {
     const youtube = this.createPublishedCommentReadClient();
     const response = await youtube.comments.list({
       part: ["id", "snippet"],
       parentId: parentYoutubeCommentId,
-      maxResults: 100,
+      maxResults: Math.min(100, maxResults),
       textFormat: "plainText",
       pageToken,
     });
@@ -362,7 +424,46 @@ export class GoogleYouTubeProvider implements YouTubeProvider {
         return mapped ? [mapped] : [];
       }),
       nextPageToken: response.data.nextPageToken ?? null,
+      quotaUnitsUsed: 1,
     };
+  }
+
+  async listVideosByIds(videoIds: string[]): Promise<YouTubeVideo[]> {
+    if (videoIds.length === 0) {
+      return [];
+    }
+
+    const youtube = this.createPublishedCommentReadClient();
+    const videos: YouTubeVideo[] = [];
+
+    for (let index = 0; index < videoIds.length; index += 50) {
+      const ids = videoIds.slice(index, index + 50);
+      const response = await youtube.videos.list({
+        part: ["snippet"],
+        id: ids,
+        maxResults: ids.length,
+      });
+
+      for (const video of response.data.items ?? []) {
+        if (!video.id || !video.snippet?.title) {
+          continue;
+        }
+
+        const thumbnails = video.snippet.thumbnails;
+        videos.push({
+          id: video.id,
+          title: video.snippet.title,
+          thumbnailUrl:
+            thumbnails?.high?.url ??
+            thumbnails?.medium?.url ??
+            thumbnails?.default?.url ??
+            null,
+          publishedAt: video.snippet.publishedAt ?? null,
+        });
+      }
+    }
+
+    return videos;
   }
 
   async setModerationStatus({

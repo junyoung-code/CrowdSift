@@ -7,6 +7,11 @@ import type {
 import type { YouTubeVideo } from "@/features/youtube/video-service";
 
 import type { OAuthTokens, YouTubeChannel } from "./contracts";
+import type {
+  ChannelCommentPage,
+  ChannelCommentProvider,
+  ChannelCommentThread,
+} from "./channel-comment-contracts";
 import type { TokenRefreshContext } from "./google-youtube-provider";
 import type {
   PublicReplyPage,
@@ -44,10 +49,12 @@ const fixtureTexts = [
 const createComment = ({
   id,
   parentId = null,
+  publishedAt = PUBLISHED_AT,
   text,
 }: {
   id: string;
   parentId?: string | null;
+  publishedAt?: string;
   text: string;
 }): ProviderComment => ({
   id,
@@ -59,8 +66,8 @@ const createComment = ({
   authorAvatarUrl: null,
   likeCount: 0,
   moderationStatus: "published",
-  publishedAt: PUBLISHED_AT,
-  updatedAt: PUBLISHED_AT,
+  publishedAt,
+  updatedAt: publishedAt,
   rawPayload: {
     fixture: true,
     id,
@@ -125,6 +132,75 @@ const publicFixtureThreads: ProviderCommentThread[] = Array.from(
       ? createPublicFixtureThread(24)
       : createPublicFixtureThread(index),
 );
+
+const fixtureVideos: YouTubeVideo[] = [
+  {
+    id: "fixture-video-1",
+    title: "첫 번째 테스트 영상",
+    thumbnailUrl: null,
+    publishedAt: "2026-07-22T09:00:00.000Z",
+  },
+  {
+    id: "fixture-video-2",
+    title: "두 번째 테스트 영상",
+    thumbnailUrl: null,
+    publishedAt: "2026-07-21T09:00:00.000Z",
+  },
+];
+
+const channelInlineReply = createComment({
+  id: "fixture-channel-reply-1",
+  parentId: "fixture-channel-comment-1",
+  text: "첫 번째 채널 댓글의 인라인 답글",
+  publishedAt: "2026-08-08T01:30:00.000Z",
+});
+
+const channelFixturePages: Record<"first" | "next-1", ChannelCommentThread[]> = {
+  first: [
+    {
+      youtubeVideoId: "fixture-video-1",
+      topLevelComment: createComment({
+        id: "fixture-channel-comment-1",
+        text: "2026-08-08 최신 채널 댓글",
+        publishedAt: "2026-08-08T01:00:00.000Z",
+      }),
+      inlineReplies: [channelInlineReply],
+      totalReplyCount: 3,
+    },
+    {
+      youtubeVideoId: "fixture-video-2",
+      topLevelComment: createComment({
+        id: "fixture-channel-comment-2",
+        text: "2026-08-07 두 번째 영상 댓글",
+        publishedAt: "2026-08-07T01:00:00.000Z",
+      }),
+      inlineReplies: [],
+      totalReplyCount: 0,
+    },
+  ],
+  "next-1": [
+    {
+      youtubeVideoId: "fixture-video-1",
+      topLevelComment: createComment({
+        id: "fixture-channel-boundary-comment",
+        text: "2026-08-01 시작 날짜 경계 댓글",
+        publishedAt: "2026-07-31T15:00:00.000Z",
+      }),
+      inlineReplies: [],
+      totalReplyCount: 0,
+    },
+    {
+      youtubeVideoId: "fixture-video-2",
+      topLevelComment: createComment({
+        id: "fixture-channel-older-comment",
+        text: "2026-07-31 경계 이전 댓글",
+        publishedAt: "2026-07-31T14:59:59.000Z",
+      }),
+      inlineReplies: [],
+      totalReplyCount: 0,
+    },
+  ],
+};
 
 export class FixturePublicYouTubeReadProvider
   implements PublicYouTubeReadProvider
@@ -199,7 +275,7 @@ export class FixturePublicYouTubeReadProvider
   }
 }
 
-export class FixtureYouTubeProvider {
+export class FixtureYouTubeProvider implements ChannelCommentProvider {
   readonly fixtureLabel = "TEST FIXTURE";
 
   constructor(
@@ -244,20 +320,44 @@ export class FixtureYouTubeProvider {
   }
 
   async listChannelVideos(): Promise<YouTubeVideo[]> {
-    return [
-      {
-        id: "fixture-video-1",
-        title: "첫 번째 테스트 영상",
-        thumbnailUrl: null,
-        publishedAt: "2026-07-22T09:00:00.000Z",
-      },
-      {
-        id: "fixture-video-2",
-        title: "두 번째 테스트 영상",
-        thumbnailUrl: null,
-        publishedAt: "2026-07-21T09:00:00.000Z",
-      },
-    ];
+    return fixtureVideos.map((video) => ({ ...video }));
+  }
+
+  async listChannelCommentThreads({
+    maxResults,
+    pageToken,
+    youtubeChannelId,
+  }: {
+    youtubeChannelId: string;
+    maxResults: number;
+    pageToken?: string;
+  }): Promise<ChannelCommentPage> {
+    if (youtubeChannelId !== "fixture-channel-1") {
+      return {
+        items: [],
+        nextPageToken: null,
+        quotaUnitsUsed: 0,
+        invalidItemCount: 0,
+      };
+    }
+
+    const items = pageToken
+      ? channelFixturePages[pageToken as keyof typeof channelFixturePages] ?? []
+      : channelFixturePages.first;
+
+    return {
+      items: items.slice(0, Math.min(100, maxResults)),
+      nextPageToken: pageToken ? null : "next-1",
+      quotaUnitsUsed: 0,
+      invalidItemCount: 0,
+    };
+  }
+
+  async listVideosByIds(videoIds: string[]): Promise<YouTubeVideo[]> {
+    const requestedIds = new Set(videoIds);
+    return fixtureVideos
+      .filter((video) => requestedIds.has(video.id))
+      .map((video) => ({ ...video }));
   }
 
   async listCommentThreads({
@@ -274,13 +374,53 @@ export class FixtureYouTubeProvider {
     };
   }
 
-  async listReplies(): Promise<{
+  async listReplies({
+    pageToken,
+    parentYoutubeCommentId,
+  }: {
+    parentYoutubeCommentId?: string;
+    maxResults?: number;
+    pageToken?: string;
+  } = {}): Promise<{
     items: ProviderComment[];
     nextPageToken: string | null;
+    quotaUnitsUsed: number;
   }> {
+    if (parentYoutubeCommentId === "fixture-channel-comment-1") {
+      if (pageToken === "fixture-channel-replies-next-1") {
+        return {
+          items: [
+            createComment({
+              id: "fixture-channel-reply-3",
+              parentId: parentYoutubeCommentId,
+              text: "세 번째 채널 댓글 답글",
+              publishedAt: "2026-08-08T01:50:00.000Z",
+            }),
+          ],
+          nextPageToken: null,
+          quotaUnitsUsed: 0,
+        };
+      }
+
+      return {
+        items: [
+          channelInlineReply,
+          createComment({
+            id: "fixture-channel-reply-2",
+            parentId: parentYoutubeCommentId,
+            text: "두 번째 채널 댓글 답글",
+            publishedAt: "2026-08-08T01:40:00.000Z",
+          }),
+        ],
+        nextPageToken: "fixture-channel-replies-next-1",
+        quotaUnitsUsed: 0,
+      };
+    }
+
     return {
       items: [],
       nextPageToken: null,
+      quotaUnitsUsed: 0,
     };
   }
 
