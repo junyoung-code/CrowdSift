@@ -1,6 +1,9 @@
 alter table public.channel_comment_sync_settings
   add column incremental_scan_started_at timestamptz;
 
+alter table public.channel_comment_sync_runs
+  add column claim_token uuid;
+
 create unique index comment_import_jobs_channel_run_video_unique
   on public.comment_import_jobs(channel_sync_run_id, youtube_video_id)
   where trigger_kind = 'channel_sync';
@@ -108,12 +111,44 @@ begin
   update public.channel_comment_sync_runs
   set
     status = 'failed',
+    claim_token = gen_random_uuid(),
     error_code = 'reconfigured',
     finished_at = now()
   where setting_id = configured_setting.id
     and status in ('pending', 'running');
 
   return configured_setting;
+end;
+$$;
+
+create or replace function public.request_channel_comment_sync_now(
+  target_workspace_id uuid
+)
+returns public.channel_comment_sync_settings
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  changed_setting public.channel_comment_sync_settings;
+begin
+  if not public.is_workspace_member(target_workspace_id) then
+    raise exception 'workspace access denied' using errcode = '42501';
+  end if;
+
+  update public.channel_comment_sync_settings
+  set
+    enabled = true,
+    next_sync_at = now(),
+    updated_at = now()
+  where workspace_id = target_workspace_id
+  returning * into changed_setting;
+
+  if changed_setting.id is null then
+    raise exception 'channel sync is not configured' using errcode = 'P0002';
+  end if;
+
+  return changed_setting;
 end;
 $$;
 
@@ -125,6 +160,7 @@ create function public.claim_channel_comment_sync_work_internal(
 returns table (
   setting_id uuid,
   run_id uuid,
+  claim_token uuid,
   workspace_id uuid,
   connection_id uuid,
   youtube_channel_id text,
@@ -215,6 +251,7 @@ begin
         workspace_id,
         kind,
         status,
+        claim_token,
         input_page_token,
         started_at
       )
@@ -223,6 +260,7 @@ begin
         claimed_setting.workspace_id,
         next_kind,
         'running',
+        gen_random_uuid(),
         next_token,
         now()
       )
@@ -231,6 +269,7 @@ begin
       update public.channel_comment_sync_runs
       set
         status = 'running',
+        claim_token = gen_random_uuid(),
         started_at = coalesce(started_at, now())
       where id = claimed_run.id
       returning * into claimed_run;
@@ -259,6 +298,7 @@ begin
 
     setting_id := claimed_setting.id;
     run_id := claimed_run.id;
+    claim_token := claimed_run.claim_token;
     workspace_id := claimed_setting.workspace_id;
     connection_id := claimed_setting.connection_id;
     youtube_channel_id := claimed_setting.youtube_channel_id;
@@ -281,6 +321,7 @@ create function public.claim_channel_comment_sync_work(
 returns table (
   setting_id uuid,
   run_id uuid,
+  claim_token uuid,
   workspace_id uuid,
   connection_id uuid,
   youtube_channel_id text,
@@ -304,11 +345,13 @@ $$;
 
 create function public.claim_channel_comment_sync_work_for_workspace(
   target_workspace_id uuid,
+  target_requesting_user_id uuid,
   target_lease_seconds integer default 240
 )
 returns table (
   setting_id uuid,
   run_id uuid,
+  claim_token uuid,
   workspace_id uuid,
   connection_id uuid,
   youtube_channel_id text,
@@ -323,7 +366,12 @@ security definer
 set search_path = public
 as $$
 begin
-  if not public.is_workspace_member(target_workspace_id) then
+  if target_requesting_user_id is null or not exists (
+    select 1
+    from public.workspace_members wm
+    where wm.workspace_id = target_workspace_id
+      and wm.user_id = target_requesting_user_id
+  ) then
     raise exception 'workspace access denied' using errcode = '42501';
   end if;
 
@@ -339,6 +387,7 @@ $$;
 
 create function public.complete_channel_comment_sync_run(
   target_run_id uuid,
+  target_claim_token uuid,
   target_next_page_token text,
   target_reached_boundary boolean,
   target_observed_count integer,
@@ -401,12 +450,22 @@ begin
     raise exception 'channel sync run not found' using errcode = 'P0002';
   end if;
 
+  if completed_run.claim_token is distinct from target_claim_token then
+    raise exception 'channel sync lease claim is stale' using errcode = '40001';
+  end if;
+
   if completed_run.status = 'succeeded' then
     return completed_run;
   end if;
 
   if completed_run.status <> 'running' then
     raise exception 'channel sync run is not running' using errcode = '55000';
+  end if;
+
+  if target_setting.lease_until is null
+    or target_setting.lease_until <= now()
+  then
+    raise exception 'channel sync lease claim is stale' using errcode = '40001';
   end if;
 
   reached_end :=
@@ -515,6 +574,7 @@ $$;
 
 create function public.fail_channel_comment_sync_run(
   target_run_id uuid,
+  target_claim_token uuid,
   target_error_code text
 )
 returns public.channel_comment_sync_runs
@@ -557,12 +617,22 @@ begin
     raise exception 'channel sync run not found' using errcode = 'P0002';
   end if;
 
+  if failed_run.claim_token is distinct from target_claim_token then
+    raise exception 'channel sync lease claim is stale' using errcode = '40001';
+  end if;
+
   if failed_run.status = 'failed' then
     return failed_run;
   end if;
 
   if failed_run.status <> 'running' then
     raise exception 'channel sync run is not running' using errcode = '55000';
+  end if;
+
+  if target_setting.lease_until is null
+    or target_setting.lease_until <= now()
+  then
+    raise exception 'channel sync lease claim is stale' using errcode = '40001';
   end if;
 
   update public.channel_comment_sync_runs
@@ -616,9 +686,11 @@ revoke all on function public.claim_channel_comment_sync_work(integer, integer)
   from public, anon, authenticated;
 revoke all on function public.claim_channel_comment_sync_work_for_workspace(
   uuid,
+  uuid,
   integer
 ) from public, anon, authenticated;
 revoke all on function public.complete_channel_comment_sync_run(
+  uuid,
   uuid,
   text,
   boolean,
@@ -631,7 +703,7 @@ revoke all on function public.complete_channel_comment_sync_run(
   integer,
   text
 ) from public, anon, authenticated;
-revoke all on function public.fail_channel_comment_sync_run(uuid, text)
+revoke all on function public.fail_channel_comment_sync_run(uuid, uuid, text)
   from public, anon, authenticated;
 revoke all on function public.store_import_comment_item(
   uuid,
@@ -661,9 +733,11 @@ grant execute on function public.claim_channel_comment_sync_work(integer, intege
   to service_role;
 grant execute on function public.claim_channel_comment_sync_work_for_workspace(
   uuid,
+  uuid,
   integer
 ) to service_role;
 grant execute on function public.complete_channel_comment_sync_run(
+  uuid,
   uuid,
   text,
   boolean,
@@ -676,7 +750,7 @@ grant execute on function public.complete_channel_comment_sync_run(
   integer,
   text
 ) to service_role;
-grant execute on function public.fail_channel_comment_sync_run(uuid, text)
+grant execute on function public.fail_channel_comment_sync_run(uuid, uuid, text)
   to service_role;
 grant execute on function public.store_import_comment_item(
   uuid,

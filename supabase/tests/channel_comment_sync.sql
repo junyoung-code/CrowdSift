@@ -111,7 +111,7 @@ values
     true
   );
 
-select plan(37);
+select plan(45);
 
 set local role authenticated;
 select set_config(
@@ -136,7 +136,7 @@ select results_eq(
 select is(
   has_function_privilege(
     'authenticated',
-    'public.claim_channel_comment_sync_work_for_workspace(uuid,integer)',
+    'public.claim_channel_comment_sync_work_for_workspace(uuid,uuid,integer)',
     'execute'
   ),
   false,
@@ -145,24 +145,26 @@ select is(
 
 set local role service_role;
 select set_config('request.jwt.claim.role', 'service_role', true);
+select set_config('request.jwt.claim.sub', '', true);
+
+create temporary table first_backfill_claim on commit drop as
+select *
+from public.claim_channel_comment_sync_work_for_workspace(
+  '55555555-5555-5555-5555-555555555555'::uuid,
+  'cccccccc-cccc-cccc-cccc-cccccccccccc'::uuid,
+  240
+);
 
 select is(
-  (
-    select count(*)
-    from public.claim_channel_comment_sync_work_for_workspace(
-      '55555555-5555-5555-5555-555555555555'::uuid,
-      240
-    )
-  ),
+  (select count(*) from first_backfill_claim),
   1::bigint,
-  'claims only the requested workspace'
+  'a service role without auth.uid claims the explicitly authorized workspace'
 );
 
 select results_eq(
   $$
-    select workspace_id, kind, input_page_token
-    from public.channel_comment_sync_runs
-    where status = 'running'
+    select workspace_id, run_kind, page_token
+    from first_backfill_claim
   $$,
   $$
     values (
@@ -176,12 +178,65 @@ select results_eq(
 
 select ok(
   (
+    select claim_token is not null
+      and claim_token = (
+        select r.claim_token
+        from public.channel_comment_sync_runs r
+        where r.id = first_backfill_claim.run_id
+      )
+    from first_backfill_claim
+  ),
+  'a claim returns the fencing token stored on its run'
+);
+
+select ok(
+  (
     select lease_until > now()
     from public.channel_comment_sync_settings
     where workspace_id = '55555555-5555-5555-5555-555555555555'
   ),
   'claiming work acquires a lease'
 );
+
+create temporary table active_claim_state on commit drop as
+select s.lease_until, s.backfill_page_token, r.claim_token
+from public.channel_comment_sync_settings s
+join public.channel_comment_sync_runs r on r.setting_id = s.id
+where r.id = (select run_id from first_backfill_claim);
+
+grant select on first_backfill_claim, active_claim_state to authenticated;
+
+set local role authenticated;
+select set_config('request.jwt.claim.role', 'authenticated', true);
+select set_config(
+  'request.jwt.claim.sub',
+  'cccccccc-cccc-cccc-cccc-cccccccccccc',
+  true
+);
+
+select results_eq(
+  $$
+    with requested as (
+      select lease_until, backfill_page_token
+      from public.request_channel_comment_sync_now(
+        '55555555-5555-5555-5555-555555555555'::uuid
+      )
+    )
+    select requested.lease_until, requested.backfill_page_token, r.claim_token
+    from requested
+    join public.channel_comment_sync_runs r
+      on r.id = (select run_id from first_backfill_claim)
+  $$,
+  $$
+    select lease_until, backfill_page_token, claim_token
+    from active_claim_state
+  $$,
+  'request-now preserves an active lease, cursor, and fencing token'
+);
+
+set local role service_role;
+select set_config('request.jwt.claim.role', 'service_role', true);
+select set_config('request.jwt.claim.sub', '', true);
 
 select results_eq(
   $$
@@ -196,11 +251,8 @@ select results_eq(
       analyzed_count,
       quota_units_used
     from public.complete_channel_comment_sync_run(
-      (
-        select id
-        from public.channel_comment_sync_runs
-        where status = 'running'
-      ),
+      (select run_id from first_backfill_claim),
+      (select claim_token from first_backfill_claim),
       'backfill-next',
       false,
       12,
@@ -230,19 +282,115 @@ create temporary table second_backfill_claim on commit drop as
 select *
 from public.claim_channel_comment_sync_work_for_workspace(
   '55555555-5555-5555-5555-555555555555'::uuid,
+  'cccccccc-cccc-cccc-cccc-cccccccccccc'::uuid,
   240
 );
 
 select results_eq(
-  $$ select run_kind, page_token from second_backfill_claim $$,
-  $$ values ('backfill_recent'::text, 'backfill-next'::text) $$,
+  $$
+    select run_kind, page_token, claim_token is not null
+    from second_backfill_claim
+  $$,
+  $$ values ('backfill_recent'::text, 'backfill-next'::text, true) $$,
   'the next backfill claim resumes from the stored page token'
+);
+
+update public.channel_comment_sync_settings
+set lease_until = now() - interval '1 second'
+where workspace_id = '55555555-5555-5555-5555-555555555555';
+
+create temporary table reclaimed_backfill_claim on commit drop as
+select *
+from public.claim_channel_comment_sync_work_for_workspace(
+  '55555555-5555-5555-5555-555555555555'::uuid,
+  'cccccccc-cccc-cccc-cccc-cccccccccccc'::uuid,
+  240
+);
+
+select results_eq(
+  $$
+    select
+      reclaimed.run_id = original.run_id,
+      reclaimed.claim_token <> original.claim_token,
+      reclaimed.page_token
+    from reclaimed_backfill_claim reclaimed
+    cross join second_backfill_claim original
+  $$,
+  $$ values (true, true, 'backfill-next'::text) $$,
+  'reclaiming an expired run rotates its fencing token and preserves its cursor'
+);
+
+select throws_ok(
+  format(
+    $$
+      select public.complete_channel_comment_sync_run(
+        %L::uuid,
+        %L::uuid,
+        null,
+        true,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      )
+    $$,
+    (select run_id from second_backfill_claim),
+    (select claim_token from second_backfill_claim)
+  ),
+  '40001',
+  'channel sync lease claim is stale',
+  'a stale worker cannot complete a reclaimed run'
+);
+
+select throws_ok(
+  format(
+    $$
+      select public.fail_channel_comment_sync_run(
+        %L::uuid,
+        %L::uuid,
+        'stale_worker_error'
+      )
+    $$,
+    (select run_id from second_backfill_claim),
+    (select claim_token from second_backfill_claim)
+  ),
+  '40001',
+  'channel sync lease claim is stale',
+  'a stale worker cannot fail a reclaimed run'
+);
+
+select results_eq(
+  $$
+    select
+      s.backfill_status,
+      s.backfill_page_token,
+      r.status,
+      r.input_page_token,
+      r.claim_token
+    from public.channel_comment_sync_settings s
+    join public.channel_comment_sync_runs r on r.setting_id = s.id
+    where r.id = (select run_id from reclaimed_backfill_claim)
+  $$,
+  $$
+    select
+      'running'::text,
+      'backfill-next'::text,
+      'running'::text,
+      'backfill-next'::text,
+      claim_token
+    from reclaimed_backfill_claim
+  $$,
+  'rejected stale transitions leave the active run and cursor unchanged'
 );
 
 select lives_ok(
   format(
     $$
       select public.complete_channel_comment_sync_run(
+        %L::uuid,
         %L::uuid,
         'unused-provider-token',
         true,
@@ -255,9 +403,35 @@ select lives_ok(
         1
       )
     $$,
-    (select run_id from second_backfill_claim)
+    (select run_id from reclaimed_backfill_claim),
+    (select claim_token from reclaimed_backfill_claim)
   ),
   'a backfill run can complete at the inclusive cutoff'
+);
+
+select results_eq(
+  format(
+    $$
+      select status, output_page_token
+      from public.complete_channel_comment_sync_run(
+        %L::uuid,
+        %L::uuid,
+        'ignored-retry-token',
+        false,
+        999,
+        999,
+        999,
+        999,
+        999,
+        999,
+        999
+      )
+    $$,
+    (select run_id from reclaimed_backfill_claim),
+    (select claim_token from reclaimed_backfill_claim)
+  ),
+  $$ values ('succeeded'::text, 'unused-provider-token'::text) $$,
+  'repeating completion with the same token is idempotent'
 );
 
 select results_eq(
@@ -274,6 +448,7 @@ create temporary table first_incremental_claim on commit drop as
 select *
 from public.claim_channel_comment_sync_work_for_workspace(
   '55555555-5555-5555-5555-555555555555'::uuid,
+  'cccccccc-cccc-cccc-cccc-cccccccccccc'::uuid,
   240
 );
 
@@ -303,6 +478,7 @@ select lives_ok(
     $$
       select public.complete_channel_comment_sync_run(
         %L::uuid,
+        %L::uuid,
         'incremental-next',
         false,
         6,
@@ -314,7 +490,8 @@ select lives_ok(
         1
       )
     $$,
-    (select run_id from first_incremental_claim)
+    (select run_id from first_incremental_claim),
+    (select claim_token from first_incremental_claim)
   ),
   'an incremental scan can persist a next page'
 );
@@ -327,6 +504,7 @@ create temporary table second_incremental_claim on commit drop as
 select *
 from public.claim_channel_comment_sync_work_for_workspace(
   '55555555-5555-5555-5555-555555555555'::uuid,
+  'cccccccc-cccc-cccc-cccc-cccccccccccc'::uuid,
   240
 );
 
@@ -344,6 +522,7 @@ select lives_ok(
     $$
       select public.complete_channel_comment_sync_run(
         %L::uuid,
+        %L::uuid,
         null,
         true,
         2,
@@ -355,7 +534,8 @@ select lives_ok(
         1
       )
     $$,
-    (select run_id from second_incremental_claim)
+    (select run_id from second_incremental_claim),
+    (select claim_token from second_incremental_claim)
   ),
   'an incremental scan can complete at its previous watermark'
 );
@@ -387,6 +567,7 @@ create temporary table first_reply_claim on commit drop as
 select *
 from public.claim_channel_comment_sync_work_for_workspace(
   '55555555-5555-5555-5555-555555555555'::uuid,
+  'cccccccc-cccc-cccc-cccc-cccccccccccc'::uuid,
   240
 );
 
@@ -401,6 +582,7 @@ select lives_ok(
     $$
       select public.complete_channel_comment_sync_run(
         %L::uuid,
+        %L::uuid,
         null,
         false,
         20,
@@ -413,7 +595,8 @@ select lives_ok(
         'reply-cursor-2'
       )
     $$,
-    (select run_id from first_reply_claim)
+    (select run_id from first_reply_claim),
+    (select claim_token from first_reply_claim)
   ),
   'reply reconciliation can persist its next parent cursor'
 );
@@ -435,6 +618,7 @@ create temporary table second_reply_claim on commit drop as
 select *
 from public.claim_channel_comment_sync_work_for_workspace(
   '55555555-5555-5555-5555-555555555555'::uuid,
+  'cccccccc-cccc-cccc-cccc-cccccccccccc'::uuid,
   240
 );
 
@@ -449,6 +633,7 @@ select lives_ok(
     $$
       select public.complete_channel_comment_sync_run(
         %L::uuid,
+        %L::uuid,
         null,
         false,
         3,
@@ -461,7 +646,8 @@ select lives_ok(
         null
       )
     $$,
-    (select run_id from second_reply_claim)
+    (select run_id from second_reply_claim),
+    (select claim_token from second_reply_claim)
   ),
   'the last reply batch can finish without a cursor'
 );
@@ -489,6 +675,7 @@ create temporary table failed_incremental_claim on commit drop as
 select *
 from public.claim_channel_comment_sync_work_for_workspace(
   '55555555-5555-5555-5555-555555555555'::uuid,
+  'cccccccc-cccc-cccc-cccc-cccccccccccc'::uuid,
   240
 );
 
@@ -502,12 +689,34 @@ select results_eq(
   format(
     $$
       select status, error_code
-      from public.fail_channel_comment_sync_run(%L::uuid, 'youtube_quota_exceeded')
+      from public.fail_channel_comment_sync_run(
+        %L::uuid,
+        %L::uuid,
+        'youtube_quota_exceeded'
+      )
     $$,
-    (select run_id from failed_incremental_claim)
+    (select run_id from failed_incremental_claim),
+    (select claim_token from failed_incremental_claim)
   ),
   $$ values ('failed'::text, 'youtube_quota_exceeded'::text) $$,
   'failing a run stores its stable error code'
+);
+
+select results_eq(
+  format(
+    $$
+      select status, error_code
+      from public.fail_channel_comment_sync_run(
+        %L::uuid,
+        %L::uuid,
+        'ignored_retry_error'
+      )
+    $$,
+    (select run_id from failed_incremental_claim),
+    (select claim_token from failed_incremental_claim)
+  ),
+  $$ values ('failed'::text, 'youtube_quota_exceeded'::text) $$,
+  'repeating failure with the same token is idempotent'
 );
 
 select results_eq(
@@ -525,6 +734,7 @@ select is(
     select count(*)
     from public.claim_channel_comment_sync_work_for_workspace(
       '55555555-5555-5555-5555-555555555555'::uuid,
+      'cccccccc-cccc-cccc-cccc-cccccccccccc'::uuid,
       240
     )
   ),
@@ -577,6 +787,7 @@ select throws_ok(
     select *
     from public.claim_channel_comment_sync_work_for_workspace(
       '44444444-4444-4444-4444-444444444444'::uuid,
+      'cccccccc-cccc-cccc-cccc-cccccccccccc'::uuid,
       240
     )
   $$,
@@ -614,7 +825,7 @@ select throws_ok(
 select is(
   has_function_privilege(
     'authenticated',
-    'public.complete_channel_comment_sync_run(uuid,text,boolean,integer,integer,integer,integer,integer,integer,integer,text)',
+    'public.complete_channel_comment_sync_run(uuid,uuid,text,boolean,integer,integer,integer,integer,integer,integer,integer,text)',
     'execute'
   ),
   false,
@@ -624,7 +835,7 @@ select is(
 select is(
   has_function_privilege(
     'authenticated',
-    'public.fail_channel_comment_sync_run(uuid,text)',
+    'public.fail_channel_comment_sync_run(uuid,uuid,text)',
     'execute'
   ),
   false,

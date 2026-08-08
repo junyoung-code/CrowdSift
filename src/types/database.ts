@@ -310,6 +310,7 @@ export type Database = {
       channel_comment_sync_runs: {
         Row: {
           analyzed_count: number
+          claim_token: string | null
           created_at: string
           duplicate_count: number
           error_code: string | null
@@ -330,6 +331,7 @@ export type Database = {
         }
         Insert: {
           analyzed_count?: number
+          claim_token?: string | null
           created_at?: string
           duplicate_count?: number
           error_code?: string | null
@@ -350,6 +352,7 @@ export type Database = {
         }
         Update: {
           analyzed_count?: number
+          claim_token?: string | null
           created_at?: string
           duplicate_count?: number
           error_code?: string | null
@@ -2288,10 +2291,11 @@ export type Database = {
         Args: { target_lease_seconds?: number; target_limit?: number }
         Returns: {
           backfill_start_at: string
+          claim_token: string
           connection_id: string
-          incremental_scan_started_at: string
-          last_successful_sync_at: string
-          page_token: string
+          incremental_scan_started_at: string | null
+          last_successful_sync_at: string | null
+          page_token: string | null
           run_id: string
           run_kind: string
           setting_id: string
@@ -2300,13 +2304,18 @@ export type Database = {
         }[]
       }
       claim_channel_comment_sync_work_for_workspace: {
-        Args: { target_lease_seconds?: number; target_workspace_id: string }
+        Args: {
+          target_lease_seconds?: number
+          target_requesting_user_id: string
+          target_workspace_id: string
+        }
         Returns: {
           backfill_start_at: string
+          claim_token: string
           connection_id: string
-          incremental_scan_started_at: string
-          last_successful_sync_at: string
-          page_token: string
+          incremental_scan_started_at: string | null
+          last_successful_sync_at: string | null
+          page_token: string | null
           run_id: string
           run_kind: string
           setting_id: string
@@ -2322,10 +2331,11 @@ export type Database = {
         }
         Returns: {
           backfill_start_at: string
+          claim_token: string
           connection_id: string
-          incremental_scan_started_at: string
-          last_successful_sync_at: string
-          page_token: string
+          incremental_scan_started_at: string | null
+          last_successful_sync_at: string | null
+          page_token: string | null
           run_id: string
           run_kind: string
           setting_id: string
@@ -2355,19 +2365,21 @@ export type Database = {
       complete_channel_comment_sync_run: {
         Args: {
           target_analyzed_count: number
+          target_claim_token: string
           target_duplicate_count: number
           target_failed_count: number
-          target_next_page_token: string
+          target_next_page_token: string | null
           target_observed_count: number
           target_quota_units_used: number
           target_reached_boundary: boolean
-          target_reply_cursor?: string
+          target_reply_cursor?: string | null
           target_run_id: string
           target_stored_count: number
           target_updated_count: number
         }
         Returns: {
           analyzed_count: number
+          claim_token: string | null
           created_at: string
           duplicate_count: number
           error_code: string | null
@@ -2492,9 +2504,14 @@ export type Database = {
       }
       ensure_owner_workspace: { Args: never; Returns: string }
       fail_channel_comment_sync_run: {
-        Args: { target_error_code: string; target_run_id: string }
+        Args: {
+          target_claim_token: string
+          target_error_code: string
+          target_run_id: string
+        }
         Returns: {
           analyzed_count: number
+          claim_token: string | null
           created_at: string
           duplicate_count: number
           error_code: string | null
@@ -2938,6 +2955,52 @@ export type CompositeTypes<
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
 
+type ExpectTrue<T extends true> = T
+type IsNullable<T> = null extends T ? true : false
+
+export type ChannelCommentSyncDatabaseTypeAssertions = {
+  globalClaimPageToken: ExpectTrue<
+    IsNullable<
+      Database["public"]["Functions"]["claim_channel_comment_sync_work"]["Returns"][number]["page_token"]
+    >
+  >
+  globalClaimLastSuccessfulSyncAt: ExpectTrue<
+    IsNullable<
+      Database["public"]["Functions"]["claim_channel_comment_sync_work"]["Returns"][number]["last_successful_sync_at"]
+    >
+  >
+  globalClaimIncrementalScanStartedAt: ExpectTrue<
+    IsNullable<
+      Database["public"]["Functions"]["claim_channel_comment_sync_work"]["Returns"][number]["incremental_scan_started_at"]
+    >
+  >
+  workspaceClaimPageToken: ExpectTrue<
+    IsNullable<
+      Database["public"]["Functions"]["claim_channel_comment_sync_work_for_workspace"]["Returns"][number]["page_token"]
+    >
+  >
+  workspaceClaimLastSuccessfulSyncAt: ExpectTrue<
+    IsNullable<
+      Database["public"]["Functions"]["claim_channel_comment_sync_work_for_workspace"]["Returns"][number]["last_successful_sync_at"]
+    >
+  >
+  workspaceClaimIncrementalScanStartedAt: ExpectTrue<
+    IsNullable<
+      Database["public"]["Functions"]["claim_channel_comment_sync_work_for_workspace"]["Returns"][number]["incremental_scan_started_at"]
+    >
+  >
+  completeNextPageToken: ExpectTrue<
+    IsNullable<
+      Database["public"]["Functions"]["complete_channel_comment_sync_run"]["Args"]["target_next_page_token"]
+    >
+  >
+  completeReplyCursor: ExpectTrue<
+    IsNullable<
+      Database["public"]["Functions"]["complete_channel_comment_sync_run"]["Args"]["target_reply_cursor"]
+    >
+  >
+}
+
 export const Constants = {
   graphql_public: {
     Enums: {},
@@ -2994,4 +3057,3 @@ export const Constants = {
     },
   },
 } as const
-
