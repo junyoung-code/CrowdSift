@@ -12,9 +12,12 @@ describe("parseChannelSyncStartDate", () => {
     (value) => expect(() => parseChannelSyncStartDate(value)).toThrow(),
   );
 
-  it("rejects a date after today in Asia/Seoul", () => {
-    expect(() =>
-      parseChannelSyncStartDate("2026-08-09", new Date("2026-08-08T10:00:00Z")),
-    ).toThrow("future_start_date");
+  it("uses the next Korean calendar day across a UTC date crossover", () => {
+    const now = new Date("2026-08-08T16:00:00Z");
+
+    expect(parseChannelSyncStartDate("2026-08-09", now)).toBe("2026-08-09");
+    expect(() => parseChannelSyncStartDate("2026-08-10", now)).toThrow(
+      "future_start_date",
+    );
   });
 });

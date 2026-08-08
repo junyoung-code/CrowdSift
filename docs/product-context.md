@@ -12,6 +12,8 @@ CrowdSift는 한국의 YouTube 크리에이터가 댓글 속 유용한 신호를
 
 현재 가장 중요한 범위는 다음 하나다.
 
+선택한 시작 날짜 `YYYY-MM-DD`는 Asia/Seoul 기준 `00:00:00`부터 포함한다.
+
 ```text
 YouTube 연결
 → 시작 날짜 선택
