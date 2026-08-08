@@ -187,6 +187,75 @@ describe("collectChannelCommentPage", () => {
     });
   });
 
+  it.each([
+    "2026-08-01",
+    "2026-02-30T00:00:00+09:00",
+    "2026-08-01T24:00:00Z",
+    "2026-08-01T00:00:00+24:00",
+    "not-a-date",
+  ])("rejects an invalid boundary before reading provider data: %s", async (boundaryAt) => {
+    const source = provider({
+      listChannelCommentThreads: vi.fn(async () => {
+        throw new Error("provider_called_before_boundary_validation");
+      }),
+    });
+
+    await expect(
+      collectChannelCommentPage({
+        provider: source,
+        youtubeChannelId: "channel-1",
+        pageToken: null,
+        boundaryAt,
+        kind: "backfill_recent",
+      }),
+    ).rejects.toThrow("invalid_channel_comment_boundary");
+  });
+
+  it("keeps parseable but impossible or non-RFC published timestamps as unknown candidates", async () => {
+    const source = provider({
+      listChannelCommentThreads: vi.fn().mockResolvedValue({
+        items: [
+          {
+            youtubeVideoId: "video-1",
+            topLevelComment: comment("impossible-calendar", {
+              publishedAt: "2026-02-30T00:00:00.000Z",
+            }),
+            inlineReplies: [],
+            totalReplyCount: 0,
+          },
+          {
+            youtubeVideoId: "video-1",
+            topLevelComment: comment("non-rfc", {
+              publishedAt: "2026-03-01 00:00:00Z",
+            }),
+            inlineReplies: [],
+            totalReplyCount: 0,
+          },
+        ],
+        nextPageToken: "provider-next",
+        quotaUnitsUsed: 1,
+        invalidItemCount: 0,
+      }),
+    });
+
+    const result = await collectChannelCommentPage({
+      provider: source,
+      youtubeChannelId: "channel-1",
+      pageToken: null,
+      boundaryAt: "2026-03-03T00:00:00.000Z",
+      kind: "backfill_recent",
+    });
+
+    expect(result.comments.map((item) => item.youtubeCommentId)).toEqual([
+      "impossible-calendar",
+      "non-rfc",
+    ]);
+    expect(result).toMatchObject({
+      reachedBoundary: false,
+      nextPageToken: "provider-next",
+    });
+  });
+
   it("fetches every missing reply page, deduplicates replies, and groups them after their parent", async () => {
     const listReplies = vi
       .fn()
@@ -263,6 +332,104 @@ describe("collectChannelCommentPage", () => {
     });
   });
 
+  it("merges duplicate top-level threads before collecting their deduplicated replies", async () => {
+    const listReplies = vi.fn().mockResolvedValue({
+      items: [
+        comment("reply-1", { parentId: "parent-1" }),
+        comment("reply-3", { parentId: "parent-1" }),
+      ],
+      nextPageToken: null,
+      quotaUnitsUsed: 2,
+    });
+    const source = provider({
+      listChannelCommentThreads: vi.fn().mockResolvedValue({
+        items: [
+          {
+            youtubeVideoId: "video-1",
+            topLevelComment: comment("parent-1"),
+            inlineReplies: [
+              comment("reply-1", { parentId: "parent-1" }),
+            ],
+            totalReplyCount: 1,
+          },
+          {
+            youtubeVideoId: "video-1",
+            topLevelComment: comment("parent-1"),
+            inlineReplies: [
+              comment("reply-1", { parentId: "parent-1" }),
+              comment("reply-2", { parentId: "parent-1" }),
+            ],
+            totalReplyCount: 3,
+          },
+        ],
+        nextPageToken: null,
+        quotaUnitsUsed: 1,
+        invalidItemCount: 0,
+      }),
+      listReplies,
+    });
+
+    const result = await collectChannelCommentPage({
+      provider: source,
+      youtubeChannelId: "channel-1",
+      pageToken: null,
+      boundaryAt: "2026-08-01T00:00:00+09:00",
+      kind: "backfill_recent",
+    });
+
+    expect(
+      result.groups
+        .get("video-1")
+        ?.map((item) => item.youtubeCommentId),
+    ).toEqual(["parent-1", "reply-1", "reply-2", "reply-3"]);
+    expect(result).toMatchObject({
+      observedCount: 4,
+      topLevelCount: 1,
+      replyCount: 3,
+      quotaUnitsUsed: 3,
+    });
+    expect(listReplies).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not read reply pages when every reply is already inline", async () => {
+    const source = provider({
+      listChannelCommentThreads: vi.fn().mockResolvedValue({
+        items: [
+          {
+            youtubeVideoId: "video-1",
+            topLevelComment: comment("parent-1"),
+            inlineReplies: [
+              comment("reply-1", { parentId: "parent-1" }),
+              comment("reply-2", { parentId: "parent-1" }),
+            ],
+            totalReplyCount: 2,
+          },
+        ],
+        nextPageToken: null,
+        quotaUnitsUsed: 1,
+        invalidItemCount: 0,
+      }),
+      listReplies: vi.fn(async () => {
+        throw new Error("complete inline replies must not be fetched again");
+      }),
+    });
+
+    const result = await collectChannelCommentPage({
+      provider: source,
+      youtubeChannelId: "channel-1",
+      pageToken: null,
+      boundaryAt: "2026-08-01T00:00:00+09:00",
+      kind: "backfill_recent",
+    });
+
+    expect(result.comments.map((item) => item.youtubeCommentId)).toEqual([
+      "parent-1",
+      "reply-1",
+      "reply-2",
+    ]);
+    expect(result.quotaUnitsUsed).toBe(1);
+  });
+
   it("never collects an orphan reply from a top-level comment beyond the boundary", async () => {
     const source = provider({
       listChannelCommentThreads: vi.fn().mockResolvedValue({
@@ -323,8 +490,12 @@ describe("collectChannelCommentPage", () => {
                 parentId: "new-parent-1",
                 publishedAt: "2026-08-02T01:01:00.000Z",
               }),
+              comment("watermark-reply", {
+                parentId: "new-parent-1",
+                publishedAt: "2026-08-02T00:00:00.000Z",
+              }),
             ],
-            totalReplyCount: 2,
+            totalReplyCount: 3,
           },
           {
             youtubeVideoId: "video-2",
