@@ -3812,6 +3812,201 @@ a {
   line-height: 1.6;
 }
 
+.channel-sync-setup,
+.channel-sync-progress-panel {
+  display: grid;
+  gap: 18px;
+}
+
+.channel-sync-setup > div > p,
+.channel-sync-progress-heading p {
+  margin: 0 0 6px;
+  color: var(--ch-blue);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.channel-sync-setup h3,
+.channel-sync-progress-heading h3 {
+  margin: 0;
+  color: var(--ch-ink);
+  font-size: 19px;
+  letter-spacing: -0.035em;
+}
+
+.channel-sync-setup > div > span {
+  display: block;
+  margin-top: 8px;
+  color: var(--ch-muted);
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.channel-sync-setup-row {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) auto;
+  align-items: end;
+  gap: 12px;
+}
+
+.channel-sync-setup-row label {
+  display: grid;
+  gap: 7px;
+  color: var(--ch-ink);
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.channel-sync-setup-row input {
+  min-height: 44px;
+  border: 1px solid var(--ch-border-strong);
+  border-radius: 11px;
+  padding: 0 13px;
+  background: white;
+  color: var(--ch-ink);
+  font: inherit;
+}
+
+.channel-sync-setup-row .button,
+.channel-sync-actions .button,
+.channel-sync-manual-link {
+  min-height: 44px;
+}
+
+.channel-sync-manual-link {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  color: var(--ch-blue);
+  font-size: 12px;
+  font-weight: 750;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.channel-sync-progress-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.channel-sync-state {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: 7px 10px;
+  background: rgb(255 255 255 / 72%);
+  color: var(--ch-blue);
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.channel-sync-indeterminate {
+  position: relative;
+  height: 7px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgb(77 124 255 / 14%);
+}
+
+.channel-sync-indeterminate > span {
+  position: absolute;
+  inset: 0 auto 0 -32%;
+  width: 32%;
+  border-radius: inherit;
+  background: var(--ch-blue);
+  animation: channel-sync-loading 1.35s ease-in-out infinite;
+}
+
+@keyframes channel-sync-loading {
+  to {
+    transform: translateX(415%);
+  }
+}
+
+.channel-sync-live-status {
+  margin: 0;
+  color: var(--ch-muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.channel-sync-progress-panel > .form-message {
+  margin: 0;
+}
+
+.channel-sync-details,
+.channel-sync-metrics {
+  display: grid;
+  margin: 0;
+}
+
+.channel-sync-details {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.channel-sync-metrics {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  overflow: hidden;
+  border: 1px solid rgb(77 124 255 / 14%);
+  border-radius: 14px;
+  background: rgb(255 255 255 / 68%);
+}
+
+.channel-sync-details > div {
+  min-width: 0;
+  border-radius: 12px;
+  padding: 12px;
+  background: rgb(255 255 255 / 68%);
+}
+
+.channel-sync-metrics > div {
+  min-width: 0;
+  border-right: 1px solid rgb(77 124 255 / 14%);
+  padding: 13px 11px;
+}
+
+.channel-sync-metrics > div:last-child {
+  border-right: 0;
+}
+
+.channel-sync-details dt,
+.channel-sync-metrics dt {
+  color: var(--ch-muted);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.channel-sync-details dd,
+.channel-sync-metrics dd {
+  margin: 5px 0 0;
+  color: var(--ch-ink);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.channel-sync-metrics dd {
+  font-size: 18px;
+}
+
+.channel-sync-actions {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+}
+
+.channel-sync-actions form {
+  margin: 0;
+}
+
+.channel-sync-actions .channel-sync-manual-link {
+  justify-self: end;
+}
+
 .disconnect-box {
   display: flex;
   align-items: center;
@@ -5914,6 +6109,34 @@ a {
 
   .inbox-comment-controls {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .channel-sync-setup-row,
+  .channel-sync-actions,
+  .channel-sync-details,
+  .channel-sync-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .channel-sync-setup-row .button,
+  .channel-sync-actions form,
+  .channel-sync-actions .button {
+    width: 100%;
+  }
+
+  .channel-sync-actions .channel-sync-manual-link {
+    justify-self: start;
+  }
+
+  .channel-sync-metrics > div {
+    border-right: 0;
+    border-bottom: 1px solid rgb(77 124 255 / 14%);
+  }
+
+  .channel-sync-metrics > div:last-child {
+    border-bottom: 0;
   }
 }
 

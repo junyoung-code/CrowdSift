@@ -8,14 +8,23 @@ import {
 import Link from "next/link";
 
 import { requireViewer } from "@/features/auth/require-viewer";
+import { getKoreanToday } from "@/features/ingestion/channel-sync-contract";
+import {
+  ChannelSyncProgressPanel,
+  ChannelSyncSetup,
+} from "@/features/ingestion/channel-sync-progress-panel";
+import { toChannelSyncProgress } from "@/features/ingestion/channel-sync-progress";
 import { getPublicYouTubeDevMode } from "@/features/youtube/public-dev-mode";
 import { PublicVideoImportPanel } from "@/features/youtube/public-video-import-panel";
 import { getServerEnv } from "@/lib/env";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 import {
+  configureChannelCommentSyncAction,
   disconnectYouTubeChannelAction,
+  requestChannelCommentSyncNowAction,
   selectYouTubeChannelAction,
+  setChannelCommentSyncEnabledAction,
 } from "./actions";
 import {
   previewPublicVideoAction,
@@ -30,6 +39,15 @@ const getErrorMessage = (
   parameters: Record<string, string | string[] | undefined>,
 ) => {
   switch (parameters.error) {
+    case "invalid_start_date":
+      return "오늘 또는 그 이전의 올바른 시작 날짜를 선택해 주세요.";
+    case "sync_configuration_failed":
+      return "댓글 동기화 시작 날짜를 저장하지 못했습니다. 다시 시도해 주세요.";
+    case "sync_request_failed":
+      return "댓글 동기화를 요청하지 못했습니다. 잠시 후 다시 시도해 주세요.";
+    case "sync_toggle_invalid":
+    case "sync_toggle_failed":
+      return "자동 동기화 상태를 변경하지 못했습니다. 다시 시도해 주세요.";
     case "channel_required":
       return "사용할 채널 하나를 선택해 주세요.";
     case "revoke_failed":
@@ -64,6 +82,7 @@ export default async function YouTubeConnectionPage({
   const [
     { data: connection, error: connectionError },
     { data: candidates, error: candidatesError },
+    { data: syncSetting, error: syncSettingError },
   ] = await Promise.all([
     supabase
       .from("youtube_connection_overview")
@@ -75,10 +94,34 @@ export default async function YouTubeConnectionPage({
       .select("youtube_channel_id, title, handle, thumbnail_url, selected")
       .eq("workspace_id", workspaceId)
       .order("title"),
+    supabase
+      .from("channel_comment_sync_settings")
+      .select(
+        "id, enabled, backfill_start_at, backfill_status, last_successful_sync_at, last_error_code",
+      )
+      .eq("workspace_id", workspaceId)
+      .maybeSingle(),
   ]);
 
-  if (connectionError || candidatesError) {
+  if (connectionError || candidatesError || syncSettingError) {
     throw new Error("YouTube connection could not be loaded");
+  }
+
+  const { data: latestSyncRun, error: latestSyncRunError } = syncSetting
+    ? await supabase
+        .from("channel_comment_sync_runs")
+        .select(
+          "kind, status, stored_count, duplicate_count, failed_count, analyzed_count, error_code, started_at, finished_at",
+        )
+        .eq("workspace_id", workspaceId)
+        .eq("setting_id", syncSetting.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle()
+    : { data: null, error: null };
+
+  if (latestSyncRunError) {
+    throw new Error("YouTube sync progress could not be loaded");
   }
 
   const requestedPublicJobId =
@@ -99,6 +142,10 @@ export default async function YouTubeConnectionPage({
   }
 
   const selectedChannel = candidates?.find((candidate) => candidate.selected);
+  const syncProgress = toChannelSyncProgress({
+    setting: syncSetting,
+    latestRun: latestSyncRun,
+  });
   const errorMessage = getErrorMessage(parameters);
   const isDisconnected =
     !connection ||
@@ -124,9 +171,11 @@ export default async function YouTubeConnectionPage({
         </p>
       ) : null}
 
-      {parameters.connected || parameters.selected ? (
+      {parameters.connected || parameters.selected || parameters.sync ? (
         <p className="form-message form-message-success" role="status">
-          YouTube 연결 상태를 저장했습니다.
+          {parameters.sync
+            ? "댓글 동기화 설정을 저장했습니다."
+            : "YouTube 연결 상태를 저장했습니다."}
         </p>
       ) : null}
 
@@ -213,12 +262,19 @@ export default async function YouTubeConnectionPage({
             </div>
           </div>
           <div className="connection-next-step">
-            <strong>다음 단계</strong>
-            <p>이 채널의 영상 목록을 불러와 댓글을 분석할 영상 하나를 선택합니다.</p>
-            <Link className="button button-primary" href="/app/videos">
-              영상 선택하기
-              <ArrowRight aria-hidden="true" weight="bold" />
-            </Link>
+            {syncProgress.configured ? (
+              <ChannelSyncProgressPanel
+                initialProgress={syncProgress}
+                key={JSON.stringify(syncProgress)}
+                requestNowAction={requestChannelCommentSyncNowAction}
+                setEnabledAction={setChannelCommentSyncEnabledAction}
+              />
+            ) : (
+              <ChannelSyncSetup
+                configureAction={configureChannelCommentSyncAction}
+                maxDate={getKoreanToday()}
+              />
+            )}
           </div>
           <form action={disconnectYouTubeChannelAction} className="disconnect-box">
             <div>

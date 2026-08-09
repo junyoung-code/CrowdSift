@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { requireViewer } from "@/features/auth/require-viewer";
+import { parseChannelSyncStartDate } from "@/features/ingestion/channel-sync-contract";
 import {
   selectChannel,
   type ChannelSelectionRepository,
@@ -16,6 +17,72 @@ import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 const channelSelectionSchema = z.string().min(1);
+const enabledSchema = z.enum(["true", "false"]).transform((value) =>
+  value === "true",
+);
+
+const CONNECT_YOUTUBE_PATH = "/app/connect/youtube";
+
+export async function configureChannelCommentSyncAction(formData: FormData) {
+  let startDate: string;
+  try {
+    startDate = parseChannelSyncStartDate(formData.get("startDate"));
+  } catch {
+    redirect(`${CONNECT_YOUTUBE_PATH}?error=invalid_start_date`);
+  }
+
+  const { workspaceId } = await requireViewer();
+  const supabase = await createServerSupabaseClient();
+  const { error } = await supabase.rpc("configure_channel_comment_sync", {
+    target_workspace_id: workspaceId,
+    target_start_date: startDate,
+  });
+
+  if (error) {
+    redirect(`${CONNECT_YOUTUBE_PATH}?error=sync_configuration_failed`);
+  }
+
+  revalidatePath(CONNECT_YOUTUBE_PATH);
+  redirect(`${CONNECT_YOUTUBE_PATH}?sync=started`);
+}
+
+export async function requestChannelCommentSyncNowAction() {
+  const { workspaceId } = await requireViewer();
+  const supabase = await createServerSupabaseClient();
+  const { error } = await supabase.rpc("request_channel_comment_sync_now", {
+    target_workspace_id: workspaceId,
+  });
+
+  if (error) {
+    redirect(`${CONNECT_YOUTUBE_PATH}?error=sync_request_failed`);
+  }
+
+  revalidatePath(CONNECT_YOUTUBE_PATH);
+  redirect(`${CONNECT_YOUTUBE_PATH}?sync=requested`);
+}
+
+export async function setChannelCommentSyncEnabledAction(formData: FormData) {
+  const parsed = enabledSchema.safeParse(formData.get("enabled"));
+  if (!parsed.success) {
+    redirect(`${CONNECT_YOUTUBE_PATH}?error=sync_toggle_invalid`);
+  }
+
+  const { workspaceId } = await requireViewer();
+  const supabase = await createServerSupabaseClient();
+  const { error } = await supabase.rpc("set_channel_comment_sync_enabled", {
+    target_workspace_id: workspaceId,
+    target_enabled: parsed.data,
+  });
+
+  if (error) {
+    redirect(`${CONNECT_YOUTUBE_PATH}?error=sync_toggle_failed`);
+  }
+
+  revalidatePath(CONNECT_YOUTUBE_PATH);
+  redirect(
+    `${CONNECT_YOUTUBE_PATH}?sync=${parsed.data ? "enabled" : "paused"}`,
+  );
+}
 
 export const selectYouTubeChannelAction = async (formData: FormData) => {
   const parsed = channelSelectionSchema.safeParse(formData.get("channelId"));
