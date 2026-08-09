@@ -7,6 +7,7 @@ export type ImportFailureCode =
 
 export type ChannelSyncErrorCode =
   | ImportFailureCode
+  | "invalid_reply_cursor"
   | "unsupported_sync_kind"
   | "video_metadata_unavailable";
 

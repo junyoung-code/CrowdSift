@@ -25,6 +25,13 @@ import {
   ChannelSyncProcessingError,
   toChannelSyncProcessingError,
 } from "./import-errors";
+import {
+  createReplyReconciliationService,
+  type ReplyCursor,
+  type ReplyReconciliationBatchResult,
+  type ReplyReconciliationParent,
+  type ReplyReconciliationRepository,
+} from "./reply-reconciliation-service";
 
 type AdminClient = ReturnType<typeof createAdminSupabaseClient>;
 type ClassificationProgress = ClassificationJobProgress;
@@ -116,6 +123,56 @@ export const buildCompleteChannelSyncRunRpcArgs = (
   target_quota_units_used: input.quotaUnitsUsed,
   target_reply_cursor: null,
 });
+
+export const buildCompleteReplyReconciliationRunRpcArgs = (
+  input: Parameters<ReplyReconciliationRepository["completeRun"]>[0],
+) => ({
+  target_run_id: input.runId,
+  target_claim_token: input.claimToken,
+  target_next_page_token: null,
+  target_reached_boundary: false,
+  target_observed_count: input.observedCount,
+  target_stored_count: input.storedCount,
+  target_updated_count: input.updatedCount,
+  target_duplicate_count: input.duplicateCount,
+  target_failed_count: input.failedCount,
+  target_analyzed_count: input.analyzedCount,
+  target_quota_units_used: input.quotaUnitsUsed,
+  target_reply_cursor: input.replyCursor,
+});
+
+export const buildReplyParentKeysetFilter = (cursor: ReplyCursor) =>
+  `published_at.gt.${cursor.publishedAt},and(published_at.eq.${cursor.publishedAt},id.gt.${cursor.id})`;
+
+type ReplyParentRpcRow = {
+  id: string;
+  youtube_comment_id: string;
+  youtube_video_id: string;
+  published_at: string;
+};
+
+export const toReplyReconciliationParentPage = (
+  rows: ReplyParentRpcRow[],
+  limit: number,
+): {
+  items: ReplyReconciliationParent[];
+  nextCursor: ReplyCursor | null;
+} => {
+  const items = rows.slice(0, limit).map((row) => ({
+    rawCommentId: row.id,
+    youtubeCommentId: row.youtube_comment_id,
+    youtubeVideoId: row.youtube_video_id,
+    publishedAt: new Date(row.published_at).toISOString(),
+  }));
+  const lastItem = items.at(-1);
+  return {
+    items,
+    nextCursor:
+      rows.length > limit && lastItem
+        ? { publishedAt: lastItem.publishedAt, id: lastItem.rawCommentId }
+        : null,
+  };
+};
 
 export const buildFinalizeChannelVideoImportRpcArgs = (
   input: CompleteChannelVideoImportInput,
@@ -383,6 +440,75 @@ const createRepository = (
   },
 });
 
+const REPLY_PARENT_SELECT = `
+  id,
+  youtube_comment_id,
+  youtube_video_id,
+  published_at,
+  first_import:comment_import_jobs!raw_comments_first_import_job_id_fkey!inner(
+    trigger_kind,
+    source_kind,
+    sync_run:channel_comment_sync_runs!comment_import_jobs_channel_sync_run_id_fkey!inner(
+      setting:channel_comment_sync_settings!channel_comment_sync_runs_setting_id_fkey!inner(
+        youtube_channel_id
+      )
+    )
+  )
+`;
+
+export const createReplyReconciliationRepository = (
+  admin: AdminClient,
+): ReplyReconciliationRepository => {
+  const baseRepository = createRepository(admin);
+
+  return {
+    createOrGetVideoImportJob: baseRepository.createOrGetVideoImportJob,
+    storeComment: baseRepository.storeComment,
+    recordFailedItem: baseRepository.recordFailedItem,
+    completeVideoImportJob: baseRepository.completeVideoImportJob,
+    attachRecoverableAnalysisItems:
+      baseRepository.attachRecoverableAnalysisItems,
+    failRun: baseRepository.failRun,
+
+    async listParents(input) {
+      let query = admin
+        .from("raw_comments")
+        .select(REPLY_PARENT_SELECT)
+        .eq("workspace_id", input.workspaceId)
+        .eq("first_import.trigger_kind", "channel_sync")
+        .eq("first_import.source_kind", "owned_oauth")
+        .eq(
+          "first_import.sync_run.setting.youtube_channel_id",
+          input.youtubeChannelId,
+        )
+        .is("parent_youtube_comment_id", null)
+        .gte("published_at", input.publishedAfter)
+        .order("published_at", { ascending: true })
+        .order("id", { ascending: true })
+        .limit(input.limit + 1);
+
+      if (input.cursor) {
+        query = query.or(buildReplyParentKeysetFilter(input.cursor));
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      return toReplyReconciliationParentPage(
+        (data ?? []) as ReplyParentRpcRow[],
+        input.limit,
+      );
+    },
+
+    async completeRun(input) {
+      const { error } = await admin.rpc(
+        "complete_channel_comment_sync_run",
+        buildCompleteReplyReconciliationRunRpcArgs(input),
+      );
+      if (error) throw error;
+    },
+  };
+};
+
 const failClaim = async (
   admin: AdminClient,
   claim: ChannelSyncClaim,
@@ -403,7 +529,9 @@ const failClaim = async (
 
 export async function processOneChannelSyncWork(input: {
   workspaceId?: string;
-}): Promise<ChannelSyncBatchResult | null> {
+}): Promise<
+  ChannelSyncBatchResult | ReplyReconciliationBatchResult | null
+> {
   const admin = createAdminSupabaseClient();
   const claim = await claimOne({ admin, workspaceId: input.workspaceId });
   if (!claim) return null;
@@ -446,6 +574,17 @@ export async function processOneChannelSyncWork(input: {
     lunaModel: environment.OPENAI_LUNA_MODEL,
     terraModel: environment.OPENAI_TERRA_MODEL,
   });
+
+  if (claim.runKind === "reply_reconciliation") {
+    return createReplyReconciliationService({
+      repository: createReplyReconciliationRepository(admin),
+      providerMode: environment.EXTERNAL_PROVIDER_MODE,
+      analysisConfigurationKey,
+      source: {
+        listReplies: (replyInput) => provider.listReplies(replyInput),
+      },
+    }).process(claim);
+  }
 
   return createChannelCommentSyncService({
     repository,
