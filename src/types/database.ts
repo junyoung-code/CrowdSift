@@ -1016,6 +1016,7 @@ export type Database = {
       }
       comment_import_jobs: {
         Row: {
+          analyzed_count: number
           attempt_count: number
           channel_sync_run_id: string | null
           created_at: string
@@ -1043,6 +1044,7 @@ export type Database = {
           youtube_video_id: string
         }
         Insert: {
+          analyzed_count?: number
           attempt_count?: number
           channel_sync_run_id?: string | null
           created_at?: string
@@ -1070,6 +1072,7 @@ export type Database = {
           youtube_video_id: string
         }
         Update: {
+          analyzed_count?: number
           attempt_count?: number
           channel_sync_run_id?: string | null
           created_at?: string
@@ -2580,8 +2583,15 @@ export type Database = {
           target_youtube_video_id: string
         }
         Returns: {
+          analyzed_count: number
+          duplicate_count: number
+          failed_count: number
           id: string
+          is_terminal: boolean
+          quota_units_used: number
           status: Database["public"]["Enums"]["job_status"]
+          stored_count: number
+          updated_count: number
         }[]
       }
       disconnect_youtube_channel: {
@@ -2639,6 +2649,58 @@ export type Database = {
           target_updated_count: number
         }
         Returns: {
+          analyzed_count: number
+          attempt_count: number
+          channel_sync_run_id: string | null
+          created_at: string
+          duplicate_count: number
+          failed_count: number
+          fetched_count: number
+          finished_at: string | null
+          id: string
+          last_error_code: string | null
+          next_page_token: string | null
+          provider_mode: string
+          reply_count: number
+          requested_top_level_count: number | null
+          requested_total_count: number | null
+          source_kind: Database["public"]["Enums"]["comment_source_kind"]
+          source_video_url: string | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["job_status"]
+          stored_count: number
+          top_level_count: number
+          trigger_kind: string
+          updated_count: number
+          workspace_id: string
+          youtube_quota_units_used: number
+          youtube_video_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "comment_import_jobs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      finalize_channel_sync_video_import_job_v2: {
+        Args: {
+          target_claim_token: string
+          target_duplicate_count: number
+          target_error_code: string | null
+          target_failed_count: number
+          target_import_job_id: string
+          target_observed_count: number
+          target_quota_units_used: number
+          target_reply_count: number
+          target_run_id: string
+          target_status: Database["public"]["Enums"]["job_status"]
+          target_stored_count: number
+          target_top_level_count: number
+          target_updated_count: number
+        }
+        Returns: {
+          analyzed_count: number
           attempt_count: number
           channel_sync_run_id: string | null
           created_at: string

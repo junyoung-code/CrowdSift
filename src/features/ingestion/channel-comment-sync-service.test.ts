@@ -4,6 +4,7 @@ import type { YouTubeVideo } from "@/features/youtube/video-service";
 
 import type { ChannelCommentCollectionPage } from "./channel-comment-page-collector";
 import type { SourceComment } from "./comment-mapper";
+import { ChannelSyncProcessingError } from "./import-errors";
 import {
   createChannelCommentSyncService,
   type ChannelSyncClaim,
@@ -83,6 +84,8 @@ const repository = (): ChannelSyncRepository => ({
   upsertVideoMetadata: vi.fn(async () => undefined),
   createOrGetVideoImportJob: vi.fn(async ({ youtubeVideoId }) => ({
     id: `job-${youtubeVideoId}`,
+    state: "running" as const,
+    analyzedCount: 0,
   })),
   storeComment: vi.fn(async ({ comment: sourceComment }) => ({
     disposition: "stored" as const,
@@ -208,6 +211,8 @@ describe("channel comment sync service", () => {
     const targetRepository = repository();
     vi.mocked(targetRepository.createOrGetVideoImportJob).mockResolvedValue({
       id: "stable-job-id",
+      state: "running",
+      analyzedCount: 0,
     });
     const page = collection([["real-video-1", [comment("comment-1")]]]);
     const targetService = service(targetRepository, source(page));
@@ -223,6 +228,84 @@ describe("channel comment sync service", () => {
       2,
       expect.objectContaining({ importJobId: "stable-job-id" }),
     );
+  });
+
+  it("uses terminal video snapshots exactly once after a same-run reclaim", async () => {
+    const targetRepository = repository();
+    vi.mocked(targetRepository.createOrGetVideoImportJob)
+      .mockResolvedValueOnce({
+        id: "job-real-video-1",
+        state: "terminal",
+        status: "succeeded",
+        storedCount: 1,
+        updatedCount: 0,
+        duplicateCount: 1,
+        failedCount: 0,
+        analyzedCount: 1,
+        quotaUnitsUsed: 7,
+      })
+      .mockResolvedValueOnce({
+        id: "job-real-video-2",
+        state: "terminal",
+        status: "partially_succeeded",
+        storedCount: 0,
+        updatedCount: 1,
+        duplicateCount: 0,
+        failedCount: 1,
+        analyzedCount: 0,
+        quotaUnitsUsed: 0,
+      });
+    const page = collection([
+      ["real-video-1", [comment("comment-1"), comment("comment-2")]],
+      ["real-video-2", [comment("comment-3"), comment("comment-4")]],
+    ], { quotaUnitsUsed: 7 });
+
+    const result = await service(
+      targetRepository,
+      source(page),
+    ).process(claimForRun("run-1", "replacement-token"));
+
+    expect(targetRepository.storeComment).not.toHaveBeenCalled();
+    expect(targetRepository.attachRecoverableAnalysisItems).not.toHaveBeenCalled();
+    expect(targetRepository.completeVideoImportJob).not.toHaveBeenCalled();
+    expect(targetRepository.completeRun).toHaveBeenCalledWith(
+      expect.objectContaining({
+        storedCount: 1,
+        updatedCount: 1,
+        duplicateCount: 1,
+        failedCount: 1,
+        analyzedCount: 1,
+        quotaUnitsUsed: 7,
+      }),
+    );
+    expect(result).toMatchObject({
+      storedCount: 1,
+      updatedCount: 1,
+      duplicateCount: 1,
+      failedCount: 1,
+      analyzedCount: 1,
+      quotaUnitsUsed: 7,
+    });
+  });
+
+  it("fails the run with a stable provider-mode mismatch", async () => {
+    const targetRepository = repository();
+    vi.mocked(targetRepository.createOrGetVideoImportJob).mockRejectedValue(
+      new ChannelSyncProcessingError("provider_mode_mismatch"),
+    );
+
+    await expect(
+      service(
+        targetRepository,
+        source(collection([["real-video-1", [comment("comment-1")]]])),
+      ).process(claim),
+    ).rejects.toMatchObject({ code: "provider_mode_mismatch" });
+
+    expect(targetRepository.failRun).toHaveBeenCalledWith({
+      runId: "run-1",
+      claimToken: "claim-token-1",
+      errorCode: "provider_mode_mismatch",
+    });
   });
 
   it("stores the real video ID but fails retryably without analysis when metadata is omitted", async () => {
@@ -300,7 +383,11 @@ describe("channel comment sync service", () => {
       attachedRawCommentIds: ["raw-1"],
     });
     vi.mocked(targetRepository.createOrGetVideoImportJob).mockImplementation(
-      async ({ runId }) => ({ id: `job-${runId}-real-video-id` }),
+      async ({ runId }) => ({
+        id: `job-${runId}-real-video-id`,
+        state: "running",
+        analyzedCount: 0,
+      }),
     );
     const targetService = service(targetRepository, targetSource);
 
@@ -348,7 +435,11 @@ describe("channel comment sync service", () => {
         attachedRawCommentIds: ["raw-missing"],
       });
     vi.mocked(targetRepository.createOrGetVideoImportJob).mockImplementation(
-      async ({ runId }) => ({ id: `job-${runId}-real-video-id` }),
+      async ({ runId }) => ({
+        id: `job-${runId}-real-video-id`,
+        state: "running",
+        analyzedCount: 0,
+      }),
     );
     const targetService = service(targetRepository, source(page));
 
@@ -397,6 +488,8 @@ describe("channel comment sync service", () => {
     vi.mocked(targetRepository.createOrGetVideoImportJob).mockImplementation(
       async ({ runId, youtubeVideoId }) => ({
         id: `job-${runId}-${youtubeVideoId}`,
+        state: "running",
+        analyzedCount: 0,
       }),
     );
     vi.mocked(targetRepository.storeComment)
@@ -703,6 +796,40 @@ describe("channel comment sync Supabase adapter", () => {
     vi.doUnmock("server-only");
   });
 
+  it("maps a terminal import RPC row to an explicit durable snapshot", async () => {
+    vi.resetModules();
+    vi.doMock("server-only", () => ({}));
+    const adapter = await import("./process-channel-comment-sync");
+    const mapRow = Reflect.get(adapter, "toChannelSyncVideoImportJob");
+    const actual =
+      typeof mapRow === "function"
+        ? mapRow({
+            id: "import-job-1",
+            status: "succeeded",
+            is_terminal: true,
+            stored_count: 2,
+            updated_count: 1,
+            duplicate_count: 3,
+            failed_count: 0,
+            analyzed_count: 2,
+            quota_units_used: 7,
+          })
+        : null;
+
+    expect(actual).toEqual({
+      id: "import-job-1",
+      state: "terminal",
+      status: "succeeded",
+      storedCount: 2,
+      updatedCount: 1,
+      duplicateCount: 3,
+      failedCount: 0,
+      analyzedCount: 2,
+      quotaUnitsUsed: 7,
+    });
+    vi.doUnmock("server-only");
+  });
+
   it("builds the exact claim-fenced source storage RPC payload", async () => {
     vi.resetModules();
     vi.doMock("server-only", () => ({}));
@@ -833,6 +960,7 @@ describe("channel comment sync Supabase adapter", () => {
             failedCount: 1,
             topLevelCount: 3,
             replyCount: 1,
+            quotaUnitsUsed: 7,
             errorCode: "provider_error",
             status: "partially_succeeded",
           })
@@ -849,6 +977,7 @@ describe("channel comment sync Supabase adapter", () => {
       target_failed_count: 1,
       target_top_level_count: 3,
       target_reply_count: 1,
+      target_quota_units_used: 7,
       target_error_code: "provider_error",
       target_status: "partially_succeeded",
     });

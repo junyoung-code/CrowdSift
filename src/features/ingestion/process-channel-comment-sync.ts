@@ -17,6 +17,7 @@ import {
   type ChannelSyncBatchResult,
   type ChannelSyncClaim,
   type ChannelSyncRepository,
+  type ChannelSyncVideoImportJob,
   type CompleteChannelSyncRunInput,
   type CompleteChannelVideoImportInput,
 } from "./channel-comment-sync-service";
@@ -129,9 +130,57 @@ export const buildFinalizeChannelVideoImportRpcArgs = (
   target_failed_count: input.failedCount,
   target_top_level_count: input.topLevelCount,
   target_reply_count: input.replyCount,
+  target_quota_units_used: input.quotaUnitsUsed,
   target_error_code: input.errorCode,
   target_status: input.status,
 });
+
+type ChannelSyncVideoImportRpcRow = {
+  id: string;
+  status: string;
+  is_terminal: boolean;
+  stored_count: number;
+  updated_count: number;
+  duplicate_count: number;
+  failed_count: number;
+  analyzed_count: number;
+  quota_units_used: number;
+};
+
+export const toChannelSyncVideoImportJob = (
+  row: ChannelSyncVideoImportRpcRow,
+): ChannelSyncVideoImportJob => {
+  if (!row.is_terminal) {
+    if (row.status !== "running") {
+      throw new Error("channel_video_import_job_invalid_state");
+    }
+    return {
+      id: row.id,
+      state: "running",
+      analyzedCount: row.analyzed_count,
+    };
+  }
+
+  if (
+    row.status !== "succeeded" &&
+    row.status !== "partially_succeeded" &&
+    row.status !== "failed"
+  ) {
+    throw new Error("channel_video_import_job_invalid_state");
+  }
+
+  return {
+    id: row.id,
+    state: "terminal",
+    status: row.status,
+    storedCount: row.stored_count,
+    updatedCount: row.updated_count,
+    duplicateCount: row.duplicate_count,
+    failedCount: row.failed_count,
+    analyzedCount: row.analyzed_count,
+    quotaUnitsUsed: row.quota_units_used,
+  };
+};
 
 export const buildAttachChannelSyncAnalysisItemsRpcArgs = (input: {
   importJobId: string;
@@ -243,11 +292,19 @@ const createRepository = (
       "create_or_get_channel_sync_video_import_job",
       buildCreateChannelSyncVideoImportRpcArgs(input),
     );
+    if (error) {
+      if (error.message.includes("provider_mode_mismatch")) {
+        throw new ChannelSyncProcessingError("provider_mode_mismatch", {
+          cause: error,
+        });
+      }
+      throw error;
+    }
     const job = data?.[0];
-    if (error || !job) {
+    if (!job) {
       throw error ?? new Error("channel_video_import_job_missing");
     }
-    return { id: job.id };
+    return toChannelSyncVideoImportJob(job);
   },
 
   async storeComment(input) {
@@ -281,7 +338,7 @@ const createRepository = (
 
   async completeVideoImportJob(input) {
     const { error } = await admin.rpc(
-      "finalize_channel_sync_video_import_job",
+      "finalize_channel_sync_video_import_job_v2",
       buildFinalizeChannelVideoImportRpcArgs(input),
     );
     if (error) throw error;

@@ -63,9 +63,33 @@ export type CompleteChannelVideoImportInput = {
   failedCount: number;
   topLevelCount: number;
   replyCount: number;
+  quotaUnitsUsed: number;
   errorCode: ChannelSyncErrorCode | null;
   status: "succeeded" | "partially_succeeded" | "failed";
 };
+
+type TerminalChannelSyncVideoImportStatus = Extract<
+  CompleteChannelVideoImportInput["status"],
+  "succeeded" | "partially_succeeded" | "failed"
+>;
+
+export type ChannelSyncVideoImportJob =
+  | {
+      id: string;
+      state: "running";
+      analyzedCount: number;
+    }
+  | {
+      id: string;
+      state: "terminal";
+      status: TerminalChannelSyncVideoImportStatus;
+      storedCount: number;
+      updatedCount: number;
+      duplicateCount: number;
+      failedCount: number;
+      analyzedCount: number;
+      quotaUnitsUsed: number;
+    };
 
 export interface ChannelSyncRepository {
   upsertVideoMetadata(input: {
@@ -79,7 +103,7 @@ export interface ChannelSyncRepository {
     workspaceId: string;
     youtubeVideoId: string;
     providerMode: "live" | "fixture";
-  }): Promise<{ id: string }>;
+  }): Promise<ChannelSyncVideoImportJob>;
   storeComment(input: StoreChannelCommentInput): Promise<{
     disposition: "stored" | "updated" | "duplicate";
     rawCommentId: string;
@@ -236,7 +260,12 @@ export const createChannelCommentSyncService = ({
       const importJobIds: string[] = [];
       const analysisJobIds: string[] = [];
       let analyzedCount = 0;
+      let quotaUnitsUsed = youtubeVideoIds.length === 0
+        ? page.quotaUnitsUsed
+        : 0;
       let runMetadataError = metadataLookupError;
+      const accountedVideoIds = new Set<string>();
+      const quotaOwnerVideoId = youtubeVideoIds[0] ?? null;
 
       for (const [youtubeVideoId, comments] of page.groups) {
         const groupMetadataError =
@@ -253,7 +282,24 @@ export const createChannelCommentSyncService = ({
           providerMode,
         });
         importJobIds.push(importJob.id);
+
+        if (importJob.state === "terminal") {
+          if (!accountedVideoIds.has(youtubeVideoId)) {
+            accountedVideoIds.add(youtubeVideoId);
+            totals.storedCount += importJob.storedCount;
+            totals.updatedCount += importJob.updatedCount;
+            totals.duplicateCount += importJob.duplicateCount;
+            totals.failedCount += importJob.failedCount;
+            analyzedCount += importJob.analyzedCount;
+            quotaUnitsUsed += importJob.quotaUnitsUsed;
+          }
+          continue;
+        }
+
         const counts = emptyCounts();
+        const videoQuotaUnitsUsed = youtubeVideoId === quotaOwnerVideoId
+          ? page.quotaUnitsUsed
+          : 0;
 
         for (const sourceComment of comments) {
           try {
@@ -295,6 +341,7 @@ export const createChannelCommentSyncService = ({
           replyCount: comments.filter(
             (item) => item.parentYoutubeCommentId !== null,
           ).length,
+          quotaUnitsUsed: videoQuotaUnitsUsed,
           errorCode: groupMetadataError?.code ?? null,
           status: importStatusWithMetadata(counts, groupMetadataError),
         });
@@ -319,6 +366,8 @@ export const createChannelCommentSyncService = ({
         totals.updatedCount += counts.updatedCount;
         totals.duplicateCount += counts.duplicateCount;
         totals.failedCount += counts.failedCount;
+        analyzedCount += importJob.analyzedCount;
+        quotaUnitsUsed += videoQuotaUnitsUsed;
       }
 
       if (runMetadataError) {
@@ -333,7 +382,7 @@ export const createChannelCommentSyncService = ({
         observedCount: page.observedCount,
         ...totals,
         analyzedCount,
-        quotaUnitsUsed: page.quotaUnitsUsed,
+        quotaUnitsUsed,
       };
       await repository.completeRun(completion);
 

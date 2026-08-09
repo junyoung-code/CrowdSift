@@ -71,7 +71,7 @@ values (
   true
 );
 
-select plan(27);
+select plan(34);
 
 set local role authenticated;
 select set_config(
@@ -674,6 +674,297 @@ select results_eq(
   'a replay creates neither an empty analysis job nor a duplicate ledger row'
 );
 
+reset role;
+
+insert into auth.users (
+  id,
+  aud,
+  role,
+  email,
+  encrypted_password,
+  email_confirmed_at,
+  raw_app_meta_data,
+  raw_user_meta_data,
+  created_at,
+  updated_at
+)
+values (
+  '19191919-1919-1919-1919-191919191919',
+  'authenticated',
+  'authenticated',
+  'snapshot-owner@example.test',
+  '',
+  now(),
+  '{"provider":"email","providers":["email"]}',
+  '{}',
+  now(),
+  now()
+);
+
+insert into public.workspaces (id, owner_user_id, name)
+values (
+  '17171717-1717-1717-1717-171717171717',
+  '19191919-1919-1919-1919-191919191919',
+  'Terminal snapshot workspace'
+);
+
+insert into public.workspace_members (workspace_id, user_id, role)
+values (
+  '17171717-1717-1717-1717-171717171717',
+  '19191919-1919-1919-1919-191919191919',
+  'owner'
+);
+
+insert into public.youtube_connections (
+  id,
+  workspace_id,
+  status,
+  encrypted_access_token
+)
+values (
+  '18181818-1818-1818-1818-181818181818',
+  '17171717-1717-1717-1717-171717171717',
+  'connected',
+  'sealed-snapshot-token'
+);
+
+insert into public.youtube_channel_candidates (
+  connection_id,
+  workspace_id,
+  youtube_channel_id,
+  title,
+  selected
+)
+values (
+  '18181818-1818-1818-1818-181818181818',
+  '17171717-1717-1717-1717-171717171717',
+  'snapshot-channel',
+  'Snapshot Channel',
+  true
+);
+
+set local role authenticated;
+select set_config(
+  'request.jwt.claim.sub',
+  '19191919-1919-1919-1919-191919191919',
+  true
+);
+select set_config('request.jwt.claim.role', 'authenticated', true);
+
+create temporary table configured_snapshot_setting on commit drop as
+select id
+from public.configure_channel_comment_sync(
+  '17171717-1717-1717-1717-171717171717'::uuid,
+  date '2026-08-01'
+);
+
+set local role service_role;
+select set_config('request.jwt.claim.role', 'service_role', true);
+select set_config('request.jwt.claim.sub', '', true);
+
+create temporary table snapshot_claim on commit drop as
+select *
+from public.claim_channel_comment_sync_work_for_workspace(
+  '17171717-1717-1717-1717-171717171717'::uuid,
+  '19191919-1919-1919-1919-191919191919'::uuid,
+  240
+);
+
+create temporary table snapshot_job on commit drop as
+select *
+from public.create_or_get_channel_sync_video_import_job(
+  (select run_id from snapshot_claim),
+  (select claim_token from snapshot_claim),
+  '17171717-1717-1717-1717-171717171717'::uuid,
+  'terminal-video',
+  'live'
+);
+
+create temporary table snapshot_source on commit drop as
+select *
+from public.store_channel_sync_comment_item(
+  (select id from snapshot_job),
+  (select run_id from snapshot_claim),
+  (select claim_token from snapshot_claim),
+  '17171717-1717-1717-1717-171717171717'::uuid,
+  'terminal-video',
+  'committed-response-lost',
+  null,
+  null,
+  null,
+  null,
+  'committed source',
+  'committed source',
+  0,
+  'published',
+  '2026-08-08T01:00:00Z'::timestamptz,
+  '2026-08-08T01:00:00Z'::timestamptz,
+  '{"id":"committed-response-lost"}'::jsonb
+);
+
+select public.record_channel_sync_import_item_failure(
+  (select id from snapshot_job),
+  (select run_id from snapshot_claim),
+  (select claim_token from snapshot_claim),
+  '17171717-1717-1717-1717-171717171717'::uuid,
+  'committed-response-lost',
+  'source_store_failed'
+);
+
+select results_eq(
+  $$
+    select
+      item.status,
+      item.raw_comment_id is not null,
+      item.error_code,
+      (
+        select count(*)
+        from public.comment_source_observations observation
+        where observation.raw_comment_id = item.raw_comment_id
+      )
+    from public.comment_import_items item
+    where item.import_job_id = (select id from snapshot_job)
+      and item.youtube_comment_id = 'committed-response-lost'
+  $$,
+  $$ values ('succeeded'::public.item_status, true, null::text, 1::bigint) $$,
+  'a lost successful store response cannot be overwritten by failure recording'
+);
+
+select throws_ok(
+  format(
+    $$
+      select public.create_or_get_channel_sync_video_import_job(
+        %L::uuid,
+        %L::uuid,
+        '17171717-1717-1717-1717-171717171717'::uuid,
+        'terminal-video',
+        'fixture'
+      )
+    $$,
+    (select run_id from snapshot_claim),
+    (select claim_token from snapshot_claim)
+  ),
+  '22023',
+  'provider_mode_mismatch',
+  'an existing run-and-video job cannot mix live and fixture providers'
+);
+
+select results_eq(
+  format(
+    $$
+      select status
+      from public.finalize_channel_sync_video_import_job_v2(
+        %L::uuid,
+        %L::uuid,
+        %L::uuid,
+        1,
+        1,
+        0,
+        0,
+        0,
+        1,
+        0,
+        9,
+        null,
+        'succeeded'
+      )
+    $$,
+    (select id from snapshot_job),
+    (select run_id from snapshot_claim),
+    (select claim_token from snapshot_claim)
+  ),
+  $$ values ('succeeded'::public.job_status) $$,
+  'the v2 finalizer persists a terminal import snapshot'
+);
+
+create temporary table snapshot_attachment on commit drop as
+select *
+from public.attach_channel_sync_analysis_items(
+  (select id from snapshot_job),
+  (select run_id from snapshot_claim),
+  (select claim_token from snapshot_claim),
+  '17171717-1717-1717-1717-171717171717'::uuid,
+  'terminal-video',
+  'classification-v1-key'
+);
+
+select results_eq(
+  $$ select raw_comment_id from snapshot_attachment $$,
+  $$ select raw_comment_id from snapshot_source $$,
+  'the finalized video attaches its first-seen source exactly once'
+);
+
+update public.channel_comment_sync_settings
+set lease_until = now() - interval '1 second'
+where workspace_id = '17171717-1717-1717-1717-171717171717';
+
+create temporary table snapshot_reclaim on commit drop as
+select *
+from public.claim_channel_comment_sync_work_for_workspace(
+  '17171717-1717-1717-1717-171717171717'::uuid,
+  '19191919-1919-1919-1919-191919191919'::uuid,
+  240
+);
+
+select results_eq(
+  $$
+    select
+      reclaimed.run_id = original.run_id,
+      reclaimed.claim_token <> original.claim_token
+    from snapshot_reclaim reclaimed
+    cross join snapshot_claim original
+  $$,
+  $$ values (true, true) $$,
+  'a crash before run completion reclaims the same run with a new token'
+);
+
+create temporary table terminal_snapshot on commit drop as
+select *
+from public.create_or_get_channel_sync_video_import_job(
+  (select run_id from snapshot_reclaim),
+  (select claim_token from snapshot_reclaim),
+  '17171717-1717-1717-1717-171717171717'::uuid,
+  'terminal-video',
+  'live'
+);
+
+select results_eq(
+  $$
+    select
+      status,
+      is_terminal,
+      stored_count,
+      updated_count,
+      duplicate_count,
+      failed_count,
+      analyzed_count,
+      quota_units_used
+    from terminal_snapshot
+  $$,
+  $$ values (
+    'succeeded'::public.job_status,
+    true,
+    1,
+    0,
+    0,
+    0,
+    1,
+    9
+  ) $$,
+  'same-run reclaim returns the exact durable terminal video snapshot'
+);
+
+select results_eq(
+  $$
+    select
+      (select count(*) from public.analysis_jobs where import_job_id = (select id from snapshot_job)),
+      (select count(*) from public.analysis_job_items where analysis_job_id = (select analysis_job_id from snapshot_attachment)),
+      (select count(*) from public.channel_sync_analysis_assignments where assigned_import_job_id = (select id from snapshot_job))
+  $$,
+  $$ values (1::bigint, 1::bigint, 1::bigint) $$,
+  'reading a terminal snapshot creates no analysis job, item, or assignment'
+);
+
 select ok(
   has_function_privilege(
     'service_role',
@@ -693,6 +984,11 @@ select ok(
   and has_function_privilege(
     'service_role',
     'public.record_channel_sync_import_item_failure(uuid,uuid,uuid,uuid,text,text)',
+    'execute'
+  )
+  and has_function_privilege(
+    'service_role',
+    'public.finalize_channel_sync_video_import_job_v2(uuid,uuid,uuid,integer,integer,integer,integer,integer,integer,integer,integer,text,public.job_status)',
     'execute'
   ),
   'service workers can execute the race-hardened channel-sync RPCs'
@@ -717,6 +1013,11 @@ select ok(
   and not has_function_privilege(
     'authenticated',
     'public.record_channel_sync_import_item_failure(uuid,uuid,uuid,uuid,text,text)',
+    'execute'
+  )
+  and not has_function_privilege(
+    'authenticated',
+    'public.finalize_channel_sync_video_import_job_v2(uuid,uuid,uuid,integer,integer,integer,integer,integer,integer,integer,integer,text,public.job_status)',
     'execute'
   )
   and not has_table_privilege(
