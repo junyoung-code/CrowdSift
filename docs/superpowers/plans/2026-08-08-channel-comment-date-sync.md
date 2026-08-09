@@ -486,11 +486,17 @@ git commit -m "feat: collect channel comment pages to a date boundary"
 - Create: `src/features/ingestion/channel-comment-sync-service.ts`
 - Create: `src/features/ingestion/channel-comment-sync-service.test.ts`
 - Create: `src/features/ingestion/process-channel-comment-sync.ts`
+- Create: `supabase/migrations/202608080035_channel_comment_sync_import_recovery.sql`
+- Create: `supabase/migrations/202608080036_channel_comment_sync_atomic_imports.sql`
+- Modify: `supabase/tests/channel_comment_sync.sql`
+- Modify: `src/types/database.ts`
 - Modify: `src/features/ingestion/import-errors.ts`
 
 **Interfaces:**
 - Consumes: Task 2의 claimed work와 Task 4의 grouped collection page.
 - Produces: 영상별 `comment_import_jobs`, immutable source/observation, 신규 댓글용 `analysis_jobs`, completed sync run.
+
+**Atomicity decision:** 이 Task의 source 저장, import job 생성, 분석 item 배정은 모두 현재 `runId`와 `claimToken`을 검증하는 service-role RPC 안에서 수행한다. 이는 전역 제약의 “한 worker claim은 한 page만 처리”, 재시작 후 재개, 그리고 `stored`만 분석하고 `duplicate`는 비용을 발생시키지 않는 규칙을 동시에 보장하기 위한 구현 경계다. `channel_sync_analysis_assignments` ledger는 `(workspace_id, raw_comment_id, configuration_key)`를 유일하게 보유해 서로 다른 재시도 run이 같은 댓글을 다른 analysis job에 배정하지 못하게 한다. 기존 수동·공개 URL import는 이 ledger와 fenced RPC를 사용하지 않는다.
 
 - [ ] **Step 1: orchestration 실패 테스트를 작성한다**
 
@@ -517,6 +523,12 @@ it("creates analysis items only for first-seen comments", async () => {
 - item 하나 저장 실패가 다른 댓글을 rollback하지 않는다.
 - quota/permission/provider 오류가 run과 setting에 stable error code로 남는다.
 - complete RPC에는 다음 page token, cutoff, stored/updated/duplicate/failed/analyzed/quota 수가 정확히 전달된다.
+- metadata 또는 analysis enqueue 오류로 run이 `failed`가 된 뒤 새 run이 생성되어도, 같은 workspace·실제 video ID의 이전 `owned_oauth/channel_sync` first-seen raw comment 중 현재 configuration의 analysis item이 없는 것만 새 run job에 정확히 한 번 배정한다.
+- lease가 만료되어 새 claim이 생긴 뒤 이전 claim은 import job 생성, 원문 저장, import finalization, analysis item 배정을 모두 할 수 없고 `40001`을 받는다.
+- `fail_channel_comment_sync_run`은 그 run의 아직 `running`인 import job을 같은 transaction에서 `failed`로 바꾸며, 이후 이전 claim은 그 job에 item을 추가할 수 없다.
+- 같은 `runId`가 lease 만료 뒤 새 claim으로 재개될 때, 이미 terminal인 video import job은 다시 저장·분석하지 않는다. create/get RPC는 terminal status와 durable stored/updated/duplicate/failed/analyzed/quota 집계를 반환하고, service는 이 값을 run 완료 집계에 한 번만 합산한다.
+- source 저장 RPC 응답이 유실된 뒤 failure 기록이 호출돼도, 이미 raw comment가 연결된 성공 import item의 상태·`raw_comment_id`·관측 기록을 `failed`로 되돌리지 않는다.
+- 기존 `(channel_sync_run_id, youtube_video_id)` job을 재사용할 때 `provider_mode`도 일치해야 한다. 다르면 stable provider-mode mismatch 오류로 run을 실패시키며 fixture와 live 원문을 섞지 않는다.
 
 - [ ] **Step 2: sync service 테스트가 실패하는지 확인한다**
 
@@ -530,32 +542,50 @@ Expected: FAIL because the service does not exist.
 export interface ChannelSyncRepository {
   createOrGetVideoImportJob(input: {
     runId: string;
+    claimToken: string;
     workspaceId: string;
     youtubeVideoId: string;
     providerMode: "live" | "fixture";
   }): Promise<{ id: string }>;
-  storeComment(input: StoreChannelCommentInput): Promise<{
+  storeComment(input: StoreChannelCommentInput & {
+    runId: string;
+    claimToken: string;
+    importJobId: string;
+  }): Promise<{
     disposition: "stored" | "updated" | "duplicate";
     rawCommentId: string;
   }>;
-  ensureAnalysisJob(input: {
+  attachRecoverableAnalysisItems(input: {
+    runId: string;
+    claimToken: string;
     importJobId: string;
     workspaceId: string;
+    youtubeVideoId: string;
     configurationKey: string;
-    rawCommentIds: string[];
-  }): Promise<{ id: string } | null>;
+  }): Promise<{ analysisJobId: string | null; attachedRawCommentIds: string[] }>;
   completeRun(input: CompleteChannelSyncRunInput): Promise<void>;
-  failRun(runId: string, errorCode: ChannelSyncErrorCode): Promise<void>;
+  failRun(input: { runId: string; claimToken: string; errorCode: ChannelSyncErrorCode }): Promise<void>;
 }
 ```
 
 - [ ] **Step 4: 영상별 job과 신규 댓글 분석 생성을 구현한다**
 
-각 group의 import job은 `source_kind='owned_oauth'`, `trigger_kind='channel_sync'`, `channel_sync_run_id=claim.runId`, 두 requested count는 `null`로 저장한다. `store_import_comment_item` 결과가 `stored`인 ID만 analysis item으로 전달한다. `updated`는 observation과 count만 남긴다.
+각 group의 import job은 fenced RPC로 `source_kind='owned_oauth'`, `trigger_kind='channel_sync'`, `channel_sync_run_id=claim.runId`, 두 requested count `null`로 생성한다. comment source와 observation도 같은 claim 검증 RPC에서 저장한다. 직접 `store_import_comment_item` 호출은 `trigger_kind='channel_sync'` job을 거절해 stale worker의 우회 append를 막는다.
+
+group 저장 뒤 `attachRecoverableAnalysisItems`는 current run의 `claimToken`을 다시 검증하고 다음을 하나의 transaction에서 수행한다.
+
+1. 같은 workspace·실제 video ID의 `owned_oauth/channel_sync` first-seen raw comment를 찾는다.
+2. 현재 `configurationKey`의 기존 analysis item과 이미 예약된 assignment를 제외한다.
+3. `channel_sync_analysis_assignments(workspace_id, raw_comment_id, configuration_key)`를 `on conflict do nothing`으로 예약한다.
+4. 예약에 성공한 raw comment만 current import job의 analysis job/item으로 만들고 total을 재계산한다.
+
+따라서 최초 저장 뒤 process가 중단되거나 metadata가 일시적으로 없어서 다음 run이 만들어져도, 댓글은 한 번만 분석 후보가 된다. `updated`와 `duplicate`는 새 assignment를 만들지 않는다. metadata가 없거나 lookup이 실패한 group은 원문과 실제 video ID를 보존하되 analysis attach를 건너뛰고 stable retryable error로 run을 실패시켜 page cursor를 유지한다.
+
+create/get RPC가 terminal video import snapshot을 반환하면 service는 그 video의 store/attach/finalize를 호출하지 않고 snapshot의 durable count를 run aggregate에 합산한다. terminal snapshot은 같은 page 재실행에서도 중복 합산되지 않도록 `youtubeVideoId`별로 한 번만 사용한다. `record_channel_sync_import_item_failure`는 conflict한 import item에 이미 `raw_comment_id`가 있거나 terminal success 상태면 no-op을 반환한다.
 
 - [ ] **Step 5: Supabase adapter를 구현한다**
 
-`process-channel-comment-sync.ts`는 다음만 조립한다.
+`process-channel-comment-sync.ts`는 service-role Supabase adapter와 provider를 조립한다. channel sync의 import job 생성·comment 저장·analysis attach·per-video finalization은 각각 035/036 fenced RPC만 호출하고 table insert/update 또는 generic store RPC를 직접 호출하지 않는다.
 
 ```ts
 export async function processOneChannelSyncWork(input: {
@@ -576,10 +606,12 @@ Run: `npm test -- src/features/ingestion/channel-comment-sync-service.test.ts`
 
 Expected: PASS.
 
+이어지는 pgTAP은 서로 다른 `claimToken`의 old/new worker를 순서대로 재현해 old worker의 create/store/attach/finalize를 거절하고, new worker의 동일 replay는 idempotent하게 허용하는지 확인한다. 또한 이전 failed run의 raw comment를 새 run에서 한 번만 attach하고, 다른 workspace·video·source kind·configuration은 제외하는지 확인한다.
+
 - [ ] **Step 7: 커밋한다**
 
 ```bash
-git add src/features/ingestion/channel-comment-sync-service.ts src/features/ingestion/channel-comment-sync-service.test.ts src/features/ingestion/process-channel-comment-sync.ts src/features/ingestion/import-errors.ts
+git add src/features/ingestion/channel-comment-sync-service.ts src/features/ingestion/channel-comment-sync-service.test.ts src/features/ingestion/process-channel-comment-sync.ts src/features/ingestion/import-errors.ts supabase/migrations/202608080035_channel_comment_sync_import_recovery.sql supabase/migrations/202608080036_channel_comment_sync_atomic_imports.sql supabase/tests/channel_comment_sync.sql src/types/database.ts
 git commit -m "feat: persist and classify channel sync comments"
 ```
 
@@ -754,13 +786,15 @@ git commit -m "feat: choose channel comment sync start date"
 - Create: `src/app/api/channel-comment-sync/process/route.ts`
 - Create: `src/app/api/internal/channel-comment-sync/process/route.ts`
 - Create: `src/app/api/internal/channel-comment-sync/process/route.test.ts`
+- Modify: `src/features/ingestion/channel-sync-progress.ts`
+- Modify: `src/features/ingestion/channel-sync-progress.test.ts`
 - Modify: `src/lib/env.ts`
 - Modify: `src/lib/env.test.ts`
 - Modify: `.env.example`
 - Create: `vercel.json`
 
 **Interfaces:**
-- Consumes: authenticated workspace or `Authorization: Bearer ${CRON_SECRET}`.
+- Consumes: authenticated workspace or `Authorization: Bearer ${CRON_SECRET}`, plus the workspace-scoped pending channel-sync analysis count for the safe progress mapper.
 - Produces: bounded sync/classification processing result and safe status DTO.
 
 - [ ] **Step 1: route authorization 실패 테스트를 작성한다**
@@ -780,6 +814,8 @@ it("runs a bounded batch with the correct secret", async () => {
 });
 ```
 
+Progress DTO 테스트는 completed sync run 뒤에도 `pendingAnalysisCount > 0`이면 `active=true`와 분류 진행 상태 문구를 유지하고, pending count 자체나 내부 ID를 응답 DTO에 노출하지 않는지 검증한다.
+
 - [ ] **Step 2: route 테스트가 실패하는지 확인한다**
 
 Run: `npm test -- src/app/api/internal/channel-comment-sync/process/route.test.ts src/lib/env.test.ts`
@@ -788,7 +824,7 @@ Expected: FAIL because the route and `CRON_SECRET` do not exist.
 
 - [ ] **Step 3: 사용자 status/process route를 구현한다**
 
-`GET /api/channel-comment-sync/status`는 settings, 최근 run 합계, 연결된 channel-sync import의 pending analysis count만 조회해 DTO로 반환한다. `POST /api/channel-comment-sync/process`는 `requireViewer()`의 workspace 전용 claim 1건과 classification item 최대 5개만 처리한다.
+`GET /api/channel-comment-sync/status`는 settings, 최근 run 합계, 연결된 channel-sync import의 pending analysis count만 조회한다. Status route는 workspace-scoped `pendingAnalysisCount`를 `toChannelSyncProgress`에 전달하고, mapper는 이 값이 0보다 크면 completed sync run 뒤에도 `active=true`와 “저장한 댓글을 분류하고 있습니다.” 상태를 유지한 safe DTO를 반환한다. `POST /api/channel-comment-sync/process`는 `requireViewer()`의 workspace 전용 claim 1건과 classification item 최대 5개만 처리한다.
 
 - [ ] **Step 4: cron worker를 구현한다**
 
@@ -830,7 +866,7 @@ Expected: PASS.
 - [ ] **Step 7: 커밋한다**
 
 ```bash
-git add src/app/api/channel-comment-sync/status/route.ts src/app/api/channel-comment-sync/process/route.ts src/app/api/internal/channel-comment-sync/process/route.ts src/app/api/internal/channel-comment-sync/process/route.test.ts src/lib/env.ts src/lib/env.test.ts .env.example vercel.json
+git add src/app/api/channel-comment-sync/status/route.ts src/app/api/channel-comment-sync/process/route.ts src/app/api/internal/channel-comment-sync/process/route.ts src/app/api/internal/channel-comment-sync/process/route.test.ts src/features/ingestion/channel-sync-progress.ts src/features/ingestion/channel-sync-progress.test.ts src/lib/env.ts src/lib/env.test.ts .env.example vercel.json
 git commit -m "feat: process channel sync in bounded workers"
 ```
 
@@ -840,11 +876,16 @@ git commit -m "feat: process channel sync in bounded workers"
 
 **Files:**
 - Create: `e2e/channel-comment-date-sync.spec.ts`
+- Create: `src/features/classification/fixture-classification-clients.ts`
+- Create: `src/features/classification/fixture-classification-clients.test.ts`
+- Modify: `src/features/classification/openai-clients.ts`
+- Modify: `src/features/classification/process-classification-job.ts`
 - Modify: `README.md`
+- Modify: `docs/product-context.md`
 - Modify: `docs/CrowdSift_Project_Context_v1.0.pdf`
 
 **Interfaces:**
-- Consumes: Task 1~8의 UI, worker, fixture, DB state.
+- Consumes: Task 1~8의 UI, worker, fixture, DB state. Fixture mode는 production/live OpenAI path를 바꾸지 않고 기존 DI 경계에 deterministic Moderation/Luna/Terra stage output을 주입한다.
 - Produces: 사용자 흐름의 회귀 테스트와 실행 가능한 운영 문서.
 
 - [ ] **Step 1: Playwright 실패 테스트를 작성한다**
@@ -863,7 +904,13 @@ test("imports newest channel comments back to the selected date", async ({ page 
 
 같은 날짜로 다시 설정하고 실행했을 때 신규 저장 수가 0이고 Inbox row가 중복되지 않는 시나리오를 하나 더 작성한다.
 
+Classification V1 fixture focused 테스트는 외부 OpenAI network 호출이 0건인지, fixture output이 live와 동일한 schema를 통과해 같은 Moderation → Luna → conditional Terra branch/finalize/storage 경로와 verdict row를 만드는지, stage provider가 `fixture`로 저장되는지 검증한다. 화면과 저장 경로는 `TEST FIXTURE`를 유지하고 production/live client 선택은 바꾸지 않는다.
+
 - [ ] **Step 2: E2E가 실패하는지 확인한다**
+
+Run: `npm test -- src/features/classification/fixture-classification-clients.test.ts`
+
+Expected: FAIL because deterministic Classification V1 fixture clients do not exist.
 
 Run: `npm run test:e2e -- e2e/channel-comment-date-sync.spec.ts`
 
@@ -922,7 +969,7 @@ Expected: Next.js 16 production build exits with code 0.
 - [ ] **Step 8: 최종 커밋한다**
 
 ```bash
-git add e2e/channel-comment-date-sync.spec.ts README.md docs/CrowdSift_Project_Context_v1.0.pdf
+git add e2e/channel-comment-date-sync.spec.ts src/features/classification/fixture-classification-clients.ts src/features/classification/fixture-classification-clients.test.ts src/features/classification/openai-clients.ts src/features/classification/process-classification-job.ts README.md docs/product-context.md docs/CrowdSift_Project_Context_v1.0.pdf
 git commit -m "test: verify channel comment date sync flow"
 ```
 
