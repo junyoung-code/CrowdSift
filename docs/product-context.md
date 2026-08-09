@@ -26,6 +26,11 @@ YouTube 연결
 
 이 흐름이 실제 YouTube 데이터로 동작하기 전에는 랜딩 페이지 확장, 전체 대시보드, 결제, 다중 플랫폼 지원을 우선하지 않는다.
 
+- 한 번의 worker 실행은 작은 batch만 처리한다. production cron은 5분마다 worker를 깨워 중단된 backfill과 분류를 이어가지만, 정상 상태에서 YouTube 새 댓글을 가져오는 DB 일정은 60분 간격이다.
+- 원문이 처음 저장된 신규 댓글만 현재 Classification V1의 Moderation → Luna → 필요한 경우 Terra 경로로 보낸다. 중복 댓글은 모델 비용을 다시 발생시키지 않으며, 수정된 수치와 payload 관찰은 원문과 별도로 남긴다.
+- 시작 날짜가 오래될수록 YouTube page·quota와 신규 댓글의 OpenAI 분석 비용이 증가한다.
+- 자동 수집은 게시된 댓글 읽기와 분석까지만 수행한다. 실제 숨김·삭제·신고 같은 moderation action은 사용자의 명시적 확인 없이는 실행하지 않는다.
+
 ### 분류 품질 수동 검증
 
 `/app/videos`의 영상 하나·20 / 30 / 50개 가져오기 흐름은 기본 onboarding 경로가 아니라 분류 품질을 수동으로 검증하는 보조 경로다.
@@ -57,6 +62,7 @@ CrowdSift 로그인
 - 답글 없는 최상위 댓글도 가져오고, 답글은 부모 댓글이 있을 때만 저장한다.
 - 공개 URL 결과에는 숨김·삭제 권한이 없고 개인화 RAG나 학습 opt-in을 허용하지 않는다.
 - 로컬 fixture는 외부 API를 호출하지 않으며 화면에 항상 `TEST FIXTURE`로 표시한다.
+- fixture의 Classification V1은 production과 같은 schema, Moderation → Luna → conditional Terra 분기, 최종 판정과 저장 경로를 사용하되 각 stage의 network client만 deterministic output으로 바꾼다. 외부 OpenAI 요청은 보내지 않고 stage provider를 `fixture`로 기록한다.
 - 실제 API Key를 사용하는 live 검증은 개발 환경에서만 명시적으로 활성화한다.
 
 세부 설계와 검증 순서는 다음 문서를 따른다.
@@ -116,7 +122,7 @@ CrowdSift는 크리에이터마다 별도 대형 모델을 만들지 않는다. 
 - Supabase 데이터베이스와 인증·접근 제어
 - Google OAuth와 YouTube Data API
 - 구조화된 JSON을 반환하는 OpenAI API와 런타임 검증
-- Vercel 배포, 이후 필요에 따라 백그라운드 작업 도입
+- Vercel 배포와 인증된 cron bounded worker로 채널 backfill·incremental 수집과 분류를 재개
 
 ## 첫 수직 슬라이스에서 제외할 범위
 

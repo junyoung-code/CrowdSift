@@ -1,5 +1,6 @@
 import "server-only";
 
+import { getServerEnv } from "@/lib/env";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import type { Json } from "@/types/database";
 
@@ -14,6 +15,7 @@ import {
 } from "./classification-service";
 import { buildClassificationWorkItems } from "./classification-work-item";
 import type { FirstPassResult, ModelRun } from "./contracts";
+import { classificationStageProvider } from "./fixture-classification-clients";
 import { createFirstPass, createSecondPass } from "./openai-clients";
 import {
   LunaFirstPassSchema,
@@ -222,6 +224,10 @@ export const processClassificationChunk = async (
   jobId: string,
   maxItems = 5,
 ) => {
+  const environment = getServerEnv();
+  const stageProvider = classificationStageProvider(
+    environment.EXTERNAL_PROVIDER_MODE,
+  );
   const admin = createAdminSupabaseClient();
   const repository: ClassificationJobRepository = {
     async claimItems(targetJobId, targetMaxItems) {
@@ -353,7 +359,7 @@ export const processClassificationChunk = async (
           toStageRunRow({
             item,
             stage: "moderation",
-            provider: "openai",
+            provider: stageProvider,
             modelIdentifier: result.moderation.model,
             providerResponseId: null,
             idempotencyKey: stageKey(
@@ -377,7 +383,7 @@ export const processClassificationChunk = async (
           toStageRunRow({
             item,
             stage: "moderation",
-            provider: "openai",
+            provider: stageProvider,
             modelIdentifier: "omni-moderation-latest",
             providerResponseId: null,
             idempotencyKey: stageKey(
@@ -401,7 +407,7 @@ export const processClassificationChunk = async (
         toStageRunRow({
           item,
           stage: "luna",
-          provider: "openai",
+          provider: stageProvider,
           modelIdentifier: result.luna.run.model,
           providerResponseId: result.luna.run.responseId,
           idempotencyKey: stageKey(
@@ -437,7 +443,7 @@ export const processClassificationChunk = async (
       const row = toStageRunRow({
         item,
         stage: "terra",
-        provider: "openai",
+        provider: stageProvider,
         modelIdentifier: result.run.model,
         providerResponseId: result.run.responseId,
         idempotencyKey: stageKey(

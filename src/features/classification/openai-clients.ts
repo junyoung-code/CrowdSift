@@ -5,6 +5,10 @@ import OpenAI from "openai";
 import { getServerEnv } from "@/lib/env";
 
 import { createFirstPassRunner, type FirstPassRunner } from "./first-pass";
+import {
+  createFixtureFirstPass,
+  createFixtureSecondPass,
+} from "./fixture-classification-clients";
 import { createLunaFirstPass, type ResponsesClient } from "./luna-first-pass";
 import { createModerationScreen, type ModerationClient } from "./moderation";
 import {
@@ -28,6 +32,17 @@ export const createFirstPass = (options?: {
     options?.apiKey && options.lunaModel && options.moderationModel
       ? null
       : getServerEnv();
+
+  if (environment?.EXTERNAL_PROVIDER_MODE === "fixture") {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("Fixture providers are test-only");
+    }
+    if (!environment.ALLOW_FIXTURE_PROVIDERS) {
+      throw new Error("Fixture providers are disabled");
+    }
+    return createFixtureFirstPass();
+  }
+
   const apiKey = options?.apiKey ?? environment?.OPENAI_API_KEY;
 
   if (!apiKey) {
@@ -64,6 +79,17 @@ export const createSecondPass = (options?: {
 }): TerraVerification => {
   const environment =
     options?.apiKey && options.terraModel ? null : getServerEnv();
+
+  if (environment?.EXTERNAL_PROVIDER_MODE === "fixture") {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("Fixture providers are test-only");
+    }
+    if (!environment.ALLOW_FIXTURE_PROVIDERS) {
+      throw new Error("Fixture providers are disabled");
+    }
+    return createFixtureSecondPass();
+  }
+
   const apiKey = options?.apiKey ?? environment?.OPENAI_API_KEY;
 
   if (!apiKey) {
