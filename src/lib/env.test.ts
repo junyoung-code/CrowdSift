@@ -51,4 +51,22 @@ describe("parseServerEnv", () => {
       }).INTERNAL_WORKER_SECRET,
     ).toBe("w".repeat(32));
   });
+
+  it("accepts a strong optional cron secret", () => {
+    expect(
+      parseServerEnv({
+        ...validEnvironment,
+        CRON_SECRET: "c".repeat(32),
+      }).CRON_SECRET,
+    ).toBe("c".repeat(32));
+  });
+
+  it("rejects a short cron secret", () => {
+    expect(() =>
+      parseServerEnv({
+        ...validEnvironment,
+        CRON_SECRET: "too-short",
+      }),
+    ).toThrow(/CRON_SECRET/);
+  });
 });

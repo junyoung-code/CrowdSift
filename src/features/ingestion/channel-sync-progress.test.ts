@@ -116,6 +116,31 @@ describe("channel sync progress DTO", () => {
     expect(progress).not.toHaveProperty("totalCount");
   });
 
+  it("keeps classification active after source sync completes without exposing the pending count", () => {
+    const progress = toChannelSyncProgress({
+      setting: setting({
+        backfill_status: "completed",
+        last_successful_sync_at: "2026-08-08T03:00:00.000Z",
+      }),
+      latestRun: latestRun({
+        kind: "incremental",
+        status: "succeeded",
+        stored_count: 7,
+        analyzed_count: 7,
+        finished_at: "2026-08-08T03:00:00.000Z",
+      }),
+      pendingAnalysisCount: 2,
+    });
+
+    expect(progress).toMatchObject({
+      active: true,
+      statusMessage: "저장한 댓글을 분류하고 있습니다.",
+      counts: { stored: 7, analyzed: 7 },
+    });
+    expect(progress).not.toHaveProperty("pendingAnalysisCount");
+    expect(progress).not.toHaveProperty("analysisJobId");
+  });
+
   it("maps stable failures to a user-facing alert without exposing raw records", () => {
     const progress = toChannelSyncProgress({
       setting: setting({

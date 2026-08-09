@@ -96,13 +96,18 @@ const statusMessage = ({
   active,
   enabled,
   latestRun,
+  pendingAnalysisCount,
   status,
 }: {
   enabled: boolean;
   active: boolean;
+  pendingAnalysisCount: number;
   status: ChannelSyncProgress["backfillStatus"];
   latestRun: ChannelSyncProgressRun | null;
 }) => {
+  if (pendingAnalysisCount > 0) {
+    return "저장한 댓글을 분류하고 있습니다.";
+  }
   if (!enabled) return "자동 동기화를 일시중지했습니다.";
   if (active && status !== "completed") {
     return "선택한 날짜까지 댓글을 가져오고 있습니다.";
@@ -118,10 +123,12 @@ const statusMessage = ({
 
 export const toChannelSyncProgress = ({
   latestRun,
+  pendingAnalysisCount = 0,
   setting,
 }: {
   setting: ChannelSyncProgressSetting | null;
   latestRun: ChannelSyncProgressRun | null;
+  pendingAnalysisCount?: number;
 }): ChannelSyncProgress => {
   if (!setting) {
     return {
@@ -140,11 +147,12 @@ export const toChannelSyncProgress = ({
 
   const status = backfillStatus(setting.backfill_status);
   const active =
-    setting.enabled &&
-    (status === "pending" ||
-      status === "running" ||
-      latestRun?.status === "pending" ||
-      latestRun?.status === "running");
+    pendingAnalysisCount > 0 ||
+    (setting.enabled &&
+      (status === "pending" ||
+        status === "running" ||
+        latestRun?.status === "pending" ||
+        latestRun?.status === "running"));
   const failureCode = latestRun?.error_code ?? setting.last_error_code;
 
   return {
@@ -164,6 +172,7 @@ export const toChannelSyncProgress = ({
     statusMessage: statusMessage({
       enabled: setting.enabled,
       active,
+      pendingAnalysisCount,
       status,
       latestRun,
     }),
