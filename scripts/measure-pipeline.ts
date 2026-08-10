@@ -54,6 +54,36 @@ const finalLabel = (verdict: Verdict | null) => {
   return label[verdict.level!];
 };
 
+/**
+ * 90건을 다 돌리는 데 10분이 걸린다. 그 사이 연결이 한 번 끊기면
+ * 그때까지의 호출이 통째로 버려진다. 두 번 그렇게 날렸다.
+ *
+ * 판단이 흔들리는 것과 연결이 끊기는 것은 다른 문제다. 후자는 여기서 삼킨다.
+ */
+const withRetry = async <T,>(label: string, run: () => Promise<T>): Promise<T> => {
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= 4; attempt += 1) {
+    try {
+      return await run();
+    } catch (error) {
+      lastError = error;
+      const transient =
+        error instanceof Error &&
+        /connection error|fetch failed|ECONNRESET|ENOTFOUND|ETIMEDOUT|socket hang up/i.test(
+          `${error.message} ${String((error as { cause?: unknown }).cause ?? "")}`,
+        );
+      if (!transient || attempt === 4) throw error;
+
+      const waitMs = 2000 * attempt;
+      process.stdout.write(`\n  연결 끊김 · ${label} · ${waitMs / 1000}초 후 재시도 ${attempt}/3\n`);
+      await new Promise((resolve) => setTimeout(resolve, waitMs));
+    }
+  }
+
+  throw lastError;
+};
+
 const main = async () => {
   loadEnvFile();
 
@@ -121,7 +151,11 @@ const main = async () => {
 
   const rows: Row[] = [];
 
-  for (const [index, comment] of comments.entries()) {
+  // 도중에 죽어도 그때까지의 결과는 남긴다. 90건을 다시 부르는 비용이 아깝다.
+  let stoppedAt: string | null = null;
+
+  try {
+    for (const [index, comment] of comments.entries()) {
     const input: FirstPassInput = {
       commentId: comment.id,
       workspaceId: "measurement",
@@ -138,7 +172,7 @@ const main = async () => {
         : null,
     };
 
-    const first = await firstPass.run(input);
+    const first = await withRetry(`${comment.id} 1차`, () => firstPass.run(input));
     const routed = routeFirstPass(first);
 
     if (routed.kind === "instant_safe") {
@@ -167,7 +201,9 @@ const main = async () => {
       ...input,
       moderation: first.moderation?.result ?? null,
     };
-    const verified = await terra.verify(secondInput);
+    const verified = await withRetry(`${comment.id} Terra`, () =>
+      terra.verify(secondInput),
+    );
     const verdict = decideVerdict({
       candidateLevel: first.luna.result.candidateLevel,
       terra: verified.result,
@@ -177,13 +213,15 @@ const main = async () => {
     // 4. 순화. 부를지 말지는 코드가 이미 정해 두었다.
     const rewritten =
       verdict.allowRewrite && verified.result.feedbackCore
-        ? await rewriter.rewrite({
-            commentId: comment.id,
-            sourceText: comment.text,
-            feedbackCore: verified.result.feedbackCore,
-            profile: DEFAULT_CLASSIFICATION_PROFILE,
-            recentRewrites: accepted,
-          })
+        ? await withRetry(`${comment.id} 순화`, () =>
+            rewriter.rewrite({
+              commentId: comment.id,
+              sourceText: comment.text,
+              feedbackCore: verified.result.feedbackCore!,
+              profile: DEFAULT_CLASSIFICATION_PROFILE,
+              recentRewrites: accepted,
+            }),
+          )
         : null;
 
     // 검사를 통과한 것만 다음 순화의 참고 문체가 된다.
@@ -208,6 +246,12 @@ const main = async () => {
       rewriteTokens: rewritten?.run.usage.totalTokens ?? 0,
     });
     process.stdout.write(`\r  ${index + 1}/${comments.length}  ${comment.id}      `);
+    }
+  } catch (error) {
+    stoppedAt = error instanceof Error ? error.message : String(error);
+    console.error(
+      `\n\n중단: ${stoppedAt}\n지금까지의 ${rows.length}건으로 정리한다.\n`,
+    );
   }
 
   console.log("\n");
@@ -349,6 +393,9 @@ const main = async () => {
           terra: terra.promptVersion,
         },
         tokens: { luna: lunaTokens, terra: terraTokens, rewrite: rewriteTokens },
+        // 끝까지 돈 측정만 이전 회차와 나란히 놓을 수 있다.
+        completed: stoppedAt === null,
+        stoppedAt,
         rows,
       },
       null,

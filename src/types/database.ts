@@ -667,6 +667,53 @@ export type Database = {
           },
         ]
       }
+      classification_profiles: {
+        Row: {
+          allowed_slang: string[]
+          emoji_frequency: string
+          hide_personal_attacks: boolean
+          id: string
+          protection_level: string
+          rewrite_tone: string
+          sensitive_topics: string[]
+          updated_at: string
+          updated_by: string | null
+          workspace_id: string
+        }
+        Insert: {
+          allowed_slang?: string[]
+          emoji_frequency?: string
+          hide_personal_attacks?: boolean
+          id?: string
+          protection_level?: string
+          rewrite_tone?: string
+          sensitive_topics?: string[]
+          updated_at?: string
+          updated_by?: string | null
+          workspace_id: string
+        }
+        Update: {
+          allowed_slang?: string[]
+          emoji_frequency?: string
+          hide_personal_attacks?: boolean
+          id?: string
+          protection_level?: string
+          rewrite_tone?: string
+          sensitive_topics?: string[]
+          updated_at?: string
+          updated_by?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "classification_profiles_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       classification_rewrites: {
         Row: {
           accepted: boolean

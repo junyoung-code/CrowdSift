@@ -1,5 +1,8 @@
 import type { ClassificationWorkItem } from "./classification-service";
-import { DEFAULT_CLASSIFICATION_PROFILE } from "./schemas";
+import {
+  DEFAULT_CLASSIFICATION_PROFILE,
+  type ClassificationProfile,
+} from "./schemas";
 
 type Claim = {
   itemId: string;
@@ -22,6 +25,7 @@ export const buildClassificationWorkItems = ({
   channelId,
   claims,
   policyVersion,
+  profile,
   rawComments,
   videos,
 }: {
@@ -30,6 +34,8 @@ export const buildClassificationWorkItems = ({
   videos: Video[];
   channelId: string;
   policyVersion: number;
+  /** 채널이 아직 아무것도 등록하지 않았으면 공통 기본값으로 판단한다. */
+  profile?: ClassificationProfile;
 }): ClassificationWorkItem[] => {
   const rawById = new Map(rawComments.map((comment) => [comment.id, comment]));
   const rawByYoutubeId = new Map(
@@ -54,7 +60,7 @@ export const buildClassificationWorkItems = ({
       videoTitle: videoById.get(raw.youtubeVideoId)?.title ?? "",
       channelId,
       policyVersion,
-      profile: DEFAULT_CLASSIFICATION_PROFILE,
+      profile: profile ?? DEFAULT_CLASSIFICATION_PROFILE,
       similarExamples: [],
       parent:
         parent && parent.workspaceId === claim.workspaceId

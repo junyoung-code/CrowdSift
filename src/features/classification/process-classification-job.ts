@@ -18,6 +18,7 @@ import { buildClassificationWorkItems } from "./classification-work-item";
 import type { FirstPassResult, ModelRun } from "./contracts";
 import { classificationStageProvider } from "./fixture-classification-clients";
 import { createFirstPass, createRewrite, createSecondPass } from "./openai-clients";
+import { toClassificationProfile } from "./profile";
 import {
   LunaFirstPassSchema,
   ModerationResultSchema,
@@ -298,23 +299,33 @@ export const processClassificationChunk = async (
       ];
 
       const videoIds = [...new Set(rawComments.map((row) => row.youtube_video_id))];
-      const [{ data: videos, error: videoError }, { data: policy, error: policyError }] =
-        await Promise.all([
-          admin
-            .from("youtube_videos")
-            .select("youtube_video_id, youtube_channel_id, title")
-            .eq("workspace_id", workspaceId)
-            .in("youtube_video_id", videoIds),
-          admin
-            .from("creator_policies")
-            .select("version")
-            .eq("workspace_id", workspaceId)
-            .order("version", { ascending: false })
-            .limit(1)
-            .maybeSingle(),
-        ]);
-      if (videoError || policyError || !videos?.length) {
-        throw videoError ?? policyError ?? new Error("video_missing");
+      const [
+        { data: videos, error: videoError },
+        { data: policy, error: policyError },
+        { data: profileRow, error: profileError },
+      ] = await Promise.all([
+        admin
+          .from("youtube_videos")
+          .select("youtube_video_id, youtube_channel_id, title")
+          .eq("workspace_id", workspaceId)
+          .in("youtube_video_id", videoIds),
+        admin
+          .from("creator_policies")
+          .select("version")
+          .eq("workspace_id", workspaceId)
+          .order("version", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        admin
+          .from("classification_profiles")
+          .select(
+            "protection_level, allowed_slang, sensitive_topics, hide_personal_attacks, rewrite_tone, emoji_frequency",
+          )
+          .eq("workspace_id", workspaceId)
+          .maybeSingle(),
+      ]);
+      if (videoError || policyError || profileError || !videos?.length) {
+        throw videoError ?? policyError ?? profileError ?? new Error("video_missing");
       }
 
       return buildClassificationWorkItems({
@@ -337,6 +348,7 @@ export const processClassificationChunk = async (
         })),
         channelId: videos[0].youtube_channel_id,
         policyVersion: policy?.version ?? 1,
+        profile: toClassificationProfile(profileRow),
       });
     },
     async loadState(item) {
