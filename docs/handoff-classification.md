@@ -7,10 +7,24 @@ UI/UX 작업을 마치고 이 분석 로직을 붙일 사람을 위한 문서다
 기준과 실측 기록은 [`docs/comment-service-roadmap.md`](./comment-service-roadmap.md)에 있다.
 
 ```
-브랜치   feature/terra-verification
+브랜치   feature/caution-rewrite-wiring
 필요     .env.local 에 OPENAI_API_KEY + 모델 3개 (.env.example 참고)
+받은 뒤   npx supabase migration up --local
 확인     npx tsx scripts/measure-pipeline.ts 5     1분, 몇 원
 ```
+
+> **2026-08-10 이후 달라진 것**
+>
+> 이 문서의 앞부분은 `feature/terra-verification` 시점에 쓰였다. 그 뒤에 저장·화면
+> 연결이 들어왔고(팀원 작업), 순화·채널 프로필이 붙었다. 아래 세 절은 그때 기준이라
+> **지금은 사실이 아니다.**
+>
+> - `1-1 화면은 옛것을 본다` → 화면은 이제 새 파이프라인을 본다
+> - `1-3 아무것도 저장되지 않는다` → `classification_*` 테이블에 저장된다
+> - `6장 안 되어 있는 것` → 6-1·6-2·6-4는 끝났다. 6장을 먼저 읽으면 된다
+>
+> 실제 유튜브 영상으로 잰 결과와 남은 문제는
+> [`comment-service-roadmap.md`](./comment-service-roadmap.md)의 10~12차에 있다.
 
 ---
 
@@ -310,13 +324,16 @@ creator_policies           분류 프로필
 
 # 6. 안 되어 있는 것
 
-## 6-1. 저장이 없다
+## 6-1. 저장이 없다 — 끝났다 (2026-08-10)
 
-위 5번. 지금은 `measurements/*.json` 에만 남는다.
+`classification_stage_runs` / `classification_branches` / `classification_verdicts` /
+`classification_rewrites` 에 저장된다. 단계별 모델 실행, 코드 분기, 최종 판정, 순화문이
+각각 다른 행으로 남는다.
 
-## 6-2. 화면이 옛 파이프라인을 본다
+## 6-2. 화면이 옛 파이프라인을 본다 — 끝났다 (2026-08-10)
 
-인박스·대시보드·피드백이 모두 `features/analysis` 를 부른다. 새 파이프라인으로 갈아타는 작업이 그대로 남아 있다.
+Inbox 읽기 모델이 `classification_verdicts` 를 본다. Inbox 가 보여 주는 한 칸의
+우선순위는 **사용자가 고친 문장 → 순화문 → Terra 의 피드백 요약** 이다.
 
 ## 6-3. 유사 사례가 항상 비어 있다
 
@@ -326,28 +343,50 @@ similarExamples: []   // 지금 이렇게 넘어간다
 
 프롬프트는 이것을 읽게 되어 있다 — "이 채널에서 이미 확정된 판단" 을 참고하라고. **그런데 채워 주는 코드가 없다.** RAG 검색이 새 파이프라인에는 아직 없다. (옛 폴더에 `rag-service.ts` 가 있지만 옛 계약이다.)
 
-## 6-4. 분류 프로필이 기본값 고정이다
+## 6-4. 분류 프로필이 기본값 고정이다 — 끝났다 (2026-08-10)
 
-```ts
-DEFAULT_CLASSIFICATION_PROFILE = {
-  protectionLevel: "standard",
-  allowedSlang: [],        // ← 비어 있다
-  sensitiveTopics: [],
-  ...
-}
+`classification_profiles` 에서 채널별 프로필을 읽는다. 행이 없으면 기본값이고, 저장된
+행이 스키마에 맞지 않아도 기본값으로 돌아간다. 프로필 하나가 잘못됐다고 댓글 분류가
+멈추지는 않는다.
+
+실측: 브이로그 50건에서 주의 12건 중 8건이 팬의 칭찬이었고, 채널 말투를 등록하니
+8건 전부 안전으로 내려갔다. 자세한 것은 로드맵 12차.
+
+**남은 것은 설정 화면이다.** 지금은 SQL 로만 넣을 수 있다. 화면을 만들 때 두 가지:
+
+- 운영 기준 화면에 이미 있는 「허용할 표현」 칸은 옛 규칙 엔진(`phrase_rules`)으로
+  간다. 새 칸을 만들지 말고 **그 칸이 `classification_profiles.allowed_slang` 을
+  가리키게 한다.** 안 그러면 사용자가 같은 상자를 두 개 본다.
+- **`sensitiveTopics` 칸은 아직 내보내지 않는다.** 등급을 올리지 않기로 되어 있는데
+  실제로는 올린다 (로드맵 12차). 프롬프트를 고치기 전까지는 위험하다.
+
+Inbox 에서 한 번 확인하면 표현이 등록되는 경로는 만들어 두었다
+([`allow-expression.ts`](../src/features/classification/allow-expression.ts),
+[`suggest-allowed-expression.ts`](../src/features/classification/suggest-allowed-expression.ts),
+Server Action `allowChannelExpressionAction`). **버튼만 붙이면 된다.**
+
+```html
+<form action={allowChannelExpressionAction}>
+  <input type="hidden" name="expression" defaultValue={suggestAllowedExpressions(원문)[0]} />
+  <button>이건 우리 채널에선 칭찬이에요</button>
+</form>
 ```
-
-**`allowedSlang` 이 비어 있는 것이 실제로 문제를 만든다.** `아 개웃겨`, `ㅁㅊ 이걸 무료로 본다고?` 같은 **칭찬**이 주의로 분류되어 숨겨진다. 버그가 아니라 설정이 비어서 생기는 일이며, 기획서도 「신규 채널 콜드 스타트」로 미결 처리해 두었다.
-
-`creator_policies` 테이블은 있으니 읽어 오는 경로와 설정 화면이 필요하다.
 
 ## 6-5. `safetyCase` 를 받는 곳이 없다
 
 Terra 가 "작성자 본인이 힘들다고 털어놓는 경우" 를 표시하지만 아무도 처리하지 않는다. 기획서는 별도 큐에 넣고 등급 판정과 분리하라고 하며, **자동 알림이나 상담 자원 안내는 범위 밖**으로 명시했다. 잘못 작동하면 피해가 크므로 별도 설계가 필요하다.
 
-## 6-6. 유튜브에서 실제 댓글을 받아 새 파이프라인으로 넣는 길이 없다
+## 6-6. 유튜브에서 실제 댓글을 받는 길 — 끝났다 (2026-08-10)
 
-측정 스크립트는 `docs/test-comment-plan.md` 의 마크다운 표에서 읽는다. 유튜브 연동 자체는 있지만 옛 파이프라인으로 흐른다.
+공개 URL 가져오기와 채널 날짜 동기화 모두 새 파이프라인으로 흐른다. 실제 영상 세 개
+114건을 이 길로 돌렸다 (로드맵 11차).
+
+측정 스크립트(`scripts/measure-pipeline.ts`)는 여전히 `docs/test-comment-plan.md` 의
+표에서 읽는다. 기준을 흔들지 않고 프롬프트를 재려면 고정된 90건이 필요하기 때문이다.
+
+**다만 90건 측정으로는 작은 변화를 판정할 수 없다.** 같은 프롬프트로 두 번 돌리면
+90건 중 3건이 저절로 바뀐다. 프롬프트를 조금 고치고 재려면 겨냥 확인 쪽을 쓴다
+(`scripts/probe-terra-quoted-violence.ts`). 자세한 것은 로드맵 10차.
 
 ## 6-7. 답글 규칙 중 화면 쪽이 미정이다
 
