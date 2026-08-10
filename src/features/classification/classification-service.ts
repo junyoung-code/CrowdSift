@@ -8,14 +8,17 @@ import type {
 } from "./contracts";
 import type { BranchOutcome } from "./branch";
 import { routeFirstPass } from "./branch";
+import type { RewriteInput } from "./luna-rewrite";
 import {
   finalizeClassification,
   type FinalClassificationVerdict,
 } from "./finalize";
+import type { RewriteInspection } from "./rewrite-guard";
 import type {
   ClassificationProfile,
   FeedbackType,
   ReasonCode,
+  Rewrite,
   TerraVerdict,
 } from "./schemas";
 
@@ -45,11 +48,19 @@ export type StoredFinalVerdict = {
   feedbackCore: string | null;
 };
 
+export type StoredRewrite = {
+  result: Rewrite;
+  inspection: RewriteInspection;
+  run: ModelRun;
+  promptVersion: string;
+};
+
 export type StoredClassificationState = {
   firstPass: FirstPassResult | null;
   branch: BranchOutcome | null;
   terra: StoredTerraResult | null;
   verdict: StoredFinalVerdict | null;
+  rewrite: StoredRewrite | null;
 };
 
 export type ClassificationJobProgress = {
@@ -81,6 +92,12 @@ export interface ClassificationJobRepository {
     item: ClassificationWorkItem,
     result: StoredFinalVerdict,
   ): Promise<void>;
+  /** 같은 말투가 줄줄이 이어지지 않도록 최근 순화문을 돌려준다. */
+  loadRecentRewrites(item: ClassificationWorkItem): Promise<string[]>;
+  saveRewrite(
+    item: ClassificationWorkItem,
+    result: StoredRewrite,
+  ): Promise<void>;
   completeItem(itemId: string): Promise<void>;
   failItem(itemId: string, errorCode: string): Promise<void>;
   refreshJobProgress(jobId: string): Promise<ClassificationJobProgress>;
@@ -94,6 +111,15 @@ type SecondPassRunner = {
   promptVersion?: string;
   verify(input: SecondPassInput): Promise<{
     result: TerraVerdict;
+    run: ModelRun;
+  }>;
+};
+
+type RewriteRunner = {
+  promptVersion?: string;
+  rewrite(input: RewriteInput): Promise<{
+    result: Rewrite;
+    inspection: RewriteInspection;
     run: ModelRun;
   }>;
 };
@@ -127,12 +153,48 @@ const toSecondPassInput = (
 export const createClassificationService = ({
   firstPass,
   repository,
+  rewrite,
   secondPass,
 }: {
   firstPass: FirstPassRunner;
   secondPass: SecondPassRunner;
+  rewrite: RewriteRunner;
   repository: ClassificationJobRepository;
-}) => ({
+}) => {
+  /**
+   * 주의로 확정되고 보존할 의견이 있을 때만 순화문을 만든다.
+   *
+   * 순화는 판정에 얹는 것이지 판정의 일부가 아니다. 여기서 실패해도 이미 저장된
+   * 판정은 그대로 두고 항목을 성공으로 끝낸다. 화면은 순화문이 없으면
+   * 피드백 핵심을 대신 보여준다.
+   */
+  const ensureRewrite = async (
+    item: ClassificationWorkItem,
+    final: StoredFinalVerdict,
+    existing: StoredRewrite | null,
+  ) => {
+    if (existing) return;
+    if (!final.verdict.allowRewrite) return;
+    if (!final.feedbackCore) return;
+
+    try {
+      const produced = await rewrite.rewrite({
+        commentId: item.rawCommentId,
+        sourceText: item.sourceText,
+        feedbackCore: final.feedbackCore,
+        profile: item.profile,
+        recentRewrites: await repository.loadRecentRewrites(item),
+      });
+      await repository.saveRewrite(item, {
+        ...produced,
+        promptVersion: rewrite.promptVersion ?? "luna-rewrite-v1",
+      });
+    } catch {
+      // 순화문 없이 간다.
+    }
+  };
+
+  return {
   async processChunk(
     jobId: string,
     maxItems: number,
@@ -144,6 +206,8 @@ export const createClassificationService = ({
         const stored = await repository.loadState(item);
 
         if (stored.verdict) {
+          // 판정을 저장한 뒤 끊겼다면 순화문만 비어 있을 수 있다.
+          await ensureRewrite(item, stored.verdict, stored.rewrite);
           await repository.completeItem(item.id);
           continue;
         }
@@ -181,6 +245,7 @@ export const createClassificationService = ({
           feedbackCore: terra?.result.feedbackCore ?? null,
         };
         await repository.saveVerdict(item, finalResult);
+        await ensureRewrite(item, finalResult, null);
         await repository.completeItem(item.id);
       } catch {
         await repository.failItem(item.id, "classification_failed");
@@ -189,4 +254,5 @@ export const createClassificationService = ({
 
     return repository.refreshJobProgress(jobId);
   },
-});
+  };
+};

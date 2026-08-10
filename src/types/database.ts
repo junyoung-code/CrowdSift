@@ -667,6 +667,74 @@ export type Database = {
           },
         ]
       }
+      classification_rewrites: {
+        Row: {
+          accepted: boolean
+          analysis_job_item_id: string
+          classification_verdict_id: string
+          created_at: string
+          id: string
+          raw_comment_id: string
+          rejections: Json
+          rewritten: string
+          tone_variant: string
+          workspace_id: string
+        }
+        Insert: {
+          accepted: boolean
+          analysis_job_item_id: string
+          classification_verdict_id: string
+          created_at?: string
+          id?: string
+          raw_comment_id: string
+          rejections?: Json
+          rewritten: string
+          tone_variant: string
+          workspace_id: string
+        }
+        Update: {
+          accepted?: boolean
+          analysis_job_item_id?: string
+          classification_verdict_id?: string
+          created_at?: string
+          id?: string
+          raw_comment_id?: string
+          rejections?: Json
+          rewritten?: string
+          tone_variant?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "classification_rewrites_analysis_job_item_id_fkey"
+            columns: ["analysis_job_item_id"]
+            isOneToOne: true
+            referencedRelation: "analysis_job_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "classification_rewrites_classification_verdict_id_fkey"
+            columns: ["classification_verdict_id"]
+            isOneToOne: false
+            referencedRelation: "classification_verdicts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "classification_rewrites_raw_comment_id_fkey"
+            columns: ["raw_comment_id"]
+            isOneToOne: false
+            referencedRelation: "raw_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "classification_rewrites_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       classification_stage_runs: {
         Row: {
           analysis_job_item_id: string

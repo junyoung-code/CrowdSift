@@ -1,10 +1,12 @@
 import type { Json } from "@/types/database";
 
 import type { BranchOutcome } from "./branch";
+import type { RewriteInspection } from "./rewrite-guard";
 import type {
   FeedbackType,
   ReasonCode,
   RecommendedAction,
+  Rewrite,
   RiskLevel,
 } from "./schemas";
 
@@ -26,7 +28,7 @@ export type ClassificationVerdictForStorage = {
   raisedByModeration: boolean;
 };
 
-export type ClassificationStage = "moderation" | "luna" | "terra";
+export type ClassificationStage = "moderation" | "luna" | "terra" | "rewrite";
 
 export const toStageRunRow = (input: {
   item: ClassificationStorageItem;
@@ -113,4 +115,29 @@ export const toVerdictRow = ({
   feedback_core: feedbackCore,
   safety_case: verdict.safetyCase,
   raised_by_moderation: verdict.raisedByModeration,
+});
+
+/**
+ * 순화문은 원문을 대신하지 않는다. 원문도 Terra 의 피드백 핵심도 건드리지 않고
+ * 별도 행으로만 남는다. 검사에서 걸린 문장도 남기되 화면에는 나가지 않는다.
+ */
+export const toRewriteRow = ({
+  classificationVerdictId,
+  inspection,
+  item,
+  rewrite,
+}: {
+  item: ClassificationStorageItem;
+  classificationVerdictId: string;
+  rewrite: Rewrite;
+  inspection: RewriteInspection;
+}) => ({
+  workspace_id: item.workspaceId,
+  raw_comment_id: item.rawCommentId,
+  analysis_job_item_id: item.id,
+  classification_verdict_id: classificationVerdictId,
+  rewritten: rewrite.rewritten,
+  tone_variant: rewrite.toneVariant,
+  accepted: inspection.accepted,
+  rejections: inspection.rejections as Json,
 });

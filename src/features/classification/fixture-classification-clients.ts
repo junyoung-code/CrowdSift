@@ -3,13 +3,14 @@ import "server-only";
 import { createFirstPassRunner, type FirstPassRunner } from "./first-pass";
 import { createLunaFirstPass, type ResponsesClient } from "./luna-first-pass";
 import { createModerationScreen, type ModerationClient } from "./moderation";
-import type { LunaFirstPass, TerraVerdict } from "./schemas";
+import { createLunaRewrite, type LunaRewrite } from "./luna-rewrite";
+import type { LunaFirstPass, Rewrite, TerraVerdict } from "./schemas";
 import {
   createTerraVerification,
   type TerraVerification,
 } from "./terra-verification";
 
-type FixtureStage = "luna" | "terra";
+type FixtureStage = "luna" | "terra" | "rewrite";
 
 const threatPattern = /가만두지|찾아가서|죽어|죽여|위협/;
 const cautionPattern = /광고|느리|소리|어두워|왜 이렇게|자막/;
@@ -109,17 +110,56 @@ const terraOutputFor = (sourceText: string): TerraVerdict => {
   };
 };
 
+/**
+ * 순화 단계는 원문 대신 Terra 가 뽑아 둔 의견을 재료로 받는다.
+ * 그래서 다른 단계와 읽는 칸이 다르다.
+ */
+const feedbackCoreFromRequest = (request: Record<string, unknown>) => {
+  const messages = Array.isArray(request.input) ? request.input : [];
+  const userMessage = messages.find(
+    (message): message is { role: string; content: string } =>
+      typeof message === "object" &&
+      message !== null &&
+      "role" in message &&
+      message.role === "user" &&
+      "content" in message &&
+      typeof message.content === "string",
+  );
+
+  if (!userMessage) return "";
+
+  try {
+    const parsed = JSON.parse(userMessage.content) as {
+      feedbackCore?: unknown;
+    };
+    return typeof parsed.feedbackCore === "string" ? parsed.feedbackCore : "";
+  } catch {
+    return "";
+  }
+};
+
+const rewriteOutputFor = (feedbackCore: string): Rewrite => ({
+  rewritten: `${feedbackCore || "전달 방식"} 쪽이 조금 아쉬웠어요`.slice(0, 200),
+  toneVariant: "neutral",
+  addedNothing: true,
+});
+
+const outputFor = (stage: FixtureStage, request: Record<string, unknown>) => {
+  if (stage === "rewrite") {
+    return rewriteOutputFor(feedbackCoreFromRequest(request));
+  }
+
+  const sourceText = sourceTextFromRequest(request);
+  return stage === "luna" ? lunaOutputFor(sourceText) : terraOutputFor(sourceText);
+};
+
 const createFixtureResponsesClient = (stage: FixtureStage): ResponsesClient => ({
   responses: {
     async parse(request) {
-      const sourceText = sourceTextFromRequest(request);
       return {
         id: `fixture-${stage}-response`,
         model: `fixture-${stage}-v1`,
-        output_parsed:
-          stage === "luna"
-            ? lunaOutputFor(sourceText)
-            : terraOutputFor(sourceText),
+        output_parsed: outputFor(stage, request),
         usage: {
           input_tokens: 0,
           output_tokens: 0,
@@ -169,6 +209,12 @@ export const createFixtureSecondPass = (): TerraVerification =>
   createTerraVerification({
     client: createFixtureResponsesClient("terra"),
     model: "fixture-terra-v1",
+  });
+
+export const createFixtureRewrite = (): LunaRewrite =>
+  createLunaRewrite({
+    client: createFixtureResponsesClient("rewrite"),
+    model: "fixture-rewrite-v1",
   });
 
 export const classificationStageProvider = (

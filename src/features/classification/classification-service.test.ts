@@ -7,6 +7,7 @@ import {
   type ClassificationWorkItem,
   type StoredClassificationState,
 } from "./classification-service";
+import type { RewriteInspection } from "./rewrite-guard";
 import { DEFAULT_CLASSIFICATION_PROFILE, type TerraVerdict } from "./schemas";
 
 const item: ClassificationWorkItem = {
@@ -90,9 +91,47 @@ const terraRun: ModelRun = {
   usage: { inputTokens: 20, outputTokens: 10, totalTokens: 30 },
 };
 
+const rewriteRun: ModelRun = {
+  model: "gpt-5.6-luna",
+  responseId: "resp-rewrite",
+  latencyMs: 40,
+  usage: { inputTokens: 15, outputTokens: 8, totalTokens: 23 },
+};
+
+const rewriteRunner = (
+  overrides?: Partial<{
+    rewritten: string;
+    accepted: boolean;
+    rejections: RewriteInspection["rejections"];
+    fail: boolean;
+  }>,
+) => ({
+  promptVersion: "luna-rewrite-v4",
+  rewrite: vi.fn(async () => {
+    if (overrides?.fail) throw new Error("rewrite_unavailable");
+    return {
+      result: {
+        rewritten: overrides?.rewritten ?? "편집 흐름이 조금 끊기는 느낌이었어요",
+        toneVariant: "neutral" as const,
+        addedNothing: true,
+      },
+      inspection: {
+        accepted: overrides?.accepted ?? true,
+        rejections: overrides?.rejections ?? [],
+      },
+      run: rewriteRun,
+    };
+  }),
+});
+
 const createMemoryRepository = (initial?: StoredClassificationState) => {
-  const state: StoredClassificationState =
-    initial ?? { firstPass: null, branch: null, terra: null, verdict: null };
+  const state: StoredClassificationState = initial ?? {
+    firstPass: null,
+    branch: null,
+    terra: null,
+    verdict: null,
+    rewrite: null,
+  };
   let completed = false;
   let failed: string | null = null;
 
@@ -110,6 +149,10 @@ const createMemoryRepository = (initial?: StoredClassificationState) => {
     }),
     saveVerdict: vi.fn(async (_item, result) => {
       state.verdict = result;
+    }),
+    loadRecentRewrites: vi.fn(async () => []),
+    saveRewrite: vi.fn(async (_item, result) => {
+      state.rewrite = result;
     }),
     completeItem: vi.fn(async () => {
       completed = true;
@@ -146,6 +189,7 @@ describe("classification job service", () => {
     const service = createClassificationService({
       firstPass,
       secondPass,
+      rewrite: rewriteRunner(),
       repository: memory.repository,
     });
 
@@ -171,6 +215,7 @@ describe("classification job service", () => {
         promptVersion: "terra-v1",
         verify: vi.fn(async () => ({ result: terraResult, run: terraRun })),
       },
+      rewrite: rewriteRunner(),
       repository: memory.repository,
     });
 
@@ -203,6 +248,7 @@ describe("classification job service", () => {
     const service = createClassificationService({
       firstPass: { run },
       secondPass: { verify },
+      rewrite: rewriteRunner(),
       repository: memory.repository,
     });
 
@@ -226,6 +272,7 @@ describe("classification job service", () => {
         ),
       },
       secondPass: { promptVersion: "terra-v1", verify },
+      rewrite: rewriteRunner(),
       repository: memory.repository,
     });
 
@@ -236,6 +283,125 @@ describe("classification job service", () => {
       reasons: ["moderation_unavailable"],
     });
     expect(verify).toHaveBeenCalledOnce();
+  });
+
+  it("rewrites a caution comment from Terra's feedback, not the source", async () => {
+    const memory = createMemoryRepository();
+    const rewrite = rewriteRunner();
+    const service = createClassificationService({
+      firstPass: { run: vi.fn(async () => firstPassResult("caution")) },
+      secondPass: {
+        verify: vi.fn(async () => ({ result: terraResult, run: terraRun })),
+      },
+      rewrite,
+      repository: memory.repository,
+    });
+
+    await service.processChunk("job-1", 5);
+
+    expect(rewrite.rewrite).toHaveBeenCalledWith(
+      expect.objectContaining({ feedbackCore: "편집 흐름이 끊긴다" }),
+    );
+    expect(memory.state.rewrite?.result.rewritten).toBe(
+      "편집 흐름이 조금 끊기는 느낌이었어요",
+    );
+    expect(memory.state.rewrite?.promptVersion).toBe("luna-rewrite-v4");
+    expect(memory.completed).toBe(true);
+  });
+
+  it("does not rewrite a danger comment", async () => {
+    const memory = createMemoryRepository();
+    const rewrite = rewriteRunner();
+    const service = createClassificationService({
+      firstPass: { run: vi.fn(async () => firstPassResult("danger")) },
+      secondPass: {
+        verify: vi.fn(async () => ({
+          result: {
+            ...terraResult,
+            verdictLevel: "danger" as const,
+            feedbackActionable: false,
+          },
+          run: terraRun,
+        })),
+      },
+      rewrite,
+      repository: memory.repository,
+    });
+
+    await service.processChunk("job-1", 5);
+
+    expect(memory.state.verdict?.verdict.level).toBe("danger");
+    expect(rewrite.rewrite).not.toHaveBeenCalled();
+    expect(memory.state.rewrite).toBeNull();
+  });
+
+  it("keeps the verdict and completes the item when the rewrite fails", async () => {
+    const memory = createMemoryRepository();
+    const service = createClassificationService({
+      firstPass: { run: vi.fn(async () => firstPassResult("caution")) },
+      secondPass: {
+        verify: vi.fn(async () => ({ result: terraResult, run: terraRun })),
+      },
+      rewrite: rewriteRunner({ fail: true }),
+      repository: memory.repository,
+    });
+
+    await service.processChunk("job-1", 5);
+
+    expect(memory.state.verdict?.verdict.level).toBe("caution");
+    expect(memory.state.rewrite).toBeNull();
+    expect(memory.completed).toBe(true);
+    expect(memory.failed).toBeNull();
+  });
+
+  it("finishes a rewrite that was missed after the verdict was stored", async () => {
+    const stored = createMemoryRepository({
+      firstPass: firstPassResult("caution"),
+      branch: {
+        kind: "verify",
+        reasons: ["luna_caution"],
+        protection: {
+          hideSourceBeforeVerdict: true,
+          moderationMinimumLevel: null,
+          maySignalSelfHarmCase: false,
+        },
+      },
+      terra: { result: terraResult, run: terraRun, promptVersion: "terra-v1" },
+      verdict: {
+        verdict: {
+          status: "decided",
+          level: "caution",
+          basis: "both_agreed",
+          agreedWithFirstPass: true,
+          allowRewrite: true,
+          hideSource: true,
+          recommendedActions: ["show_rewritten_only"],
+          safetyCase: false,
+          raisedByModeration: false,
+        },
+        reasonCodes: ["mockery"],
+        feedbackType: "actionable",
+        feedbackCore: "편집 흐름이 끊긴다",
+      },
+      rewrite: null,
+    });
+    const firstPass = { run: vi.fn() };
+    const secondPass = { verify: vi.fn() };
+    const service = createClassificationService({
+      firstPass,
+      secondPass,
+      rewrite: rewriteRunner(),
+      repository: stored.repository,
+    });
+
+    await service.processChunk("job-1", 5);
+
+    expect(firstPass.run).not.toHaveBeenCalled();
+    expect(secondPass.verify).not.toHaveBeenCalled();
+    expect(stored.state.rewrite?.result.rewritten).toBe(
+      "편집 흐름이 조금 끊기는 느낌이었어요",
+    );
+    expect(stored.completed).toBe(true);
   });
 
   it("reuses a stored final verdict without calling either model", async () => {
@@ -264,12 +430,14 @@ describe("classification job service", () => {
         feedbackType: "none",
         feedbackCore: null,
       },
+      rewrite: null,
     });
     const firstPass = { run: vi.fn() };
     const secondPass = { verify: vi.fn() };
     const service = createClassificationService({
       firstPass,
       secondPass,
+      rewrite: rewriteRunner(),
       repository: stored.repository,
     });
 
@@ -289,6 +457,7 @@ describe("classification job service", () => {
         }),
       },
       secondPass: { verify: vi.fn() },
+      rewrite: rewriteRunner(),
       repository: memory.repository,
     });
 

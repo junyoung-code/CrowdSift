@@ -11,21 +11,24 @@ import {
   type ClassificationWorkItem,
   type StoredClassificationState,
   type StoredFinalVerdict,
+  type StoredRewrite,
   type StoredTerraResult,
 } from "./classification-service";
 import { buildClassificationWorkItems } from "./classification-work-item";
 import type { FirstPassResult, ModelRun } from "./contracts";
 import { classificationStageProvider } from "./fixture-classification-clients";
-import { createFirstPass, createSecondPass } from "./openai-clients";
+import { createFirstPass, createRewrite, createSecondPass } from "./openai-clients";
 import {
   LunaFirstPassSchema,
   ModerationResultSchema,
+  RewriteSchema,
   TerraVerdictSchema,
   type FeedbackType,
   type ReasonCode,
 } from "./schemas";
 import {
   toBranchRow,
+  toRewriteRow,
   toStageRunRow,
   toVerdictRow,
   type ClassificationStage,
@@ -178,6 +181,24 @@ const decodeState = ({
     }
   }
 
+  const rewriteRow = runs.find((run) => run.stage === "rewrite");
+  let rewrite: StoredRewrite | null = null;
+  if (rewriteRow) {
+    const parsed = RewriteSchema.safeParse(rewriteRow.output);
+    if (parsed.success) {
+      rewrite = {
+        result: parsed.data,
+        // 한 번 만들었으면 다시 부르지 않는다. 통과 여부는 저장된 상태가 말해 준다.
+        inspection: {
+          accepted: rewriteRow.status === "succeeded",
+          rejections: [],
+        },
+        run: toModelRun(rewriteRow),
+        promptVersion: rewriteRow.prompt_version ?? "luna-rewrite-v1",
+      };
+    }
+  }
+
   let storedVerdict: StoredFinalVerdict | null = null;
   if (verdict) {
     storedVerdict = {
@@ -207,6 +228,7 @@ const decodeState = ({
     branch: decodeBranch(branch),
     terra,
     verdict: storedVerdict,
+    rewrite,
   };
 };
 
@@ -474,6 +496,71 @@ export const processClassificationChunk = async (
         });
       if (error) throw error;
     },
+    async loadRecentRewrites(item) {
+      const { data, error } = await admin
+        .from("classification_rewrites")
+        .select("rewritten")
+        .eq("workspace_id", item.workspaceId)
+        .eq("accepted", true)
+        .order("created_at", { ascending: false })
+        .limit(5);
+      if (error) throw error;
+      // 오래된 것이 앞에 오게 돌려준다. 프롬프트는 뒤쪽 다섯 개를 본다.
+      return (data ?? []).map((row) => row.rewritten).reverse();
+    },
+    async saveRewrite(item, result) {
+      const { data: verdictRow, error: verdictError } = await admin
+        .from("classification_verdicts")
+        .select("id")
+        .eq("analysis_job_item_id", item.id)
+        .maybeSingle();
+      if (verdictError) throw verdictError;
+      if (!verdictRow) throw new Error("verdict_missing_for_rewrite");
+
+      const { error: runError } = await admin
+        .from("classification_stage_runs")
+        .upsert(
+          toStageRunRow({
+            item,
+            stage: "rewrite",
+            provider: stageProvider,
+            modelIdentifier: result.run.model,
+            providerResponseId: result.run.responseId,
+            idempotencyKey: stageKey(
+              item,
+              "rewrite",
+              result.run.model,
+              result.promptVersion,
+            ),
+            promptVersion: result.promptVersion,
+            schemaVersion: "classification-v1",
+            policyVersion: item.policyVersion,
+            latencyMs: result.run.latencyMs,
+            usage: result.run.usage as unknown as Json,
+            // 검사에서 걸린 문장은 화면에 나가지 않으므로 거절로 남긴다.
+            status: result.inspection.accepted ? "succeeded" : "refused",
+            output: result.result as unknown as Json,
+            errorCode: result.inspection.accepted
+              ? null
+              : (result.inspection.rejections[0] ?? "rewrite_rejected"),
+          }),
+          { onConflict: "analysis_job_item_id,stage" },
+        );
+      if (runError) throw runError;
+
+      const { error } = await admin
+        .from("classification_rewrites")
+        .upsert(
+          toRewriteRow({
+            item,
+            classificationVerdictId: verdictRow.id,
+            rewrite: result.result,
+            inspection: result.inspection,
+          }),
+          { onConflict: "analysis_job_item_id" },
+        );
+      if (error) throw error;
+    },
     async completeItem(itemId) {
       const { error } = await admin
         .from("analysis_job_items")
@@ -532,6 +619,7 @@ export const processClassificationChunk = async (
   return createClassificationService({
     firstPass: createFirstPass(),
     secondPass: createSecondPass(),
+    rewrite: createRewrite(),
     repository,
   }).processChunk(jobId, Math.min(Math.max(maxItems, 1), 5));
 };

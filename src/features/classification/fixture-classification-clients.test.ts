@@ -12,6 +12,7 @@ import {
 import {
   classificationStageProvider,
   createFixtureFirstPass,
+  createFixtureRewrite,
   createFixtureSecondPass,
 } from "./fixture-classification-clients";
 import {
@@ -58,6 +59,10 @@ describe("Classification V1 fixture clients", () => {
       Parameters<ClassificationJobRepository["saveTerra"]>[1]
     >();
     const savedVerdicts = new Map<string, StoredFinalVerdict>();
+    const savedRewrites = new Map<
+      string,
+      Parameters<ClassificationJobRepository["saveRewrite"]>[1]
+    >();
     const fetchSpy = vi.spyOn(globalThis, "fetch");
     const repository: ClassificationJobRepository = {
       claimItems: vi.fn(async () => [safe, danger]),
@@ -66,6 +71,7 @@ describe("Classification V1 fixture clients", () => {
         branch: null,
         terra: null,
         verdict: null,
+        rewrite: null,
       })),
       saveFirstPass: vi.fn(async (target, result) => {
         savedFirstPass.set(target.id, result);
@@ -76,6 +82,10 @@ describe("Classification V1 fixture clients", () => {
       }),
       saveVerdict: vi.fn(async (target, result) => {
         savedVerdicts.set(target.id, result);
+      }),
+      loadRecentRewrites: vi.fn(async () => []),
+      saveRewrite: vi.fn(async (target, result) => {
+        savedRewrites.set(target.id, result);
       }),
       completeItem: vi.fn(async () => undefined),
       failItem: vi.fn(async () => undefined),
@@ -91,11 +101,14 @@ describe("Classification V1 fixture clients", () => {
     const progress = await createClassificationService({
       firstPass: createFixtureFirstPass(),
       secondPass: createFixtureSecondPass(),
+      rewrite: createFixtureRewrite(),
       repository,
     }).processChunk("fixture-job", 5);
 
     expect(progress).toMatchObject({ status: "succeeded", completed: 2 });
     expect(fetchSpy).not.toHaveBeenCalled();
+    // 순화까지 픽스처로 돈다. 외부 요청은 여전히 한 건도 나가지 않는다.
+    expect(savedRewrites.get("danger")).toBeUndefined();
 
     const safeFirst = savedFirstPass.get("safe");
     const dangerFirst = savedFirstPass.get("danger");
