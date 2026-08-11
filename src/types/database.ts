@@ -2922,7 +2922,7 @@ export type Database = {
           review_levels?: Database["public"]["Enums"]["review_level"][]
           search_query?: string
           target_workspace_id: string
-          video_id?: string
+          video_ids?: string[]
         }
         Returns: {
           action_state: Database["public"]["Enums"]["action_state"]

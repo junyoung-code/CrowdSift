@@ -84,7 +84,7 @@ const ACTION_STATE_LABELS: Record<InboxActionState, string> = {
 type ActiveFilters = {
   reviewLevels: ReviewLevel[];
   category?: CommentCategory | null;
-  videoId?: string | null;
+  videoIds?: string[];
   analysisState?: InboxAnalysisState | null;
   actionState?: InboxActionState | null;
   minConfidence?: number | null;
@@ -210,7 +210,7 @@ const buildParameters = (
   const parameters = new URLSearchParams();
   filters.reviewLevels.forEach((level) => parameters.append("levels", level));
   if (filters.category) parameters.set("category", filters.category);
-  if (filters.videoId) parameters.set("video", filters.videoId);
+  filters.videoIds?.forEach((videoId) => parameters.append("video", videoId));
   if (filters.analysisState) parameters.set("analysis", filters.analysisState);
   if (filters.actionState) parameters.set("action", filters.actionState);
   if (filters.minConfidence !== null && filters.minConfidence !== undefined) {
@@ -595,17 +595,27 @@ export function CommentInbox({
                   )}
                 </select>
               </label>
-              <label>
-                <span>영상</span>
-                <select defaultValue={filters.videoId ?? ""} name="video">
-                  <option value="">전체 영상</option>
+              <fieldset className="inbox-video-filter">
+                <legend>영상</legend>
+                {/*
+                  체크를 모두 풀면 전체를 본다. 「전체 영상」 항목을 따로 두면 그것과
+                  개별 선택이 서로 어긋날 때 무엇이 맞는지 사람이 알 수 없다.
+                */}
+                <p>고르지 않으면 전체를 봅니다</p>
+                <div>
                   {videos.map((video) => (
-                    <option key={video.id} value={video.id}>
-                      {video.title}
-                    </option>
+                    <label key={video.id}>
+                      <input
+                        defaultChecked={filters.videoIds?.includes(video.id)}
+                        name="video"
+                        type="checkbox"
+                        value={video.id}
+                      />
+                      <span>{video.title}</span>
+                    </label>
                   ))}
-                </select>
-              </label>
+                </div>
+              </fieldset>
               <label>
                 <span>분석 상태</span>
                 <select

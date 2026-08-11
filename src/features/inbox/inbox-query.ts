@@ -98,7 +98,7 @@ export type InboxQueryInput = {
   workspaceId: string;
   reviewLevels: ReviewLevel[];
   category: CommentCategory | null;
-  videoId: string | null;
+  videoIds: string[];
   analysisState: InboxAnalysisState | null;
   actionState: InboxActionState | null;
   minConfidence: number | null;
@@ -170,6 +170,24 @@ const parseReviewLevels = (
   return [...new Set(candidates)];
 };
 
+/**
+ * 영상은 여럿 고를 수 있다. 판단이 영상마다 어떻게 갈리는지는 나란히 놓아야 보인다.
+ *
+ * 체크박스 여러 개가 같은 이름으로 오면 배열이고, 하나만 오면 문자열이다. 주소를
+ * 손으로 고쳐 `?video=a,b` 로 넣는 경우도 받는다.
+ */
+const parseVideoIds = (value: string | string[] | undefined): string[] => {
+  if (value === undefined) return [];
+
+  const candidates = (Array.isArray(value) ? value : [value])
+    .flatMap((entry) => entry.split(","))
+    .map((entry) => entry.trim().slice(0, 128))
+    .filter((entry) => entry.length > 0);
+
+  // 주소를 손으로 늘려 질의를 무겁게 만들 수 있으므로 상한을 둔다.
+  return [...new Set(candidates)].slice(0, 50);
+};
+
 const parseConfidence = (value: string | string[] | undefined) => {
   const rawValue = firstValue(value)?.trim();
   if (!rawValue) {
@@ -208,7 +226,7 @@ export const getInboxPage = async (
     workspaceId,
     reviewLevels: parseReviewLevels(searchParams.levels),
     category: parseEnum(searchParams.category, CATEGORIES),
-    videoId: trimmedValue(searchParams.video, 128),
+    videoIds: parseVideoIds(searchParams.video),
     analysisState: parseEnum(searchParams.analysis, ANALYSIS_STATES),
     actionState: parseEnum(searchParams.action, ACTION_STATES),
     minConfidence: parseConfidence(searchParams.minConfidence),

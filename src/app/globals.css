@@ -5195,10 +5195,52 @@ a {
 }
 
 .inbox-filter-form label > span:first-child,
-.inbox-level-filters legend {
+.inbox-level-filters legend,
+.inbox-video-filter legend {
   color: var(--ch-ink-soft);
   font-size: 11px;
   font-weight: 760;
+}
+
+/*
+ * 영상은 여럿 고를 수 있다. 목록이 길어질 수 있으므로 안쪽에서 스크롤하고,
+ * 필터 전체가 늘어나 다른 항목을 밀어내지 않게 한다.
+ */
+.inbox-video-filter {
+  display: grid;
+  gap: 7px;
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.inbox-video-filter > p {
+  margin: 0;
+  color: var(--ch-muted);
+  font-size: 9px;
+}
+
+.inbox-video-filter > div {
+  display: grid;
+  max-height: 132px;
+  gap: 6px;
+  overflow-y: auto;
+  border: 1px solid var(--ch-border);
+  border-radius: 11px;
+  padding: 9px 11px;
+}
+
+.inbox-video-filter label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ch-ink);
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.inbox-video-filter input {
+  flex-shrink: 0;
 }
 
 .inbox-search-field {
@@ -6624,6 +6666,23 @@ a {
   display: flex;
   flex: 0 0 auto;
   gap: 6px;
+}
+
+.inbox-page .inbox-video-filter legend {
+  color: var(--inbox-text-soft);
+}
+
+.inbox-page .inbox-video-filter > p {
+  color: var(--inbox-muted);
+}
+
+.inbox-page .inbox-video-filter > div {
+  border-color: var(--inbox-line);
+  background: #090e16;
+}
+
+.inbox-page .inbox-video-filter label {
+  color: var(--inbox-text);
 }
 
 .inbox-page .inbox-level-filters label {

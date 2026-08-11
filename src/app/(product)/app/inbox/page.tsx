@@ -163,7 +163,7 @@ export default async function InboxPage({ searchParams }: InboxPageProps) {
         filters={{
           reviewLevels: inbox.filters.reviewLevels,
           category: inbox.filters.category,
-          videoId: inbox.filters.videoId,
+          videoIds: inbox.filters.videoIds,
           analysisState: inbox.filters.analysisState,
           actionState: inbox.filters.actionState,
           minConfidence: inbox.filters.minConfidence,
