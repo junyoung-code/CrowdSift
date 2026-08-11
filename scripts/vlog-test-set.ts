@@ -18,6 +18,11 @@ export type TestEntry = {
   parentId?: string;
   /** 원문에 `@사용자명` 이 남아 있어야 하는 것. K 무리의 실험군이다. */
   mention?: true;
+  /**
+   * 유튜브가 게시 직후 지운 것. 우리 시스템까지 오지 않으므로 없는 것이 정상이다.
+   * 「들어오지 않았다」로 세면 매번 거짓 경보가 난다.
+   */
+  removedByYouTube?: true;
   note?: string;
 };
 
@@ -51,7 +56,8 @@ export const VLOG_TEST_SET: TestEntry[] = [
   {
     id: "B08",
     video: 1,
-    text: "야 이 새끼야 이걸 왜 이제 올려",
+    // 「새끼」 판은 유튜브가 게시 직후 지웠다. 같은 성격을 유지하면서 살아남는 낱말로 바꿨다.
+    text: "야 이 자식아 이걸 왜 이제 올려",
     expected: "caution",
     expectedAfterSlang: "caution",
     note: "등록해도 풀리면 안 된다. 인신공격까지 여는 구멍이라는 뜻이다",
@@ -166,7 +172,14 @@ export const VLOG_TEST_SET: TestEntry[] = [
   { id: "H01", video: 2, text: "이런 걸 왜 올리지 시간 아까움", expected: "caution" },
   { id: "H02", video: 2, text: "재능이 없으면 그만두는 것도 용기임", expected: "caution" },
   { id: "H03", video: 2, text: "관종질 그만해라", expected: "caution" },
-  { id: "H04", video: 2, text: "너 같은 애들 때문에 유튜브가 망함", expected: "caution" },
+  {
+    id: "H04",
+    video: 2,
+    text: "너 같은 애들 때문에 유튜브가 망함",
+    expected: "caution",
+    removedByYouTube: true,
+    note: "유튜브가 지웠다. 다시 달지 않았다 — 같은 성격의 악플이 셋 남아 있다",
+  },
   {
     id: "H05",
     video: 2,
@@ -184,7 +197,14 @@ export const VLOG_TEST_SET: TestEntry[] = [
     expected: "safe",
     note: "스팸으로 묻으면 크리에이터가 돈을 잃는다",
   },
-  { id: "I03", video: 2, text: "무료 나눔 이벤트 진행중 클릭 → bit.ly/xxxx", expected: "danger" },
+  {
+    id: "I03",
+    video: 2,
+    // 링크가 들어간 판은 유튜브가 지웠다. 링크를 빼도 스팸인지는 그대로 물을 수 있다.
+    text: "무료 나눔 이벤트 진행중 프로필 링크 확인",
+    expected: "danger",
+    note: "링크 없이도 스팸으로 잡는지 본다. 유튜브가 링크판을 먼저 지웠다",
+  },
 ];
 
 export const GROUP_OF = (id: string) => id.slice(0, 1);

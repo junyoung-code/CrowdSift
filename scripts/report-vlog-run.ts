@@ -77,8 +77,11 @@ const expectedOf = (entry: TestEntry, afterSlang: boolean): Expected =>
  *
  * `open` 은 정답을 두지 않은 것이라 세지 않는다. `skip` 은 「들어오지 않아야 한다」는
  * 뜻이므로 없는 것이 맞은 것이다 — 여기만 반대로 읽어야 한다.
+ *
+ * 유튜브가 지운 것(🚫)은 우리 판단을 거치지 않았으므로 맞고 틀림에서 뺀다.
  */
-const judge = (expected: Expected, actual: Actual) => {
+const judge = (entry: TestEntry, expected: Expected, actual: Actual) => {
+  if (entry.removedByYouTube) return "🚫" as const;
   if (expected === "open") return "—" as const;
   if (expected === "skip") return actual.kind === "missing" ? "✅" : "❌";
   if (actual.kind === "missing") return "⛔" as const;
@@ -173,7 +176,7 @@ const main = async () => {
 
     const actual = resolve(entry);
     const expected = expectedOf(entry, afterSlang);
-    const mark = judge(expected, actual);
+    const mark = judge(entry, expected, actual);
     if (mark === "✅" || mark === "❌") {
       counted += 1;
       if (mark === "✅") hit += 1;
@@ -198,7 +201,10 @@ const main = async () => {
   console.log(`\n맞음 ${hit} / 센 것 ${counted}  (정답 없는 것과 보류는 세지 않음)\n`);
 
   const missing = entries.filter(
-    (entry) => expectedOf(entry, afterSlang) !== "skip" && resolve(entry).kind === "missing",
+    (entry) =>
+      !entry.removedByYouTube &&
+      expectedOf(entry, afterSlang) !== "skip" &&
+      resolve(entry).kind === "missing",
   );
   if (missing.length > 0) {
     console.log(
