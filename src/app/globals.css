@@ -5196,38 +5196,78 @@ a {
 
 .inbox-filter-form label > span:first-child,
 .inbox-level-filters legend,
-.inbox-video-filter legend {
+.inbox-video-filter > span:first-child {
   color: var(--ch-ink-soft);
   font-size: 11px;
   font-weight: 760;
 }
 
 /*
- * 영상은 여럿 고를 수 있다. 목록이 길어질 수 있으므로 안쪽에서 스크롤하고,
- * 필터 전체가 늘어나 다른 항목을 밀어내지 않게 한다.
+ * 영상은 여럿 고를 수 있다. 접어 두는 까닭이 둘이다. 목록이 길어지면 이 칸이
+ * 세로로 늘어나 같은 줄의 다른 칸까지 함께 늘어나고, 대개는 전체를 보므로 늘
+ * 펼쳐 둘 이유가 없다. 펼친 목록은 띄워서 겹치게 두어 다른 칸의 높이를 건드리지
+ * 않는다.
  */
 .inbox-video-filter {
   display: grid;
-  gap: 7px;
-  border: 0;
-  margin: 0;
-  padding: 0;
-}
-
-.inbox-video-filter > p {
-  margin: 0;
-  color: var(--ch-muted);
-  font-size: 9px;
-}
-
-.inbox-video-filter > div {
-  display: grid;
-  max-height: 132px;
   gap: 6px;
-  overflow-y: auto;
-  border: 1px solid var(--ch-border);
+}
+
+.inbox-video-filter > details {
+  position: relative;
+}
+
+.inbox-video-filter summary {
+  display: flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border: 1px solid var(--ch-border-strong);
   border-radius: 11px;
-  padding: 9px 11px;
+  padding: 0 11px;
+  color: var(--ch-ink);
+  cursor: pointer;
+  font-size: 12px;
+  list-style: none;
+}
+
+.inbox-video-filter summary::-webkit-details-marker {
+  display: none;
+}
+
+.inbox-video-filter summary > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inbox-video-filter summary svg {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+  transition: transform 140ms ease;
+}
+
+.inbox-video-filter details[open] summary svg {
+  transform: rotate(180deg);
+}
+
+.inbox-video-filter details > div {
+  position: absolute;
+  z-index: 5;
+  top: calc(100% + 5px);
+  right: 0;
+  left: 0;
+  display: grid;
+  max-height: 168px;
+  gap: 7px;
+  overflow-y: auto;
+  border: 1px solid var(--ch-border-strong);
+  border-radius: 11px;
+  padding: 10px 11px;
+  background: #fbfdff;
+  box-shadow: 0 16px 36px rgb(15 23 42 / 12%);
 }
 
 .inbox-select-filters .inbox-video-filter label {
@@ -6673,19 +6713,15 @@ a {
   gap: 6px;
 }
 
-.inbox-page .inbox-video-filter legend {
+/*
+ * 면과 테두리는 여기서 정하지 않는다. 파일 끝의 테마 파생 목록이 맡는다. 색을
+ * 직접 박아 두면 밝은 테마에서 이 칸만 시커멓게 남는다.
+ */
+.inbox-page .inbox-video-filter > span:first-child {
   color: var(--inbox-text-soft);
 }
 
-.inbox-page .inbox-video-filter > p {
-  color: var(--inbox-muted);
-}
-
-.inbox-page .inbox-video-filter > div {
-  border-color: var(--inbox-line);
-  background: #090e16;
-}
-
+.inbox-page .inbox-video-filter summary,
 .inbox-page .inbox-select-filters .inbox-video-filter label {
   color: var(--inbox-text);
 }
@@ -8074,6 +8110,8 @@ a {
     .inbox-search-field > span:last-child,
     .inbox-level-filters label,
     .inbox-advanced-filters[open] .inbox-select-filters,
+    .inbox-video-filter summary,
+    .inbox-video-filter details > div,
     .feedback-correction textarea,
     .analysis-state,
     .source-unavailable,

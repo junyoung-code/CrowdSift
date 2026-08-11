@@ -203,6 +203,24 @@ const getCertainty = (item: InboxItem) => {
   return certainty ? `${labels[certainty] ?? "확인 필요"} · ${certainty}` : "분석 전";
 };
 
+/**
+ * 접힌 토글에 무엇이 골라져 있는지 적는다.
+ *
+ * 열어 보지 않고도 알 수 있어야 한다. 하나면 제목을, 여럿이면 개수를 보여 준다.
+ */
+const describeVideoSelection = (
+  videoIds: string[] | undefined,
+  videos: { id: string; title: string | null }[],
+) => {
+  const selected = videoIds ?? [];
+  if (selected.length === 0) return "전체 영상";
+  if (selected.length === 1) {
+    const only = videos.find((video) => video.id === selected[0]);
+    return only?.title ?? "영상 1개";
+  }
+  return `${selected.length}개 선택`;
+};
+
 const buildParameters = (
   filters: ActiveFilters,
   additions: Record<string, string | null>,
@@ -595,27 +613,32 @@ export function CommentInbox({
                   )}
                 </select>
               </label>
-              <fieldset className="inbox-video-filter">
-                <legend>영상</legend>
+              <div className="inbox-video-filter">
+                <span>영상</span>
                 {/*
-                  체크를 모두 풀면 전체를 본다. 「전체 영상」 항목을 따로 두면 그것과
-                  개별 선택이 서로 어긋날 때 무엇이 맞는지 사람이 알 수 없다.
+                  「전체 영상」 항목을 따로 두지 않는다. 그것과 개별 선택이 어긋났을 때
+                  무엇이 맞는지 사람이 알 수 없다. 하나도 고르지 않으면 전체를 본다.
                 */}
-                <p>고르지 않으면 전체를 봅니다</p>
-                <div>
-                  {videos.map((video) => (
-                    <label key={video.id}>
-                      <input
-                        defaultChecked={filters.videoIds?.includes(video.id)}
-                        name="video"
-                        type="checkbox"
-                        value={video.id}
-                      />
-                      <span>{video.title}</span>
-                    </label>
-                  ))}
-                </div>
-              </fieldset>
+                <details>
+                  <summary>
+                    <span>{describeVideoSelection(filters.videoIds, videos)}</span>
+                    <CaretDown aria-hidden="true" weight="bold" />
+                  </summary>
+                  <div>
+                    {videos.map((video) => (
+                      <label key={video.id}>
+                        <input
+                          defaultChecked={filters.videoIds?.includes(video.id)}
+                          name="video"
+                          type="checkbox"
+                          value={video.id}
+                        />
+                        <span>{video.title}</span>
+                      </label>
+                    ))}
+                  </div>
+                </details>
+              </div>
               <label>
                 <span>분석 상태</span>
                 <select
