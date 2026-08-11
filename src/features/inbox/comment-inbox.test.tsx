@@ -235,6 +235,15 @@ describe("CommentInbox", () => {
     ).toBeInTheDocument();
   });
 
+  it("does not claim a personalization the pipeline never performs", () => {
+    // 동의를 미리 받아 두는 칸이다. 읽는 코드가 생기기 전까지는 한다고 쓰지 않는다.
+    renderInbox(item);
+
+    expect(
+      screen.getByRole("checkbox", { name: /^내 기준 개인화에 사용/ }),
+    ).toHaveAccessibleName(/지금은 판단에 쓰지 않습니다/);
+  });
+
   it("keeps risk source text out of the queue preview", () => {
     renderInbox({
       ...item,
