@@ -1,6 +1,5 @@
 import {
   ArrowRight,
-  Brain,
   CaretDown,
   CheckCircle,
   Database,
@@ -11,44 +10,41 @@ import {
   ShieldCheck,
   Sparkle,
   UserFocus,
-  YoutubeLogo,
 } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 
+import { AnalysisScrollStory } from "./analysis-scroll-story";
+import { InteractiveAnalysisDemo } from "./interactive-analysis-demo";
+import { IntegrationMark } from "./integration-mark";
 import { landingCopy } from "./landing-copy";
+import { LandingHeader } from "./landing-header";
+import { MotionReveal } from "./motion-reveal";
 import { ProductPreview } from "./product-preview";
 
 const problemIcons = [EyeSlash, Flag, ListChecks];
 const solutionIcons = [ListChecks, UserFocus, ShieldCheck];
+const aiFacts = [
+  {
+    description: "색뿐 아니라 이름과 이유로 검토 순위를 표시합니다.",
+    icon: ListChecks,
+    title: "안전 · 주의 · 위험",
+  },
+  {
+    description: "동의한 피드백만 같은 크리에이터의 판단에 사용합니다.",
+    icon: Sparkle,
+    title: "정책 · 허용어 · 과거 수정",
+  },
+  {
+    description: "되돌리기 어려운 조치는 명시적인 확인을 먼저 받습니다.",
+    icon: ShieldCheck,
+    title: "사용자 확인 후에만 실행",
+  },
+];
 
 export function LandingPage() {
   return (
     <main className="landing">
-      <header className="landing-header" id="top">
-        <Link className="brand" href="/" aria-label="CrowdSift 홈">
-          <span className="brand-mark" aria-hidden="true">
-            <ShieldCheck weight="fill" />
-          </span>
-          <strong>CrowdSift</strong>
-        </Link>
-
-        <nav aria-label="제품 소개">
-          <a href="#problems">문제</a>
-          <a href="#solutions">해결 방식</a>
-          <a href="#analysis">AI 분석</a>
-          <a href="#integration">연결</a>
-        </nav>
-
-        <div className="header-actions">
-          <Link className="login-link" href="/auth/sign-in">
-            로그인
-          </Link>
-          <Link className="button button-primary button-small" href="/auth/sign-in">
-            시작하기
-            <ArrowRight aria-hidden="true" weight="bold" />
-          </Link>
-        </div>
-      </header>
+      <LandingHeader />
 
       <section className="landing-hero">
         <div className="hero-copy">
@@ -111,7 +107,10 @@ export function LandingPage() {
         id="problems"
         aria-labelledby="problem-title"
       >
-        <div className="section-heading section-heading-centered">
+        <MotionReveal
+          className="section-heading section-heading-centered landing-motion-reveal"
+          y={12}
+        >
           <p className="eyebrow">THE PROBLEM</p>
           <h2 id="problem-title">
             댓글이 많아질수록 중요한 신호는 더 쉽게 묻힙니다
@@ -120,7 +119,7 @@ export function LandingPage() {
             모든 댓글을 같은 방식으로 읽으면 사람도 지치고, 정작 중요한
             피드백도 놓치기 쉽습니다.
           </p>
-        </div>
+        </MotionReveal>
 
         <div className="card-grid card-grid-three problem-grid">
           {landingCopy.problems.map(
@@ -128,7 +127,13 @@ export function LandingPage() {
               const Icon = problemIcons[index];
 
               return (
-                <article key={title}>
+                <MotionReveal
+                  as="article"
+                  className="landing-reveal-card"
+                  delay={index * 0.08}
+                  key={title}
+                  y={12}
+                >
                   <div className="card-topline">
                     <span className="card-icon">
                       <Icon aria-hidden="true" weight="duotone" />
@@ -137,7 +142,7 @@ export function LandingPage() {
                   </div>
                   <h3>{title}</h3>
                   <p>{description}</p>
-                </article>
+                </MotionReveal>
               );
             },
           )}
@@ -149,7 +154,10 @@ export function LandingPage() {
         id="solutions"
         aria-labelledby="solution-title"
       >
-        <div className="section-heading solution-heading">
+        <MotionReveal
+          className="section-heading solution-heading landing-motion-reveal"
+          y={12}
+        >
           <div>
             <p className="eyebrow">THE SOLUTION</p>
             <h2 id="solution-title">삭제보다 먼저, 이해하고 분리합니다</h2>
@@ -158,7 +166,7 @@ export function LandingPage() {
             CrowdSift는 댓글을 없애는 도구가 아니라, 크리에이터가 더 나은
             판단을 할 수 있도록 검토 순서와 근거를 정리하는 도구입니다.
           </p>
-        </div>
+        </MotionReveal>
 
         <div className="card-grid card-grid-three solution-grid">
           {landingCopy.solutions.map(
@@ -166,7 +174,14 @@ export function LandingPage() {
               const Icon = solutionIcons[index];
 
               return (
-                <article key={title}>
+                <MotionReveal
+                  as="article"
+                  className="landing-reveal-card"
+                  delay={index * 0.08}
+                  key={title}
+                  x={index === 0 ? -12 : index === 2 ? 12 : 0}
+                  y={0}
+                >
                   <span className="solution-icon">
                     <Icon aria-hidden="true" weight="duotone" />
                   </span>
@@ -177,7 +192,7 @@ export function LandingPage() {
                     자세히 보기
                     <ArrowRight aria-hidden="true" weight="bold" />
                   </span>
-                </article>
+                </MotionReveal>
               );
             },
           )}
@@ -189,7 +204,10 @@ export function LandingPage() {
         id="analysis"
         aria-labelledby="two-stage-title"
       >
-        <div className="section-heading section-heading-centered">
+        <MotionReveal
+          className="section-heading section-heading-centered landing-motion-reveal"
+          y={12}
+        >
           <p className="eyebrow">TWO-STAGE ANALYSIS</p>
           <h2 id="two-stage-title">
             두 번 분석하고, 마지막 판단은 크리에이터가 합니다
@@ -198,26 +216,17 @@ export function LandingPage() {
             모든 댓글을 무겁게 처리하지 않고, 문맥이 필요한 댓글에만
             크리에이터별 기준을 더합니다.
           </p>
-        </div>
+        </MotionReveal>
 
-        <ol className="process-grid">
-          {landingCopy.processSteps.map(({ step, title, description }) => (
-            <li key={title}>
-              <span className="process-step">{step}</span>
-              <div>
-                <h3>{title}</h3>
-                <p>{description}</p>
-              </div>
-              {step !== "04" ? (
-                <ArrowRight className="process-arrow" aria-hidden="true" />
-              ) : null}
-            </li>
-          ))}
-        </ol>
+        <AnalysisScrollStory />
       </section>
 
       <section className="landing-ai-dark" aria-labelledby="ai-process-title">
-        <div className="ai-copy">
+        <MotionReveal
+          className="ai-copy landing-motion-reveal"
+          x={-12}
+          y={0}
+        >
           <p className="eyebrow">SOURCE-PRESERVING AI</p>
           <h2 id="ai-process-title">
             원문은 보존하고,
@@ -231,58 +240,29 @@ export function LandingPage() {
             연결 방식 보기
             <ArrowRight aria-hidden="true" weight="bold" />
           </a>
-        </div>
+        </MotionReveal>
 
-        <div className="analysis-card" aria-label="AI 분석 예시">
-          <div className="analysis-card-title">
-            <span>
-              <Brain aria-hidden="true" weight="duotone" />
-              AI 분석
-            </span>
-            <span className="analysis-status">2차 분석 완료</span>
-          </div>
-          <dl>
-            <div>
-              <dt>1차 분류</dt>
-              <dd>
-                <span className="status-pill status-caution">주의</span>
-                신뢰도 78%
-              </dd>
-            </div>
-            <div>
-              <dt>크리에이터 정책</dt>
-              <dd>외모 관련 비꼼은 우선 검토</dd>
-            </div>
-            <div>
-              <dt>비슷한 과거 판단</dt>
-              <dd>사용자 수정 사례 3건 반영</dd>
-            </div>
-            <div className="analysis-result">
-              <dt>최종 추천</dt>
-              <dd>
-                <span className="status-pill status-risk">위험</span>
-                숨김 검토
-              </dd>
-            </div>
-          </dl>
-        </div>
+        <MotionReveal
+          className="ai-demo-reveal landing-motion-reveal"
+          x={12}
+          y={0}
+        >
+          <InteractiveAnalysisDemo />
+        </MotionReveal>
 
         <div className="ai-facts">
-          <article>
-            <ListChecks aria-hidden="true" weight="duotone" />
-            <h3>안전 · 주의 · 위험</h3>
-            <p>색뿐 아니라 이름과 이유로 검토 순위를 표시합니다.</p>
-          </article>
-          <article>
-            <Sparkle aria-hidden="true" weight="duotone" />
-            <h3>정책 · 허용어 · 과거 수정</h3>
-            <p>동의한 피드백만 같은 크리에이터의 판단에 사용합니다.</p>
-          </article>
-          <article>
-            <ShieldCheck aria-hidden="true" weight="duotone" />
-            <h3>사용자 확인 후에만 실행</h3>
-            <p>되돌리기 어려운 조치는 명시적인 확인을 먼저 받습니다.</p>
-          </article>
+          {aiFacts.map(({ description, icon: Icon, title }, index) => (
+            <MotionReveal
+              as="article"
+              delay={index * 0.08}
+              key={title}
+              y={12}
+            >
+              <Icon aria-hidden="true" weight="duotone" />
+              <h3>{title}</h3>
+              <p>{description}</p>
+            </MotionReveal>
+          ))}
         </div>
       </section>
 
@@ -291,10 +271,18 @@ export function LandingPage() {
         id="integration"
         aria-labelledby="youtube-title"
       >
-        <div className="youtube-mark" aria-hidden="true">
-          <YoutubeLogo weight="fill" />
-        </div>
-        <div className="integration-copy">
+        <MotionReveal
+          className="integration-mark-reveal landing-motion-reveal"
+          x={-12}
+          y={0}
+        >
+          <IntegrationMark />
+        </MotionReveal>
+        <MotionReveal
+          className="integration-copy landing-motion-reveal"
+          x={12}
+          y={0}
+        >
           <p className="eyebrow">FIRST INTEGRATION</p>
           <h2 id="youtube-title">먼저 YouTube에서 시작합니다</h2>
           <p>
@@ -311,10 +299,15 @@ export function LandingPage() {
               읽기 연결과 moderation 권한을 분리
             </span>
           </div>
-        </div>
+        </MotionReveal>
       </section>
 
-      <section className="final-cta" aria-labelledby="final-cta-title">
+      <MotionReveal
+        as="section"
+        ariaLabelledby="final-cta-title"
+        className="final-cta landing-motion-reveal"
+        y={12}
+      >
         <div className="final-cta-icon" aria-hidden="true">
           <ShieldCheck weight="duotone" />
         </div>
@@ -328,7 +321,7 @@ export function LandingPage() {
           CrowdSift 시작하기
           <ArrowRight aria-hidden="true" weight="bold" />
         </Link>
-      </section>
+      </MotionReveal>
 
       <footer className="landing-footer">
         <Link className="brand" href="/" aria-label="CrowdSift 홈">

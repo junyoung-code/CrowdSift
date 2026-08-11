@@ -82,19 +82,19 @@ function DashboardEmptyState({
       <p>{connectedChannel ? "채널 연결 완료" : "첫 번째 단계"}</p>
       <h2>
         {connectedChannel
-          ? "영상 하나를 선택해 첫 댓글을 가져오세요"
+          ? "댓글 자동 수집 시작 날짜를 선택하세요"
           : "YouTube 채널을 연결해 첫 댓글을 가져오세요"}
       </h2>
       <span>
         {connectedChannel
-          ? `${connectedChannel} 채널의 실제 댓글을 가져오기 전에는 통계 수치를 표시하지 않습니다.`
+          ? `${connectedChannel} 채널의 최신 댓글부터 선택한 날짜까지 자동으로 수집합니다.`
           : "CrowdSift 로그인과 YouTube 권한은 별도로 관리됩니다. 먼저 읽기 권한으로 크리에이터 소유 채널을 선택합니다."}
       </span>
       <Link
         className="button button-primary"
-        href={connectedChannel ? "/app/videos" : "/app/connect/youtube"}
+        href="/app/connect/youtube"
       >
-        {connectedChannel ? "첫 댓글 가져오기" : "YouTube 연결하기"}
+        {connectedChannel ? "자동 수집 설정하기" : "YouTube 연결하기"}
         <ArrowRight aria-hidden="true" weight="bold" />
       </Link>
     </section>
@@ -265,12 +265,8 @@ export function DashboardView({ data }: { data: DashboardData }) {
                   : "영상 목록에서 댓글을 가져올 영상을 선택하세요."}
               </small>
             </div>
-            <Link
-              href={
-                publicSource ? "/app/connect/youtube" : "/app/videos"
-              }
-            >
-              {publicSource ? "새 공개 영상" : "영상 관리"}
+            <Link href="/app/inbox">
+              댓글 Inbox
               <ArrowRight aria-hidden="true" />
             </Link>
           </div>

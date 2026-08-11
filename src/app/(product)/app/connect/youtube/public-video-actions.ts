@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { requireViewer } from "@/features/auth/require-viewer";
+import { requireDeveloperToolsViewer } from "@/features/developer-tools/require-developer-tools-viewer";
 import { createPublicImportJobForWorkspace } from "@/features/ingestion/process-public-import-job";
 import { getPublicYouTubeDevMode } from "@/features/youtube/public-dev-mode";
 import { PublicYouTubeProviderError } from "@/features/youtube/google-public-read-provider";
@@ -171,8 +171,9 @@ export const previewPublicVideoAction = async (
   _previousState: PublicVideoPreviewActionState,
   formData: FormData,
 ): Promise<PublicVideoPreviewActionState> => {
+  await requireDeveloperToolsViewer();
+
   try {
-    await requireViewer();
     assertPublicMode();
 
     return {
@@ -195,8 +196,9 @@ export const startPublicVideoImportAction = async (
   _previousState: PublicVideoStartActionState,
   formData: FormData,
 ): Promise<PublicVideoStartActionState> => {
+  const { workspaceId } = await requireDeveloperToolsViewer();
+
   try {
-    const { workspaceId } = await requireViewer();
     assertPublicMode();
     const job = await createPublicImportJobForWorkspace({
       workspaceId,
@@ -205,7 +207,7 @@ export const startPublicVideoImportAction = async (
     });
 
     revalidatePath("/app");
-    revalidatePath("/app/connect/youtube");
+    revalidatePath("/app/developer-tools");
     return { status: "created", jobId: job.id };
   } catch (error) {
     return toStartError(error);

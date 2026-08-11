@@ -307,6 +307,648 @@ export type Database = {
           },
         ]
       }
+      channel_comment_sync_runs: {
+        Row: {
+          analyzed_count: number
+          claim_token: string | null
+          created_at: string
+          duplicate_count: number
+          error_code: string | null
+          failed_count: number
+          finished_at: string | null
+          id: string
+          input_page_token: string | null
+          kind: string
+          observed_count: number
+          output_page_token: string | null
+          quota_units_used: number
+          setting_id: string
+          started_at: string | null
+          status: string
+          stored_count: number
+          updated_count: number
+          workspace_id: string
+        }
+        Insert: {
+          analyzed_count?: number
+          claim_token?: string | null
+          created_at?: string
+          duplicate_count?: number
+          error_code?: string | null
+          failed_count?: number
+          finished_at?: string | null
+          id?: string
+          input_page_token?: string | null
+          kind: string
+          observed_count?: number
+          output_page_token?: string | null
+          quota_units_used?: number
+          setting_id: string
+          started_at?: string | null
+          status?: string
+          stored_count?: number
+          updated_count?: number
+          workspace_id: string
+        }
+        Update: {
+          analyzed_count?: number
+          claim_token?: string | null
+          created_at?: string
+          duplicate_count?: number
+          error_code?: string | null
+          failed_count?: number
+          finished_at?: string | null
+          id?: string
+          input_page_token?: string | null
+          kind?: string
+          observed_count?: number
+          output_page_token?: string | null
+          quota_units_used?: number
+          setting_id?: string
+          started_at?: string | null
+          status?: string
+          stored_count?: number
+          updated_count?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "channel_comment_sync_runs_setting_id_fkey"
+            columns: ["setting_id"]
+            isOneToOne: false
+            referencedRelation: "channel_comment_sync_settings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "channel_comment_sync_runs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      channel_comment_sync_settings: {
+        Row: {
+          backfill_page_token: string | null
+          backfill_start_at: string
+          backfill_status: string
+          connection_id: string
+          created_at: string
+          enabled: boolean
+          id: string
+          incremental_page_token: string | null
+          incremental_scan_started_at: string | null
+          last_error_code: string | null
+          last_reply_reconciliation_at: string | null
+          last_successful_sync_at: string | null
+          lease_until: string | null
+          next_reply_reconciliation_at: string | null
+          next_sync_at: string
+          reply_reconciliation_page_token: string | null
+          reply_reconciliation_status: string
+          sync_interval_minutes: number
+          updated_at: string
+          workspace_id: string
+          youtube_channel_id: string
+        }
+        Insert: {
+          backfill_page_token?: string | null
+          backfill_start_at: string
+          backfill_status?: string
+          connection_id: string
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          incremental_page_token?: string | null
+          incremental_scan_started_at?: string | null
+          last_error_code?: string | null
+          last_reply_reconciliation_at?: string | null
+          last_successful_sync_at?: string | null
+          lease_until?: string | null
+          next_reply_reconciliation_at?: string | null
+          next_sync_at?: string
+          reply_reconciliation_page_token?: string | null
+          reply_reconciliation_status?: string
+          sync_interval_minutes?: number
+          updated_at?: string
+          workspace_id: string
+          youtube_channel_id: string
+        }
+        Update: {
+          backfill_page_token?: string | null
+          backfill_start_at?: string
+          backfill_status?: string
+          connection_id?: string
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          incremental_page_token?: string | null
+          incremental_scan_started_at?: string | null
+          last_error_code?: string | null
+          last_reply_reconciliation_at?: string | null
+          last_successful_sync_at?: string | null
+          lease_until?: string | null
+          next_reply_reconciliation_at?: string | null
+          next_sync_at?: string
+          reply_reconciliation_page_token?: string | null
+          reply_reconciliation_status?: string
+          sync_interval_minutes?: number
+          updated_at?: string
+          workspace_id?: string
+          youtube_channel_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "channel_comment_sync_settings_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "youtube_connection_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "channel_comment_sync_settings_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "youtube_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "channel_comment_sync_settings_connection_id_youtube_channe_fkey"
+            columns: ["connection_id", "youtube_channel_id"]
+            isOneToOne: false
+            referencedRelation: "youtube_channel_candidates"
+            referencedColumns: ["connection_id", "youtube_channel_id"]
+          },
+          {
+            foreignKeyName: "channel_comment_sync_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      channel_sync_analysis_assignments: {
+        Row: {
+          analysis_job_id: string | null
+          assigned_import_job_id: string
+          attached_at: string | null
+          configuration_key: string
+          created_at: string
+          raw_comment_id: string
+          workspace_id: string
+        }
+        Insert: {
+          analysis_job_id?: string | null
+          assigned_import_job_id: string
+          attached_at?: string | null
+          configuration_key: string
+          created_at?: string
+          raw_comment_id: string
+          workspace_id: string
+        }
+        Update: {
+          analysis_job_id?: string | null
+          assigned_import_job_id?: string
+          attached_at?: string | null
+          configuration_key?: string
+          created_at?: string
+          raw_comment_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "channel_sync_analysis_assignments_analysis_job_id_fkey"
+            columns: ["analysis_job_id"]
+            isOneToOne: false
+            referencedRelation: "analysis_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "channel_sync_analysis_assignments_assigned_import_job_id_fkey"
+            columns: ["assigned_import_job_id"]
+            isOneToOne: false
+            referencedRelation: "comment_import_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "channel_sync_analysis_assignments_raw_comment_id_fkey"
+            columns: ["raw_comment_id"]
+            isOneToOne: false
+            referencedRelation: "raw_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "channel_sync_analysis_assignments_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      classification_branches: {
+        Row: {
+          analysis_job_item_id: string
+          created_at: string
+          id: string
+          outcome: string
+          protection: Json
+          raw_comment_id: string
+          reasons: Json
+          workspace_id: string
+        }
+        Insert: {
+          analysis_job_item_id: string
+          created_at?: string
+          id?: string
+          outcome: string
+          protection?: Json
+          raw_comment_id: string
+          reasons?: Json
+          workspace_id: string
+        }
+        Update: {
+          analysis_job_item_id?: string
+          created_at?: string
+          id?: string
+          outcome?: string
+          protection?: Json
+          raw_comment_id?: string
+          reasons?: Json
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "classification_branches_analysis_job_item_id_fkey"
+            columns: ["analysis_job_item_id"]
+            isOneToOne: true
+            referencedRelation: "analysis_job_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "classification_branches_raw_comment_id_fkey"
+            columns: ["raw_comment_id"]
+            isOneToOne: false
+            referencedRelation: "raw_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "classification_branches_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      classification_feedback: {
+        Row: {
+          actor_user_id: string
+          classification_verdict_id: string
+          corrected_level: Database["public"]["Enums"]["review_level"] | null
+          created_at: string
+          decision: string
+          edited_feedback_core: string | null
+          id: string
+          raw_comment_id: string
+          use_for_personalization: boolean
+          use_for_training: boolean
+          workspace_id: string
+        }
+        Insert: {
+          actor_user_id: string
+          classification_verdict_id: string
+          corrected_level?: Database["public"]["Enums"]["review_level"] | null
+          created_at?: string
+          decision: string
+          edited_feedback_core?: string | null
+          id?: string
+          raw_comment_id: string
+          use_for_personalization?: boolean
+          use_for_training?: boolean
+          workspace_id: string
+        }
+        Update: {
+          actor_user_id?: string
+          classification_verdict_id?: string
+          corrected_level?: Database["public"]["Enums"]["review_level"] | null
+          created_at?: string
+          decision?: string
+          edited_feedback_core?: string | null
+          id?: string
+          raw_comment_id?: string
+          use_for_personalization?: boolean
+          use_for_training?: boolean
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "classification_feedback_classification_verdict_id_fkey"
+            columns: ["classification_verdict_id"]
+            isOneToOne: false
+            referencedRelation: "classification_verdicts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "classification_feedback_raw_comment_id_fkey"
+            columns: ["raw_comment_id"]
+            isOneToOne: false
+            referencedRelation: "raw_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "classification_feedback_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      classification_profiles: {
+        Row: {
+          allowed_slang: string[]
+          emoji_frequency: string
+          hide_personal_attacks: boolean
+          id: string
+          protection_level: string
+          rewrite_tone: string
+          sensitive_topics: string[]
+          updated_at: string
+          updated_by: string | null
+          workspace_id: string
+        }
+        Insert: {
+          allowed_slang?: string[]
+          emoji_frequency?: string
+          hide_personal_attacks?: boolean
+          id?: string
+          protection_level?: string
+          rewrite_tone?: string
+          sensitive_topics?: string[]
+          updated_at?: string
+          updated_by?: string | null
+          workspace_id: string
+        }
+        Update: {
+          allowed_slang?: string[]
+          emoji_frequency?: string
+          hide_personal_attacks?: boolean
+          id?: string
+          protection_level?: string
+          rewrite_tone?: string
+          sensitive_topics?: string[]
+          updated_at?: string
+          updated_by?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "classification_profiles_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      classification_rewrites: {
+        Row: {
+          accepted: boolean
+          analysis_job_item_id: string
+          classification_verdict_id: string
+          created_at: string
+          id: string
+          raw_comment_id: string
+          rejections: Json
+          rewritten: string
+          tone_variant: string
+          workspace_id: string
+        }
+        Insert: {
+          accepted: boolean
+          analysis_job_item_id: string
+          classification_verdict_id: string
+          created_at?: string
+          id?: string
+          raw_comment_id: string
+          rejections?: Json
+          rewritten: string
+          tone_variant: string
+          workspace_id: string
+        }
+        Update: {
+          accepted?: boolean
+          analysis_job_item_id?: string
+          classification_verdict_id?: string
+          created_at?: string
+          id?: string
+          raw_comment_id?: string
+          rejections?: Json
+          rewritten?: string
+          tone_variant?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "classification_rewrites_analysis_job_item_id_fkey"
+            columns: ["analysis_job_item_id"]
+            isOneToOne: true
+            referencedRelation: "analysis_job_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "classification_rewrites_classification_verdict_id_fkey"
+            columns: ["classification_verdict_id"]
+            isOneToOne: false
+            referencedRelation: "classification_verdicts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "classification_rewrites_raw_comment_id_fkey"
+            columns: ["raw_comment_id"]
+            isOneToOne: false
+            referencedRelation: "raw_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "classification_rewrites_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      classification_stage_runs: {
+        Row: {
+          analysis_job_item_id: string
+          created_at: string
+          error_code: string | null
+          id: string
+          idempotency_key: string
+          latency_ms: number | null
+          model_identifier: string
+          output: Json
+          policy_version: number
+          prompt_version: string | null
+          provider: string
+          provider_response_id: string | null
+          raw_comment_id: string
+          schema_version: string
+          stage: string
+          status: string
+          usage: Json
+          workspace_id: string
+        }
+        Insert: {
+          analysis_job_item_id: string
+          created_at?: string
+          error_code?: string | null
+          id?: string
+          idempotency_key: string
+          latency_ms?: number | null
+          model_identifier: string
+          output?: Json
+          policy_version: number
+          prompt_version?: string | null
+          provider: string
+          provider_response_id?: string | null
+          raw_comment_id: string
+          schema_version: string
+          stage: string
+          status: string
+          usage?: Json
+          workspace_id: string
+        }
+        Update: {
+          analysis_job_item_id?: string
+          created_at?: string
+          error_code?: string | null
+          id?: string
+          idempotency_key?: string
+          latency_ms?: number | null
+          model_identifier?: string
+          output?: Json
+          policy_version?: number
+          prompt_version?: string | null
+          provider?: string
+          provider_response_id?: string | null
+          raw_comment_id?: string
+          schema_version?: string
+          stage?: string
+          status?: string
+          usage?: Json
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "classification_stage_runs_analysis_job_item_id_fkey"
+            columns: ["analysis_job_item_id"]
+            isOneToOne: false
+            referencedRelation: "analysis_job_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "classification_stage_runs_raw_comment_id_fkey"
+            columns: ["raw_comment_id"]
+            isOneToOne: false
+            referencedRelation: "raw_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "classification_stage_runs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      classification_verdicts: {
+        Row: {
+          agreed_with_first_pass: boolean | null
+          allow_rewrite: boolean
+          analysis_job_item_id: string
+          basis: string
+          created_at: string
+          feedback_core: string | null
+          feedback_type: string
+          hide_source: boolean
+          id: string
+          level: Database["public"]["Enums"]["review_level"] | null
+          raised_by_moderation: boolean
+          raw_comment_id: string
+          reason_codes: Json
+          recommended_actions: Json
+          safety_case: boolean
+          status: string
+          workspace_id: string
+        }
+        Insert: {
+          agreed_with_first_pass?: boolean | null
+          allow_rewrite?: boolean
+          analysis_job_item_id: string
+          basis: string
+          created_at?: string
+          feedback_core?: string | null
+          feedback_type: string
+          hide_source?: boolean
+          id?: string
+          level?: Database["public"]["Enums"]["review_level"] | null
+          raised_by_moderation?: boolean
+          raw_comment_id: string
+          reason_codes?: Json
+          recommended_actions?: Json
+          safety_case?: boolean
+          status: string
+          workspace_id: string
+        }
+        Update: {
+          agreed_with_first_pass?: boolean | null
+          allow_rewrite?: boolean
+          analysis_job_item_id?: string
+          basis?: string
+          created_at?: string
+          feedback_core?: string | null
+          feedback_type?: string
+          hide_source?: boolean
+          id?: string
+          level?: Database["public"]["Enums"]["review_level"] | null
+          raised_by_moderation?: boolean
+          raw_comment_id?: string
+          reason_codes?: Json
+          recommended_actions?: Json
+          safety_case?: boolean
+          status?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "classification_verdicts_analysis_job_item_id_fkey"
+            columns: ["analysis_job_item_id"]
+            isOneToOne: true
+            referencedRelation: "analysis_job_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "classification_verdicts_raw_comment_id_fkey"
+            columns: ["raw_comment_id"]
+            isOneToOne: false
+            referencedRelation: "raw_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "classification_verdicts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       comment_analyses: {
         Row: {
           actionable_feedback: boolean
@@ -489,7 +1131,9 @@ export type Database = {
       }
       comment_import_jobs: {
         Row: {
+          analyzed_count: number
           attempt_count: number
+          channel_sync_run_id: string | null
           created_at: string
           duplicate_count: number
           failed_count: number
@@ -508,12 +1152,16 @@ export type Database = {
           status: Database["public"]["Enums"]["job_status"]
           stored_count: number
           top_level_count: number
+          trigger_kind: string
+          updated_count: number
           workspace_id: string
           youtube_quota_units_used: number
           youtube_video_id: string
         }
         Insert: {
+          analyzed_count?: number
           attempt_count?: number
+          channel_sync_run_id?: string | null
           created_at?: string
           duplicate_count?: number
           failed_count?: number
@@ -532,12 +1180,16 @@ export type Database = {
           status?: Database["public"]["Enums"]["job_status"]
           stored_count?: number
           top_level_count?: number
+          trigger_kind?: string
+          updated_count?: number
           workspace_id: string
           youtube_quota_units_used?: number
           youtube_video_id: string
         }
         Update: {
+          analyzed_count?: number
           attempt_count?: number
+          channel_sync_run_id?: string | null
           created_at?: string
           duplicate_count?: number
           failed_count?: number
@@ -556,13 +1208,80 @@ export type Database = {
           status?: Database["public"]["Enums"]["job_status"]
           stored_count?: number
           top_level_count?: number
+          trigger_kind?: string
+          updated_count?: number
           workspace_id?: string
           youtube_quota_units_used?: number
           youtube_video_id?: string
         }
         Relationships: [
           {
+            foreignKeyName: "comment_import_jobs_channel_sync_run_id_fkey"
+            columns: ["channel_sync_run_id"]
+            isOneToOne: false
+            referencedRelation: "channel_comment_sync_runs"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "comment_import_jobs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      comment_source_observations: {
+        Row: {
+          captured_at: string
+          fingerprint: string
+          id: string
+          import_job_id: string
+          provider_payload: Json
+          provider_updated_at: string | null
+          raw_comment_id: string
+          source_snapshot: Json
+          workspace_id: string
+        }
+        Insert: {
+          captured_at?: string
+          fingerprint: string
+          id?: string
+          import_job_id: string
+          provider_payload: Json
+          provider_updated_at?: string | null
+          raw_comment_id: string
+          source_snapshot: Json
+          workspace_id: string
+        }
+        Update: {
+          captured_at?: string
+          fingerprint?: string
+          id?: string
+          import_job_id?: string
+          provider_payload?: Json
+          provider_updated_at?: string | null
+          raw_comment_id?: string
+          source_snapshot?: Json
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comment_source_observations_import_job_id_fkey"
+            columns: ["import_job_id"]
+            isOneToOne: false
+            referencedRelation: "comment_import_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comment_source_observations_raw_comment_id_fkey"
+            columns: ["raw_comment_id"]
+            isOneToOne: false
+            referencedRelation: "raw_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comment_source_observations_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -1737,12 +2456,82 @@ export type Database = {
       }
     }
     Functions: {
+      attach_channel_sync_analysis_items: {
+        Args: {
+          target_claim_token: string
+          target_configuration_key: string
+          target_import_job_id: string
+          target_run_id: string
+          target_workspace_id: string
+          target_youtube_video_id: string
+        }
+        Returns: {
+          analysis_job_id: string
+          raw_comment_id: string
+        }[]
+      }
       claim_analysis_job_items: {
         Args: { target_analysis_job_id: string; target_max_items: number }
         Returns: {
           item_id: string
           raw_comment_id: string
           workspace_id: string
+        }[]
+      }
+      claim_channel_comment_sync_work: {
+        Args: { target_lease_seconds?: number; target_limit?: number }
+        Returns: {
+          backfill_start_at: string
+          claim_token: string
+          connection_id: string
+          incremental_scan_started_at: string | null
+          last_successful_sync_at: string | null
+          page_token: string | null
+          run_id: string
+          run_kind: string
+          setting_id: string
+          workspace_id: string
+          youtube_channel_id: string
+        }[]
+      }
+      claim_channel_comment_sync_work_for_workspace: {
+        Args: {
+          target_lease_seconds?: number
+          target_requesting_user_id: string
+          target_workspace_id: string
+        }
+        Returns: {
+          backfill_start_at: string
+          claim_token: string
+          connection_id: string
+          incremental_scan_started_at: string | null
+          last_successful_sync_at: string | null
+          page_token: string | null
+          run_id: string
+          run_kind: string
+          setting_id: string
+          workspace_id: string
+          youtube_channel_id: string
+        }[]
+      }
+      claim_channel_comment_sync_work_internal: {
+        Args: {
+          target_lease_seconds: number
+          target_limit: number
+          target_workspace_id: string | null
+        }
+        Returns: {
+          backfill_start_at: string
+          claim_token: string
+          connection_id: string
+          incremental_scan_started_at: string | null
+          last_successful_sync_at: string | null
+          page_token: string | null
+          run_id: string
+          run_kind: string
+          setting_id: string
+          workspace_id: string
+          youtube_channel_id: string
         }[]
       }
       claim_dashboard_summary_job: {
@@ -1763,6 +2552,49 @@ export type Database = {
           target_workspace_id: string
         }
         Returns: boolean
+      }
+      complete_channel_comment_sync_run: {
+        Args: {
+          target_analyzed_count: number
+          target_claim_token: string
+          target_duplicate_count: number
+          target_failed_count: number
+          target_next_page_token: string | null
+          target_observed_count: number
+          target_quota_units_used: number
+          target_reached_boundary: boolean
+          target_reply_cursor?: string | null
+          target_run_id: string
+          target_stored_count: number
+          target_updated_count: number
+        }
+        Returns: {
+          analyzed_count: number
+          claim_token: string | null
+          created_at: string
+          duplicate_count: number
+          error_code: string | null
+          failed_count: number
+          finished_at: string | null
+          id: string
+          input_page_token: string | null
+          kind: string
+          observed_count: number
+          output_page_token: string | null
+          quota_units_used: number
+          setting_id: string
+          started_at: string | null
+          status: string
+          stored_count: number
+          updated_count: number
+          workspace_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "channel_comment_sync_runs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       complete_moderation_request: {
         Args: {
@@ -1792,6 +2624,38 @@ export type Database = {
           target_workspace_id: string
         }
         Returns: boolean
+      }
+      configure_channel_comment_sync: {
+        Args: { target_start_date: string; target_workspace_id: string }
+        Returns: {
+          backfill_page_token: string | null
+          backfill_start_at: string
+          backfill_status: string
+          connection_id: string
+          created_at: string
+          enabled: boolean
+          id: string
+          incremental_page_token: string | null
+          incremental_scan_started_at: string | null
+          last_error_code: string | null
+          last_reply_reconciliation_at: string | null
+          last_successful_sync_at: string | null
+          lease_until: string | null
+          next_reply_reconciliation_at: string | null
+          next_sync_at: string
+          reply_reconciliation_page_token: string | null
+          reply_reconciliation_status: string
+          sync_interval_minutes: number
+          updated_at: string
+          workspace_id: string
+          youtube_channel_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "channel_comment_sync_settings"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       create_creator_policy_version: {
         Args: {
@@ -1825,11 +2689,166 @@ export type Database = {
           request_state: Database["public"]["Enums"]["action_state"]
         }[]
       }
+      create_or_get_channel_sync_video_import_job: {
+        Args: {
+          target_claim_token: string
+          target_provider_mode: string
+          target_run_id: string
+          target_workspace_id: string
+          target_youtube_video_id: string
+        }
+        Returns: {
+          analyzed_count: number
+          duplicate_count: number
+          failed_count: number
+          id: string
+          is_terminal: boolean
+          quota_units_used: number
+          status: Database["public"]["Enums"]["job_status"]
+          stored_count: number
+          updated_count: number
+        }[]
+      }
       disconnect_youtube_channel: {
         Args: { target_workspace_id: string }
         Returns: undefined
       }
       ensure_owner_workspace: { Args: never; Returns: string }
+      fail_channel_comment_sync_run: {
+        Args: {
+          target_claim_token: string
+          target_error_code: string
+          target_run_id: string
+        }
+        Returns: {
+          analyzed_count: number
+          claim_token: string | null
+          created_at: string
+          duplicate_count: number
+          error_code: string | null
+          failed_count: number
+          finished_at: string | null
+          id: string
+          input_page_token: string | null
+          kind: string
+          observed_count: number
+          output_page_token: string | null
+          quota_units_used: number
+          setting_id: string
+          started_at: string | null
+          status: string
+          stored_count: number
+          updated_count: number
+          workspace_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "channel_comment_sync_runs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      finalize_channel_sync_video_import_job: {
+        Args: {
+          target_claim_token: string
+          target_duplicate_count: number
+          target_error_code: string | null
+          target_failed_count: number
+          target_import_job_id: string
+          target_observed_count: number
+          target_reply_count: number
+          target_run_id: string
+          target_status: Database["public"]["Enums"]["job_status"]
+          target_stored_count: number
+          target_top_level_count: number
+          target_updated_count: number
+        }
+        Returns: {
+          analyzed_count: number
+          attempt_count: number
+          channel_sync_run_id: string | null
+          created_at: string
+          duplicate_count: number
+          failed_count: number
+          fetched_count: number
+          finished_at: string | null
+          id: string
+          last_error_code: string | null
+          next_page_token: string | null
+          provider_mode: string
+          reply_count: number
+          requested_top_level_count: number | null
+          requested_total_count: number | null
+          source_kind: Database["public"]["Enums"]["comment_source_kind"]
+          source_video_url: string | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["job_status"]
+          stored_count: number
+          top_level_count: number
+          trigger_kind: string
+          updated_count: number
+          workspace_id: string
+          youtube_quota_units_used: number
+          youtube_video_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "comment_import_jobs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      finalize_channel_sync_video_import_job_v2: {
+        Args: {
+          target_claim_token: string
+          target_duplicate_count: number
+          target_error_code: string | null
+          target_failed_count: number
+          target_import_job_id: string
+          target_observed_count: number
+          target_quota_units_used: number
+          target_reply_count: number
+          target_run_id: string
+          target_status: Database["public"]["Enums"]["job_status"]
+          target_stored_count: number
+          target_top_level_count: number
+          target_updated_count: number
+        }
+        Returns: {
+          analyzed_count: number
+          attempt_count: number
+          channel_sync_run_id: string | null
+          created_at: string
+          duplicate_count: number
+          failed_count: number
+          fetched_count: number
+          finished_at: string | null
+          id: string
+          last_error_code: string | null
+          next_page_token: string | null
+          provider_mode: string
+          reply_count: number
+          requested_top_level_count: number | null
+          requested_total_count: number | null
+          source_kind: Database["public"]["Enums"]["comment_source_kind"]
+          source_video_url: string | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["job_status"]
+          stored_count: number
+          top_level_count: number
+          trigger_kind: string
+          updated_count: number
+          workspace_id: string
+          youtube_quota_units_used: number
+          youtube_video_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "comment_import_jobs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       get_acknowledged_comment_source: {
         Args: { target_raw_comment_id: string; target_workspace_id: string }
         Returns: {
@@ -1873,6 +2892,51 @@ export type Database = {
           workspace_id: string
         }[]
       }
+      get_inbox_conversation_page: {
+        Args: {
+          action_state_filter?: Database["public"]["Enums"]["action_state"]
+          analysis_state_filter?: string
+          category_filter?: Database["public"]["Enums"]["comment_category"]
+          max_confidence?: number
+          min_confidence?: number
+          page_offset?: number
+          page_size?: number
+          review_levels?: Database["public"]["Enums"]["review_level"][]
+          search_query?: string
+          target_workspace_id: string
+          video_id?: string
+        }
+        Returns: {
+          action_state: Database["public"]["Enums"]["action_state"]
+          analysis_id: string
+          analysis_state: string
+          author_avatar_url: string
+          author_display_name: string
+          category: Database["public"]["Enums"]["comment_category"]
+          classification_status: string
+          classification_trace: Json
+          confidence: number
+          delete_eligible: boolean
+          like_count: number
+          manual_review: boolean
+          neutral_text: string
+          normalized_question: string
+          published_at: string
+          raw_comment_id: string
+          recommended_action: Database["public"]["Enums"]["recommended_action"]
+          replies: Json
+          reply_count: number
+          review_level: Database["public"]["Enums"]["review_level"]
+          safe_source_text: string
+          source_available: boolean
+          source_import_job_id: string
+          source_kind: Database["public"]["Enums"]["comment_source_kind"]
+          total_count: number
+          video_thumbnail_url: string
+          video_title: string
+          youtube_video_id: string
+        }[]
+      }
       get_inbox_page: {
         Args: {
           action_state_filter?: Database["public"]["Enums"]["action_state"]
@@ -1911,49 +2975,6 @@ export type Database = {
           youtube_video_id: string
         }[]
       }
-      get_inbox_conversation_page: {
-        Args: {
-          action_state_filter?: Database["public"]["Enums"]["action_state"]
-          analysis_state_filter?: string
-          category_filter?: Database["public"]["Enums"]["comment_category"]
-          max_confidence?: number
-          min_confidence?: number
-          page_offset?: number
-          page_size?: number
-          review_levels?: Database["public"]["Enums"]["review_level"][]
-          search_query?: string
-          target_workspace_id: string
-          video_id?: string
-        }
-        Returns: {
-          action_state: Database["public"]["Enums"]["action_state"]
-          analysis_id: string
-          analysis_state: string
-          author_avatar_url: string
-          author_display_name: string
-          category: Database["public"]["Enums"]["comment_category"]
-          confidence: number
-          delete_eligible: boolean
-          like_count: number
-          manual_review: boolean
-          neutral_text: string
-          normalized_question: string
-          published_at: string
-          raw_comment_id: string
-          recommended_action: Database["public"]["Enums"]["recommended_action"]
-          replies: Json
-          reply_count: number
-          review_level: Database["public"]["Enums"]["review_level"]
-          safe_source_text: string
-          source_available: boolean
-          source_import_job_id: string
-          source_kind: Database["public"]["Enums"]["comment_source_kind"]
-          total_count: number
-          video_thumbnail_url: string
-          video_title: string
-          youtube_video_id: string
-        }[]
-      }
       get_retryable_dashboard_summary_jobs: {
         Args: { target_max_jobs: number }
         Returns: {
@@ -1961,6 +2982,50 @@ export type Database = {
         }[]
       }
       is_workspace_member: { Args: { target: string }; Returns: boolean }
+      list_unanalyzed_channel_sync_raw_comment_ids: {
+        Args: {
+          target_configuration_key: string
+          target_workspace_id: string
+          target_youtube_video_id: string
+        }
+        Returns: {
+          raw_comment_id: string
+        }[]
+      }
+      lock_active_channel_sync_claim: {
+        Args: {
+          target_claim_token: string
+          target_run_id: string
+          target_workspace_id: string
+        }
+        Returns: {
+          analyzed_count: number
+          claim_token: string | null
+          created_at: string
+          duplicate_count: number
+          error_code: string | null
+          failed_count: number
+          finished_at: string | null
+          id: string
+          input_page_token: string | null
+          kind: string
+          observed_count: number
+          output_page_token: string | null
+          quota_units_used: number
+          setting_id: string
+          started_at: string | null
+          status: string
+          stored_count: number
+          updated_count: number
+          workspace_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "channel_comment_sync_runs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       match_creator_feedback: {
         Args: {
           match_count?: number
@@ -1987,11 +3052,134 @@ export type Database = {
         }
         Returns: boolean
       }
+      record_channel_sync_import_item_failure: {
+        Args: {
+          target_claim_token: string
+          target_error_code: string
+          target_import_job_id: string
+          target_run_id: string
+          target_workspace_id: string
+          target_youtube_comment_id: string
+        }
+        Returns: undefined
+      }
+      request_channel_comment_sync_now: {
+        Args: { target_workspace_id: string }
+        Returns: {
+          backfill_page_token: string | null
+          backfill_start_at: string
+          backfill_status: string
+          connection_id: string
+          created_at: string
+          enabled: boolean
+          id: string
+          incremental_page_token: string | null
+          incremental_scan_started_at: string | null
+          last_error_code: string | null
+          last_reply_reconciliation_at: string | null
+          last_successful_sync_at: string | null
+          lease_until: string | null
+          next_reply_reconciliation_at: string | null
+          next_sync_at: string
+          reply_reconciliation_page_token: string | null
+          reply_reconciliation_status: string
+          sync_interval_minutes: number
+          updated_at: string
+          workspace_id: string
+          youtube_channel_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "channel_comment_sync_settings"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       select_youtube_channel: {
         Args: { target_channel_id: string; target_workspace_id: string }
         Returns: undefined
       }
+      set_channel_comment_sync_enabled: {
+        Args: { target_enabled: boolean; target_workspace_id: string }
+        Returns: {
+          backfill_page_token: string | null
+          backfill_start_at: string
+          backfill_status: string
+          connection_id: string
+          created_at: string
+          enabled: boolean
+          id: string
+          incremental_page_token: string | null
+          incremental_scan_started_at: string | null
+          last_error_code: string | null
+          last_reply_reconciliation_at: string | null
+          last_successful_sync_at: string | null
+          lease_until: string | null
+          next_reply_reconciliation_at: string | null
+          next_sync_at: string
+          reply_reconciliation_page_token: string | null
+          reply_reconciliation_status: string
+          sync_interval_minutes: number
+          updated_at: string
+          workspace_id: string
+          youtube_channel_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "channel_comment_sync_settings"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      store_channel_sync_comment_item: {
+        Args: {
+          target_author_avatar_url: string
+          target_author_channel_id: string
+          target_author_display_name: string
+          target_claim_token: string
+          target_import_job_id: string
+          target_like_count: number
+          target_parent_youtube_comment_id: string
+          target_payload: Json
+          target_published_at: string
+          target_run_id: string
+          target_source_moderation_status: string
+          target_text_display: string
+          target_text_original: string
+          target_updated_at: string
+          target_workspace_id: string
+          target_youtube_comment_id: string
+          target_youtube_video_id: string
+        }
+        Returns: {
+          disposition: string
+          raw_comment_id: string
+        }[]
+      }
       store_import_comment_item: {
+        Args: {
+          target_author_avatar_url: string
+          target_author_channel_id: string
+          target_author_display_name: string
+          target_import_job_id: string
+          target_like_count: number
+          target_parent_youtube_comment_id: string
+          target_payload: Json
+          target_published_at: string
+          target_source_moderation_status: string
+          target_text_display: string
+          target_text_original: string
+          target_updated_at: string
+          target_workspace_id: string
+          target_youtube_comment_id: string
+          target_youtube_video_id: string
+        }
+        Returns: {
+          disposition: string
+          raw_comment_id: string
+        }[]
+      }
+      store_import_comment_item_internal: {
         Args: {
           target_author_avatar_url: string
           target_author_channel_id: string
@@ -2181,6 +3369,57 @@ export type CompositeTypes<
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
+
+type ExpectTrue<T extends true> = T
+type IsNullable<T> = null extends T ? true : false
+
+export type ChannelCommentSyncDatabaseTypeAssertions = {
+  globalClaimPageToken: ExpectTrue<
+    IsNullable<
+      Database["public"]["Functions"]["claim_channel_comment_sync_work"]["Returns"][number]["page_token"]
+    >
+  >
+  globalClaimLastSuccessfulSyncAt: ExpectTrue<
+    IsNullable<
+      Database["public"]["Functions"]["claim_channel_comment_sync_work"]["Returns"][number]["last_successful_sync_at"]
+    >
+  >
+  globalClaimIncrementalScanStartedAt: ExpectTrue<
+    IsNullable<
+      Database["public"]["Functions"]["claim_channel_comment_sync_work"]["Returns"][number]["incremental_scan_started_at"]
+    >
+  >
+  workspaceClaimPageToken: ExpectTrue<
+    IsNullable<
+      Database["public"]["Functions"]["claim_channel_comment_sync_work_for_workspace"]["Returns"][number]["page_token"]
+    >
+  >
+  workspaceClaimLastSuccessfulSyncAt: ExpectTrue<
+    IsNullable<
+      Database["public"]["Functions"]["claim_channel_comment_sync_work_for_workspace"]["Returns"][number]["last_successful_sync_at"]
+    >
+  >
+  workspaceClaimIncrementalScanStartedAt: ExpectTrue<
+    IsNullable<
+      Database["public"]["Functions"]["claim_channel_comment_sync_work_for_workspace"]["Returns"][number]["incremental_scan_started_at"]
+    >
+  >
+  internalClaimWorkspaceSentinel: ExpectTrue<
+    IsNullable<
+      Database["public"]["Functions"]["claim_channel_comment_sync_work_internal"]["Args"]["target_workspace_id"]
+    >
+  >
+  completeNextPageToken: ExpectTrue<
+    IsNullable<
+      Database["public"]["Functions"]["complete_channel_comment_sync_run"]["Args"]["target_next_page_token"]
+    >
+  >
+  completeReplyCursor: ExpectTrue<
+    IsNullable<
+      Database["public"]["Functions"]["complete_channel_comment_sync_run"]["Args"]["target_reply_cursor"]
+    >
+  >
+}
 
 export const Constants = {
   graphql_public: {

@@ -5,6 +5,38 @@ import type {
 } from "@/features/analysis/contracts";
 
 export type InboxAnalysisState = "analyzed" | "pending" | "failed";
+export type InboxClassificationStatus = "decided" | "review_queue";
+
+export type InboxClassificationStageTrace = {
+  status: "succeeded" | "failed" | "refused";
+  modelIdentifier: string;
+  providerResponseId: string | null;
+  promptVersion: string | null;
+  latencyMs: number | null;
+  usage: Record<string, number>;
+  output: Record<string, unknown>;
+  errorCode: string | null;
+};
+
+export type InboxClassificationTrace = {
+  moderation: InboxClassificationStageTrace | null;
+  luna: InboxClassificationStageTrace | null;
+  branch: {
+    outcome: "instant_safe" | "verify";
+    reasons: string[];
+    protection: Record<string, unknown>;
+  } | null;
+  terra: InboxClassificationStageTrace | null;
+  final: {
+    status: InboxClassificationStatus;
+    level: ReviewLevel | null;
+    basis: string;
+    hideSource: boolean;
+    raisedByModeration: boolean;
+    reasonCodes: string[];
+    recommendedActions: string[];
+  } | null;
+};
 export type InboxActionState =
   | "pending_confirmation"
   | "awaiting_scope"
@@ -40,6 +72,8 @@ export type InboxItem = {
   sourceAvailable: boolean;
   safeSourceText: string | null;
   analysisId: string | null;
+  classificationStatus: InboxClassificationStatus | null;
+  classificationTrace: InboxClassificationTrace | null;
   category: CommentCategory | null;
   reviewLevel: ReviewLevel | null;
   confidence: number | null;

@@ -6,6 +6,8 @@ import type {
 import type {
   InboxActionState,
   InboxAnalysisState,
+  InboxClassificationStatus,
+  InboxClassificationTrace,
   InboxItem,
   InboxReply,
   InboxRepository,
@@ -38,6 +40,8 @@ type InboxRpcRow = {
   source_available: boolean;
   safe_source_text: string | null;
   analysis_id: string | null;
+  classification_status?: unknown;
+  classification_trace?: unknown;
   category: InboxItem["category"];
   review_level: InboxItem["reviewLevel"];
   confidence: number | null;
@@ -75,6 +79,18 @@ type InboxRpc = (
 
 const optionalString = (value: unknown) =>
   typeof value === "string" ? value : null;
+
+const classificationStatus = (
+  value: unknown,
+): InboxClassificationStatus | null =>
+  value === "decided" || value === "review_queue" ? value : null;
+
+const classificationTrace = (
+  value: unknown,
+): InboxClassificationTrace | null =>
+  typeof value === "object" && value !== null
+    ? (value as InboxClassificationTrace)
+    : null;
 
 const rpcReplies = (value: unknown): InboxRpcReply[] =>
   Array.isArray(value)
@@ -150,6 +166,10 @@ export const createSupabaseInboxRepository = ({
         sourceAvailable: row.source_available,
         safeSourceText: row.safe_source_text,
         analysisId: row.analysis_id,
+        classificationStatus: classificationStatus(
+          row.classification_status,
+        ),
+        classificationTrace: classificationTrace(row.classification_trace),
         category: row.category,
         reviewLevel: row.review_level,
         confidence: row.confidence,

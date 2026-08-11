@@ -60,7 +60,7 @@ values (
   20
 );
 
-select plan(4);
+select plan(6);
 
 select results_eq(
   $$
@@ -96,6 +96,31 @@ select results_eq(
       'video-import',
       'comment-1',
       null,
+      'author-1',
+      'Author One',
+      null,
+      'first immutable text',
+      'first immutable text',
+      3,
+      'published',
+      '2026-07-23T00:00:00Z',
+      '2026-07-23T00:00:00Z',
+      '{"version":"first"}'::jsonb
+    )
+  $$,
+  $$ values ('duplicate'::text) $$,
+  'the same YouTube comment is reported as a duplicate'
+);
+
+select results_eq(
+  $$
+    select disposition
+    from public.store_import_comment_item(
+      '88888888-8888-8888-8888-888888888888',
+      '77777777-7777-7777-7777-777777777777',
+      'video-import',
+      'comment-1',
+      null,
       'author-2',
       'Changed Author',
       null,
@@ -108,8 +133,8 @@ select results_eq(
       '{"version":"changed"}'::jsonb
     )
   $$,
-  $$ values ('duplicate'::text) $$,
-  'the same YouTube comment is reported as a duplicate'
+  $$ values ('updated'::text) $$,
+  'a changed provider snapshot is recorded as updated'
 );
 
 select results_eq(
@@ -121,6 +146,18 @@ select results_eq(
   $$,
   $$ values ('first immutable text'::text) $$,
   'a duplicate import never overwrites the preserved source text'
+);
+
+select is(
+  (
+    select count(*)::integer
+    from public.comment_source_observations cso
+    join public.raw_comments rc on rc.id = cso.raw_comment_id
+    where rc.workspace_id = '77777777-7777-7777-7777-777777777777'
+      and rc.youtube_comment_id = 'comment-1'
+  ),
+  2,
+  'the first capture and changed provider snapshot are stored separately'
 );
 
 select results_eq(

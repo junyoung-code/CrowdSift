@@ -27,6 +27,12 @@ type ImportProgressInput = {
     totalCount: number;
     completedCount: number;
     failedCount: number;
+    verdictCounts: {
+      safe: number;
+      caution: number;
+      risk: number;
+      reviewQueue: number;
+    };
   } | null;
 };
 
@@ -54,6 +60,12 @@ export type ImportJobProgress = {
     totalCount: number;
     completedCount: number;
     failedCount: number;
+    verdictCounts: {
+      safe: number;
+      caution: number;
+      risk: number;
+      reviewQueue: number;
+    };
   } | null;
 };
 
@@ -95,6 +107,7 @@ export function toImportJobProgress({
           totalCount: analysisJob.totalCount,
           completedCount: analysisJob.completedCount,
           failedCount: analysisJob.failedCount,
+          verdictCounts: analysisJob.verdictCounts,
         }
       : null,
   };

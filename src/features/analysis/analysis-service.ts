@@ -276,7 +276,6 @@ export const createAnalysisService = ({
         });
         const contextSensitive = detectContextSensitivePattern({
           sourceText: item.sourceText,
-          threadContext: item.threadContext,
         });
         const route = routeStageOne({
           stageOne: result.output,

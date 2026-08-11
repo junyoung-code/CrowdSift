@@ -3,22 +3,14 @@ begin;
 create extension if not exists pgtap with schema extensions;
 
 insert into auth.users (
-  id,
-  aud,
-  role,
-  email,
-  encrypted_password,
-  email_confirmed_at,
-  raw_app_meta_data,
-  raw_user_meta_data,
-  created_at,
-  updated_at
+  id, aud, role, email, encrypted_password, email_confirmed_at,
+  raw_app_meta_data, raw_user_meta_data, created_at, updated_at
 )
 values (
   'a0300000-0000-4000-8000-000000000001',
   'authenticated',
   'authenticated',
-  'conversation-owner@example.test',
+  'classification-inbox@example.test',
   '',
   now(),
   '{"provider":"email","providers":["email"]}',
@@ -31,7 +23,7 @@ insert into public.workspaces (id, owner_user_id, name)
 values (
   'a0300000-0000-4000-8000-000000000002',
   'a0300000-0000-4000-8000-000000000001',
-  'Conversation workspace'
+  'Classification Inbox'
 );
 
 insert into public.workspace_members (workspace_id, user_id, role)
@@ -42,331 +34,192 @@ values (
 );
 
 insert into public.youtube_videos (
-  workspace_id,
-  youtube_channel_id,
-  youtube_video_id,
-  title,
-  thumbnail_url,
-  published_at
+  workspace_id, youtube_channel_id, youtube_video_id, title
 )
 values (
   'a0300000-0000-4000-8000-000000000002',
-  'channel-conversation',
-  'video-conversation',
-  '등산 필수 장비 7가지',
-  'https://i.ytimg.com/conversation.jpg',
-  '2026-07-25T00:00:00Z'
+  'channel-classification',
+  'video-classification',
+  '분류 테스트 영상'
 );
 
 insert into public.comment_import_jobs (
-  id,
-  workspace_id,
-  youtube_video_id,
-  requested_top_level_count
+  id, workspace_id, youtube_video_id, requested_top_level_count, status
 )
 values (
   'a0300000-0000-4000-8000-000000000003',
   'a0300000-0000-4000-8000-000000000002',
-  'video-conversation',
-  20
+  'video-classification',
+  20,
+  'succeeded'
 );
 
 insert into public.raw_comments (
-  id,
-  workspace_id,
-  youtube_video_id,
-  youtube_comment_id,
-  parent_youtube_comment_id,
-  author_display_name,
-  text_display,
-  like_count,
-  published_at,
-  first_import_job_id
+  id, workspace_id, youtube_video_id, youtube_comment_id,
+  parent_youtube_comment_id, author_display_name, text_display,
+  published_at, first_import_job_id
 )
 values
   (
     'a0300000-0000-4000-8000-000000000004',
     'a0300000-0000-4000-8000-000000000002',
-    'video-conversation',
-    'parent-conversation',
+    'video-classification',
+    'parent-classification',
     null,
-    'hike_with_me',
-    '3:20 구간 설명이 이해가 안 돼요.',
-    12,
-    '2026-07-28T10:00:00Z',
+    'viewer',
+    '편집 개느리네.',
+    '2026-08-07T10:00:00Z',
     'a0300000-0000-4000-8000-000000000003'
   ),
   (
     'a0300000-0000-4000-8000-000000000005',
     'a0300000-0000-4000-8000-000000000002',
-    'video-conversation',
-    'reply-safe',
-    'parent-conversation',
-    'creator_hj',
+    'video-classification',
+    'reply-classification',
+    'parent-classification',
+    'creator',
     '좋은 지적 감사합니다.',
-    5,
-    '2026-07-28T10:10:00Z',
-    'a0300000-0000-4000-8000-000000000003'
-  ),
-  (
-    'a0300000-0000-4000-8000-000000000006',
-    'a0300000-0000-4000-8000-000000000002',
-    'video-conversation',
-    'reply-caution',
-    'parent-conversation',
-    'climb_diary',
-    '주의 답글 원문',
-    3,
-    '2026-07-28T10:20:00Z',
-    'a0300000-0000-4000-8000-000000000003'
-  ),
-  (
-    'a0300000-0000-4000-8000-000000000013',
-    'a0300000-0000-4000-8000-000000000002',
-    'video-conversation',
-    'reply-risk',
-    'parent-conversation',
-    'blocked_viewer',
-    '위험 답글 원문',
-    1,
-    '2026-07-28T10:30:00Z',
+    '2026-08-07T10:05:00Z',
     'a0300000-0000-4000-8000-000000000003'
   );
 
 insert into public.comment_import_items (
-  import_job_id,
-  workspace_id,
-  youtube_comment_id,
-  raw_comment_id,
-  status
+  import_job_id, workspace_id, youtube_comment_id, raw_comment_id, status
 )
 values
   (
     'a0300000-0000-4000-8000-000000000003',
     'a0300000-0000-4000-8000-000000000002',
-    'parent-conversation',
+    'parent-classification',
     'a0300000-0000-4000-8000-000000000004',
     'succeeded'
   ),
   (
     'a0300000-0000-4000-8000-000000000003',
     'a0300000-0000-4000-8000-000000000002',
-    'reply-safe',
+    'reply-classification',
     'a0300000-0000-4000-8000-000000000005',
-    'succeeded'
-  ),
-  (
-    'a0300000-0000-4000-8000-000000000003',
-    'a0300000-0000-4000-8000-000000000002',
-    'reply-caution',
-    'a0300000-0000-4000-8000-000000000006',
-    'succeeded'
-  ),
-  (
-    'a0300000-0000-4000-8000-000000000003',
-    'a0300000-0000-4000-8000-000000000002',
-    'reply-risk',
-    'a0300000-0000-4000-8000-000000000013',
     'succeeded'
   );
 
-insert into public.model_runs (
-  id,
-  workspace_id,
-  raw_comment_id,
-  stage,
-  provider,
-  model_identifier,
-  idempotency_key,
-  prompt_version,
-  schema_version,
-  policy_version,
-  status
+insert into public.analysis_jobs (
+  id, workspace_id, import_job_id, configuration_key,
+  status, total_count, completed_count
+)
+values (
+  'a0300000-0000-4000-8000-000000000006',
+  'a0300000-0000-4000-8000-000000000002',
+  'a0300000-0000-4000-8000-000000000003',
+  'classification-v1-test',
+  'succeeded',
+  2,
+  2
+);
+
+insert into public.analysis_job_items (
+  id, analysis_job_id, workspace_id, raw_comment_id, status
 )
 values
   (
     'a0300000-0000-4000-8000-000000000007',
+    'a0300000-0000-4000-8000-000000000006',
     'a0300000-0000-4000-8000-000000000002',
     'a0300000-0000-4000-8000-000000000004',
-    1,
-    'fixture',
-    'fixture-model',
-    'conversation-parent-run',
-    'fixture-v1',
-    'fixture-v1',
-    1,
     'succeeded'
   ),
   (
     'a0300000-0000-4000-8000-000000000008',
+    'a0300000-0000-4000-8000-000000000006',
     'a0300000-0000-4000-8000-000000000002',
     'a0300000-0000-4000-8000-000000000005',
-    1,
-    'fixture',
-    'fixture-model',
-    'conversation-safe-reply-run',
-    'fixture-v1',
-    'fixture-v1',
-    1,
-    'succeeded'
-  ),
-  (
-    'a0300000-0000-4000-8000-000000000009',
-    'a0300000-0000-4000-8000-000000000002',
-    'a0300000-0000-4000-8000-000000000006',
-    1,
-    'fixture',
-    'fixture-model',
-    'conversation-caution-reply-run',
-    'fixture-v1',
-    'fixture-v1',
-    1,
-    'succeeded'
-  ),
-  (
-    'a0300000-0000-4000-8000-000000000014',
-    'a0300000-0000-4000-8000-000000000002',
-    'a0300000-0000-4000-8000-000000000013',
-    1,
-    'fixture',
-    'fixture-model',
-    'conversation-risk-reply-run',
-    'fixture-v1',
-    'fixture-v1',
-    1,
     'succeeded'
   );
 
-insert into public.comment_analyses (
-  id,
-  workspace_id,
-  raw_comment_id,
-  model_run_id,
-  stage,
-  category,
-  confidence,
-  review_level,
-  toxicity,
-  spam,
-  phishing,
-  actionable_feedback,
-  recommended_action,
-  manual_review,
-  evidence_review,
-  explanation,
-  policy_version,
-  provenance
+insert into public.classification_stage_runs (
+  workspace_id, raw_comment_id, analysis_job_item_id, stage,
+  provider, model_identifier, idempotency_key, prompt_version,
+  schema_version, policy_version, latency_ms, usage, status, output
 )
 values
   (
-    'a0300000-0000-4000-8000-000000000010',
     'a0300000-0000-4000-8000-000000000002',
     'a0300000-0000-4000-8000-000000000004',
     'a0300000-0000-4000-8000-000000000007',
+    'moderation',
+    'openai',
+    'omni-moderation-latest',
+    'classification-test-moderation',
+    null,
+    'classification-v1',
     1,
-    'constructive_feedback',
-    0.82,
+    10,
+    '{}',
+    'succeeded',
+    '{"flagged":true,"categories":["harassment"],"unknownCategories":[],"categoryScores":{"harassment":0.82}}'
+  ),
+  (
+    'a0300000-0000-4000-8000-000000000002',
+    'a0300000-0000-4000-8000-000000000004',
+    'a0300000-0000-4000-8000-000000000007',
+    'luna',
+    'openai',
+    'gpt-5.6-luna',
+    'classification-test-luna',
+    'luna-v1',
+    'classification-v1',
+    1,
+    20,
+    '{"inputTokens":10,"outputTokens":5,"totalTokens":15}',
+    'succeeded',
+    '{"candidateLevel":"caution","certainty":"clear","feedbackPresent":true,"locationOrScheduleMention":false,"sensitiveTopicMatched":false,"hardRiskFlags":[],"softRiskFlags":["profanity"],"matchedRules":[]}'
+  );
+
+insert into public.classification_branches (
+  workspace_id, raw_comment_id, analysis_job_item_id,
+  outcome, reasons, protection
+)
+values (
+  'a0300000-0000-4000-8000-000000000002',
+  'a0300000-0000-4000-8000-000000000004',
+  'a0300000-0000-4000-8000-000000000007',
+  'verify',
+  '["luna_caution","moderation_flagged"]',
+  '{"hideSourceBeforeVerdict":true,"moderationMinimumLevel":"caution","maySignalSelfHarmCase":false}'
+);
+
+insert into public.classification_verdicts (
+  workspace_id, raw_comment_id, analysis_job_item_id, status, level,
+  basis, agreed_with_first_pass, hide_source, recommended_actions,
+  reason_codes, feedback_type, feedback_core
+)
+values
+  (
+    'a0300000-0000-4000-8000-000000000002',
+    'a0300000-0000-4000-8000-000000000004',
+    'a0300000-0000-4000-8000-000000000007',
+    'decided',
     'caution',
-    0.2,
-    0.01,
-    0.01,
+    'both_agreed',
     true,
-    'review',
     true,
-    false,
-    '설명 개선 요청',
-    1,
-    '{}'
+    '["show_rewritten_only"]',
+    '["profanity"]',
+    'actionable',
+    '편집 흐름을 빠르게 해 달라는 요청'
   ),
   (
-    'a0300000-0000-4000-8000-000000000011',
     'a0300000-0000-4000-8000-000000000002',
     'a0300000-0000-4000-8000-000000000005',
     'a0300000-0000-4000-8000-000000000008',
-    1,
-    'positive',
-    0.98,
+    'decided',
     'safe',
-    0.01,
-    0.01,
-    0.01,
+    'instant_safe',
+    null,
     false,
+    '["show_source"]',
+    '[]',
     'none',
-    false,
-    false,
-    '안전한 작성자 답글',
-    1,
-    '{}'
-  ),
-  (
-    'a0300000-0000-4000-8000-000000000012',
-    'a0300000-0000-4000-8000-000000000002',
-    'a0300000-0000-4000-8000-000000000006',
-    'a0300000-0000-4000-8000-000000000009',
-    1,
-    'toxic_but_actionable',
-    0.76,
-    'caution',
-    0.55,
-    0.01,
-    0.01,
-    true,
-    'review',
-    true,
-    false,
-    '주의가 필요한 답글',
-    1,
-    '{}'
-  ),
-  (
-    'a0300000-0000-4000-8000-000000000015',
-    'a0300000-0000-4000-8000-000000000002',
-    'a0300000-0000-4000-8000-000000000013',
-    'a0300000-0000-4000-8000-000000000014',
-    1,
-    'abusive_no_signal',
-    0.96,
-    'risk',
-    0.95,
-    0.01,
-    0.01,
-    false,
-    'reject',
-    true,
-    true,
-    '원문 보호가 필요한 답글',
-    1,
-    '{}'
-  );
-
-insert into public.sanitized_feedback (
-  workspace_id,
-  analysis_id,
-  neutral_text,
-  normalized_question,
-  no_signal
-)
-values
-  (
-    'a0300000-0000-4000-8000-000000000002',
-    'a0300000-0000-4000-8000-000000000010',
-    '3:20 구간을 다른 방식으로 설명해 달라는 요청',
-    null,
-    false
-  ),
-  (
-    'a0300000-0000-4000-8000-000000000002',
-    'a0300000-0000-4000-8000-000000000011',
-    '좋은 지적 감사합니다.',
-    null,
-    false
-  ),
-  (
-    'a0300000-0000-4000-8000-000000000002',
-    'a0300000-0000-4000-8000-000000000012',
-    '다른 방법도 궁금하다는 의견',
-    null,
-    false
+    null
   );
 
 select plan(6);
@@ -387,7 +240,7 @@ select is(
     )
   ),
   1,
-  'conversation Inbox returns top-level rows only'
+  'classification Inbox returns one top-level comment'
 );
 
 select is(
@@ -397,8 +250,8 @@ select is(
       target_workspace_id => 'a0300000-0000-4000-8000-000000000002'
     )
   ),
-  3::bigint,
-  'conversation rows count stored replies'
+  1::bigint,
+  'classification Inbox keeps stored replies'
 );
 
 select is(
@@ -408,8 +261,19 @@ select is(
       target_workspace_id => 'a0300000-0000-4000-8000-000000000002'
     )
   ),
-  '3:20 구간 설명이 이해가 안 돼요.',
-  'caution top-level source is available in the conversation'
+  null,
+  'caution source is hidden by the final verdict'
+);
+
+select is(
+  (
+    select neutral_text
+    from public.get_inbox_conversation_page(
+      target_workspace_id => 'a0300000-0000-4000-8000-000000000002'
+    )
+  ),
+  '편집 흐름을 빠르게 해 달라는 요청',
+  'feedback core is available without exposing source text'
 );
 
 select is(
@@ -420,29 +284,19 @@ select is(
     )
   ),
   '좋은 지적 감사합니다.',
-  'safe reply source is available in the conversation'
+  'safe reply source remains visible'
 );
 
 select is(
   (
-    select replies -> 1 ->> 'safeSourceText'
+    select classification_trace -> 'moderation' -> 'output'
+      -> 'categoryScores' ->> 'harassment'
     from public.get_inbox_conversation_page(
       target_workspace_id => 'a0300000-0000-4000-8000-000000000002'
     )
   ),
-  '주의 답글 원문',
-  'caution reply source is available in the conversation'
-);
-
-select is(
-  (
-    select replies -> 2 ->> 'safeSourceText'
-    from public.get_inbox_conversation_page(
-      target_workspace_id => 'a0300000-0000-4000-8000-000000000002'
-    )
-  ),
-  null,
-  'risk reply source is omitted from the conversation'
+  '0.82',
+  'classification trace preserves the moderation score'
 );
 
 select * from finish();

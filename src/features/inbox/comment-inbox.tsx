@@ -32,6 +32,7 @@ import type {
   InboxReply,
 } from "./inbox-query";
 import { SourceReveal } from "./source-reveal";
+import { ClassificationTrace } from "./classification-trace";
 
 const LEVEL_DETAILS: Record<
   ReviewLevel,
@@ -53,7 +54,7 @@ const CATEGORY_LABELS: Record<CommentCategory, string> = {
   phishing: "피싱 의심",
   harassment: "괴롭힘",
   threat_or_serious_risk: "협박·심각한 위험",
-  uncertain: "판단 어려움",
+  uncertain: "시프티가 보기에 안전해요!",
 };
 
 const RECOMMENDED_ACTION_LABELS: Record<RecommendedAction, string> = {
@@ -111,7 +112,7 @@ const getReplySummary = (reply: InboxReply) =>
   "안전 검토 전까지 답글 원문을 표시하지 않습니다.";
 
 const isInitiallyVisibleSource = (level: ReviewLevel | null) =>
-  level === "safe" || level === "caution";
+  level === "safe";
 
 const getQueuePreview = (item: InboxItem) =>
   isInitiallyVisibleSource(item.reviewLevel) &&
@@ -127,10 +128,78 @@ const getRelativeDate = (value: string | null) => {
   if (!value) return "작성 시각 없음";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "작성 시각 없음";
-  return new Intl.DateTimeFormat("ko-KR", {
-    month: "short",
-    day: "numeric",
-  }).format(date);
+  const difference = Date.now() - date.getTime();
+  if (difference <= 0) return "방금 전";
+
+  const minutes = Math.floor(difference / 60_000);
+  if (minutes < 1) return "방금 전";
+  if (minutes < 60) return `${minutes}분 전`;
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}시간 전`;
+
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}일 전`;
+
+  const weeks = Math.floor(days / 7);
+  if (weeks < 5) return `${weeks}주 전`;
+
+  const months = Math.floor(days / 30);
+  if (months < 12) return `${months}개월 전`;
+
+  return `${Math.floor(days / 365)}년 전`;
+};
+
+const INSIGHT_DESCRIPTIONS: Record<CommentCategory, string> = {
+  positive: "긍정적인 반응으로, 현재 운영 방향을 유지하는 데 참고할 수 있습니다.",
+  neutral: "명확한 요청이나 위해 신호가 없는 중립적인 반응입니다.",
+  question: "답변이 필요한 질문으로, 운영자가 내용을 확인하는 것이 좋습니다.",
+  constructive_feedback:
+    "사용자의 개선 제안이나 요구사항으로, 제품·서비스 개선에 도움이 됩니다.",
+  toxic_but_actionable:
+    "거친 표현이 포함됐지만 운영에 참고할 수 있는 요청이 남아 있습니다.",
+  abusive_no_signal:
+    "운영에 참고할 정보 없이 공격적인 표현이 중심인 댓글입니다.",
+  spam_advertisement: "반복 홍보나 무관한 광고 가능성이 있는 댓글입니다.",
+  phishing: "외부 이동이나 정보 제공을 유도하는 피싱 가능성이 있습니다.",
+  harassment: "특정인을 향한 괴롭힘이나 모욕 가능성이 있는 댓글입니다.",
+  threat_or_serious_risk:
+    "위협 또는 심각한 위해 가능성이 있어 우선 확인이 필요합니다.",
+  uncertain: "판단 근거가 충분하지 않아 운영자의 직접 검토가 필요합니다.",
+};
+
+const getQueueContextLabel = (item: InboxItem) => {
+  if (item.reviewLevel === "risk") return "위험 댓글 · 내용 보호됨";
+  if (
+    item.category === "constructive_feedback" ||
+    item.category === "toxic_but_actionable"
+  ) {
+    return "시프티가 찾은 긍정적 피드백";
+  }
+  if (item.reviewLevel === "caution") return "주의 댓글 · 원문 보호됨";
+  return item.category ? CATEGORY_LABELS[item.category] : "시프티 분석 대기";
+};
+
+const getInsightDescription = (item: InboxItem) =>
+  item.category
+    ? INSIGHT_DESCRIPTIONS[item.category]
+    : "분석이 완료되면 댓글 유형과 운영상 의미를 표시합니다.";
+
+const getCertainty = (item: InboxItem) => {
+  const trace = item.classificationTrace;
+  const stage = trace?.terra ?? trace?.luna;
+  const certainty =
+    stage?.status === "succeeded" &&
+    typeof stage.output.certainty === "string"
+      ? stage.output.certainty
+      : null;
+  const labels: Record<string, string> = {
+    clear: "높음",
+    borderline: "경계",
+    unclear: "재검토 필요",
+  };
+
+  return certainty ? `${labels[certainty] ?? "확인 필요"} · ${certainty}` : "분석 전";
 };
 
 const buildParameters = (
@@ -186,7 +255,28 @@ function Avatar({
   );
 }
 
-function ReviewBadge({ level }: { level: ReviewLevel | null }) {
+function ShiftyAvatar() {
+  return (
+    <Image
+      alt="시프티 프로필"
+      className="inbox-shifty-avatar"
+      height={18}
+      src="/brand/shifty-owl-profile.png"
+      width={18}
+    />
+  );
+}
+
+function ReviewBadge({
+  classificationStatus,
+  level,
+}: {
+  level: ReviewLevel | null;
+  classificationStatus?: InboxItem["classificationStatus"];
+}) {
+  if (classificationStatus === "review_queue") {
+    return <span className="review-level review-level-caution">판단 보류</span>;
+  }
   if (!level) {
     return <span className="review-level">등급 없음</span>;
   }
@@ -514,30 +604,6 @@ export function CommentInbox({
                   ))}
                 </select>
               </label>
-              <label>
-                <span>최소 신뢰도</span>
-                <input
-                  defaultValue={filters.minConfidence ?? ""}
-                  max="1"
-                  min="0"
-                  name="minConfidence"
-                  placeholder="0.00"
-                  step="0.01"
-                  type="number"
-                />
-              </label>
-              <label>
-                <span>최대 신뢰도</span>
-                <input
-                  defaultValue={filters.maxConfidence ?? ""}
-                  max="1"
-                  min="0"
-                  name="maxConfidence"
-                  placeholder="1.00"
-                  step="0.01"
-                  type="number"
-                />
-              </label>
             </div>
           </details>
 
@@ -606,20 +672,58 @@ export function CommentInbox({
                         <small>{getRelativeDate(item.publishedAt)}</small>
                       </span>
                     </Link>
+                    <span
+                      className={`inbox-queue-context inbox-queue-context-${item.reviewLevel ?? "pending"}`}
+                    >
+                      {item.reviewLevel === "risk" ||
+                      item.category === "constructive_feedback" ||
+                      item.category === "toxic_but_actionable" ||
+                      item.category === "uncertain" ? (
+                        <ShiftyAvatar />
+                      ) : null}
+                      {getQueueContextLabel(item)}
+                    </span>
                     <p className="inbox-sanitized-feedback">
                       {getQueuePreview(item)}
                     </p>
-                    <div className="inbox-queue-item-meta">
+                    <div className="inbox-queue-video">
+                      {item.videoThumbnailUrl ? (
+                        <Image
+                          alt={`${item.videoTitle ?? "선택한 영상"} 썸네일`}
+                          height={36}
+                          src={item.videoThumbnailUrl}
+                          unoptimized
+                          width={58}
+                        />
+                      ) : null}
                       <span>
-                        <Heart aria-hidden="true" />
-                        {item.likeCount}
+                        {item.videoTitle ??
+                          videos.find(
+                            (video) => video.id === item.youtubeVideoId,
+                          )?.title ??
+                          item.youtubeVideoId}
                       </span>
-                      <ReviewBadge level={item.reviewLevel} />
                     </div>
-                    <Link className="inbox-reply-disclosure" href={itemHref}>
-                      <ChatCircleDots aria-hidden="true" weight="fill" />
-                      답글 {item.replyCount}개 보기
-                    </Link>
+                    <div className="inbox-queue-item-meta">
+                      <div>
+                        <span>
+                          <Heart aria-hidden="true" />
+                          좋아요 {item.likeCount}
+                        </span>
+                        {item.replyCount > 0 ? (
+                          <span>
+                            <ChatCircleDots aria-hidden="true" />
+                            답글 {item.replyCount}개
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
+                    {item.replyCount > 0 ? (
+                      <Link className="inbox-reply-disclosure" href={itemHref}>
+                        <ChatCircleDots aria-hidden="true" weight="fill" />
+                        답글 {item.replyCount}개 보기
+                      </Link>
+                    ) : null}
                   </article>
                 );
               })}
@@ -674,7 +778,10 @@ export function CommentInbox({
                         </strong>
                         <span>{getRelativeDate(selectedItem.publishedAt)}</span>
                       </div>
-                      <ReviewBadge level={selectedItem.reviewLevel} />
+                      <ReviewBadge
+                        classificationStatus={selectedItem.classificationStatus}
+                        level={selectedItem.reviewLevel}
+                      />
                     </div>
 
                     {isInitiallyVisibleSource(selectedItem.reviewLevel) &&
@@ -687,14 +794,29 @@ export function CommentInbox({
                         textDisplay={selectedItem.safeSourceText}
                       />
                     ) : (
-                      <div className="inbox-protected-source">
+                      <div
+                        className={`inbox-protected-source inbox-protected-source-${selectedItem.reviewLevel ?? "pending"}`}
+                      >
                         <span>
-                          <Sparkle aria-hidden="true" weight="fill" />
-                          AI가 정리한 핵심
+                          <ShiftyAvatar />
+                          {selectedItem.reviewLevel === "risk"
+                            ? "시프티 분석 결과"
+                            : getQueueContextLabel(selectedItem)}
                         </span>
                         <p>{getPrimarySummary(selectedItem)}</p>
                         {selectedItem.sourceAvailable ? (
-                          <SourceReveal commentId={selectedItem.rawCommentId} />
+                          <div className="inbox-source-warning-row">
+                            <span>
+                              <ShieldWarning aria-hidden="true" />
+                              {selectedItem.reviewLevel === "risk"
+                                ? "원문에는 유해한 표현이 포함될 수 있습니다."
+                                : "원문에는 거친 표현이 포함될 수 있습니다."}
+                            </span>
+                            <SourceReveal
+                              commentId={selectedItem.rawCommentId}
+                              key={selectedItem.rawCommentId}
+                            />
+                          </div>
                         ) : (
                           <p className="source-unavailable">
                             YouTube에서 더 이상 원문을 확인할 수 없습니다.
@@ -802,8 +924,16 @@ export function CommentInbox({
                 </header>
 
                 <div className="inbox-insight-summary">
-                  <ReviewBadge level={selectedItem.reviewLevel} />
-                  <strong>{getPrimarySummary(selectedItem)}</strong>
+                  <ReviewBadge
+                    classificationStatus={selectedItem.classificationStatus}
+                    level={selectedItem.reviewLevel}
+                  />
+                  <strong>
+                    {selectedItem.category
+                      ? CATEGORY_LABELS[selectedItem.category]
+                      : "분석 준비 중"}
+                  </strong>
+                  <p>{getInsightDescription(selectedItem)}</p>
                   <span>
                     {ANALYSIS_STATE_LABELS[selectedItem.analysisState]}
                   </span>
@@ -819,12 +949,8 @@ export function CommentInbox({
                     </dd>
                   </div>
                   <div>
-                    <dt>신뢰도</dt>
-                    <dd>
-                      {selectedItem.confidence === null
-                        ? "—"
-                        : `${Math.round(selectedItem.confidence * 100)}%`}
-                    </dd>
+                    <dt>확실성</dt>
+                    <dd>{getCertainty(selectedItem)}</dd>
                   </div>
                   <div>
                     <dt>추천</dt>
@@ -858,6 +984,10 @@ export function CommentInbox({
                     <span className="source-readonly-badge">읽기 전용</span>
                   ) : null}
                 </div>
+
+                {selectedItem.classificationTrace ? (
+                  <ClassificationTrace trace={selectedItem.classificationTrace} />
+                ) : null}
 
                 <CorrectionForm
                   correctionAction={correctionAction}

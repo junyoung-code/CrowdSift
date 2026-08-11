@@ -25,12 +25,22 @@ const serverEnvSchema = z.object({
   OPENAI_STAGE1_MODEL: z.string().min(1).optional(),
   OPENAI_STAGE2_MODEL: z.string().min(1).optional(),
   OPENAI_EMBEDDING_MODEL: z.string().default("text-embedding-3-small"),
+  // 댓글 분류 파이프라인 v1
+  OPENAI_MODERATION_MODEL: z.string().default("omni-moderation-latest"),
+  OPENAI_LUNA_MODEL: z.string().default("gpt-5.6-luna"),
+  OPENAI_TERRA_MODEL: z.string().default("gpt-5.6-terra"),
   EXTERNAL_PROVIDER_MODE: z.enum(["live", "fixture"]).default("live"),
   ALLOW_FIXTURE_PROVIDERS: z
     .enum(["true", "false"])
     .default("false")
     .transform((value) => value === "true"),
+  ENABLE_DEVELOPER_TOOLS: z
+    .enum(["true", "false"])
+    .default("false")
+    .transform((value) => value === "true"),
+  DEVELOPER_USER_IDS: z.string().default(""),
   INTERNAL_WORKER_SECRET: z.string().min(32).optional(),
+  CRON_SECRET: z.string().min(32).optional(),
   APP_ORIGIN: z.url(),
 });
 

@@ -6,7 +6,9 @@ export type RuleSignalKind =
   | "context_exception"
   | "repetition"
   | "suspicious_url"
-  | "phishing_pattern";
+  | "phishing_pattern"
+  | "abuse_lexicon"
+  | "spam_lexicon";
 
 export type PhraseRule = {
   id: string;

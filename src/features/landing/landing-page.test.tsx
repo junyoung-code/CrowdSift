@@ -44,4 +44,43 @@ describe("LandingPage", () => {
     expect(within(preview).getAllByText("주의").length).toBeGreaterThan(0);
     expect(within(preview).getAllByText("위험").length).toBeGreaterThan(0);
   });
+
+  it("preserves semantic sections and sign-in destinations after motion composition", () => {
+    render(<LandingPage />);
+
+    const problems = screen.getByRole("region", {
+      name: "댓글이 많아질수록 중요한 신호는 더 쉽게 묻힙니다",
+    });
+    const solutions = screen.getByRole("region", {
+      name: "삭제보다 먼저, 이해하고 분리합니다",
+    });
+    const analysis = screen.getByRole("region", {
+      name: "두 번 분석하고, 마지막 판단은 크리에이터가 합니다",
+    });
+
+    expect(within(problems).getAllByRole("article")).toHaveLength(3);
+    expect(within(solutions).getAllByRole("article")).toHaveLength(3);
+    within(problems)
+      .getAllByRole("article")
+      .forEach((article) => expect(article).toHaveClass("landing-reveal-card"));
+    within(solutions)
+      .getAllByRole("article")
+      .forEach((article) => expect(article).toHaveClass("landing-reveal-card"));
+
+    expect(
+      screen.getByRole("region", { name: "제품 예시 화면" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("region", { name: "제품 예시 화면 - AI 분석 데모" }),
+    ).toBeInTheDocument();
+    expect(within(analysis).getAllByRole("button")).toHaveLength(4);
+    expect(
+      screen.getByRole("heading", { name: "먼저 YouTube에서 시작합니다" }),
+    ).toBeInTheDocument();
+
+    screen
+      .getAllByRole("link")
+      .filter((link) => /시작|로그인/.test(link.textContent ?? ""))
+      .forEach((link) => expect(link).toHaveAttribute("href", "/auth/sign-in"));
+  });
 });

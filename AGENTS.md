@@ -16,3 +16,10 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - Keep secrets server-side. Commit only `.env.example`, never a populated `.env` file.
 - Before reporting a change as complete, run `npm run lint` and `npm run build`.
 - Prefer the smallest implementation that advances the approved vertical slice. Do not add billing, multi-platform support, or unrelated dashboards without a new decision.
+
+## Skill usage
+
+- Do not invoke `superpowers:using-superpowers` automatically at the start of every turn.
+- Use Superpowers skills only when the user explicitly requests one or when the task clearly matches a skill and materially benefits from its workflow.
+- Do not load Superpowers skills for simple questions, status checks, file inspection, or straightforward commands.
+- When skills are useful, use the minimum set required for the task.

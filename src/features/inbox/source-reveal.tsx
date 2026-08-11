@@ -16,7 +16,12 @@ export function SourceReveal({
   label = "원문 확인",
 }: SourceRevealProps) {
   const [warningOpen, setWarningOpen] = useState(false);
-  const [source, setSource] = useState<CommentSource | null>(null);
+  // Kept with the id it was fetched for: a revealed source must never survive a switch
+  // to another comment, or the reader would judge one comment by another's words.
+  const [revealed, setRevealed] = useState<{
+    commentId: string;
+    source: CommentSource;
+  } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const revealButtonRef = useRef<HTMLButtonElement>(null);
@@ -72,7 +77,10 @@ export function SourceReveal({
         throw new Error("source_request_failed");
       }
 
-      setSource((await response.json()) as CommentSource);
+      setRevealed({
+        commentId,
+        source: (await response.json()) as CommentSource,
+      });
       setWarningOpen(false);
     } catch {
       setError("원문을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.");
@@ -80,6 +88,9 @@ export function SourceReveal({
       setLoading(false);
     }
   };
+
+  const source =
+    revealed && revealed.commentId === commentId ? revealed.source : null;
 
   if (source) {
     return (
@@ -95,7 +106,7 @@ export function SourceReveal({
         <button
           className="button button-secondary source-collapse-button"
           onClick={() => {
-            setSource(null);
+            setRevealed(null);
             setError(null);
           }}
           type="button"

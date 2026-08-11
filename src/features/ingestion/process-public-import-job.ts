@@ -1,7 +1,5 @@
 import "server-only";
 
-import { createHash } from "node:crypto";
-
 import { getServerEnv } from "@/lib/env";
 import { withRetry } from "@/lib/retry";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
@@ -29,6 +27,7 @@ import {
   type PublicImportRepository,
 } from "./public-import-service";
 import { ImportProcessingError } from "./import-errors";
+import { createClassificationConfigurationKey } from "@/features/classification/configuration";
 
 type AdminClient = ReturnType<typeof createAdminSupabaseClient>;
 
@@ -40,26 +39,14 @@ const createAnalysisConfigurationKey = ({
   policyVersion: number;
 }) => {
   const environment = getServerEnv();
-  const fixtureMode = environment.EXTERNAL_PROVIDER_MODE === "fixture";
 
-  return createHash("sha256")
-    .update(
-      JSON.stringify({
-        policyVersion,
-        promptVersion: "stage-1-v1",
-        providerMode: environment.EXTERNAL_PROVIDER_MODE,
-        stageOneModel: fixtureMode
-          ? "fixture-analysis-v1"
-          : environment.OPENAI_STAGE1_MODEL ??
-            environment.OPENAI_ANALYSIS_MODEL,
-        stageTwoModel: fixtureMode
-          ? "fixture-analysis-v1"
-          : environment.OPENAI_STAGE2_MODEL ??
-            environment.OPENAI_ANALYSIS_MODEL,
-        schemaVersion: "comment-analysis-v1",
-      }),
-    )
-    .digest("hex");
+  return createClassificationConfigurationKey({
+    policyVersion,
+    providerMode: environment.EXTERNAL_PROVIDER_MODE,
+    moderationModel: environment.OPENAI_MODERATION_MODEL,
+    lunaModel: environment.OPENAI_LUNA_MODEL,
+    terraModel: environment.OPENAI_TERRA_MODEL,
+  });
 };
 
 const createPublicImportRepository = (

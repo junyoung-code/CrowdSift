@@ -1,3 +1,5 @@
+"use client";
+
 import {
   BellSimple,
   ChartBar,
@@ -7,15 +9,112 @@ import {
   Sparkle,
   VideoCamera,
   WarningCircle,
-} from "@phosphor-icons/react/dist/ssr";
+} from "@phosphor-icons/react";
+import {
+  motion,
+  usePageInView,
+  useScroll,
+  useTransform,
+} from "motion/react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
-import { previewMetrics, previewReviewLevels } from "./landing-copy";
+import {
+  heroPreviewStates,
+  previewMetrics,
+  previewReviewLevels,
+} from "./landing-copy";
+import { landingMotion } from "./landing-motion";
+import { useViewportPresence } from "./use-viewport-presence";
 
 const metricIcons = [ChatCircleDots, CheckCircle, WarningCircle, BellSimple];
 
+function usePrefersReducedMotion() {
+  return useSyncExternalStore(
+    (onStoreChange) => {
+      if (typeof window.matchMedia !== "function") return () => {};
+      const query = window.matchMedia("(prefers-reduced-motion: reduce)");
+      query.addEventListener("change", onStoreChange);
+      return () => query.removeEventListener("change", onStoreChange);
+    },
+    () =>
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+    () => false,
+  );
+}
+
+function useIsMobileViewport() {
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
+
+  useEffect(() => {
+    if (typeof window.matchMedia !== "function") return;
+
+    const query = window.matchMedia("(max-width: 767px)");
+    const updateViewport = () => setIsMobileViewport(query.matches);
+
+    updateViewport();
+    query.addEventListener("change", updateViewport);
+    return () => query.removeEventListener("change", updateViewport);
+  }, []);
+
+  return isMobileViewport;
+}
+
 export function ProductPreview() {
+  const previewRef = useRef<HTMLElement>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [isManual, setIsManual] = useState(false);
+  const isPageInView = usePageInView();
+  const shouldReduceMotion = usePrefersReducedMotion();
+  const isMobileViewport = useIsMobileViewport();
+  const { scrollYProgress } = useScroll({
+    target: previewRef,
+    offset: ["start start", "end start"],
+  });
+  const y = useTransform(
+    scrollYProgress,
+    [0, 1],
+    [0, landingMotion.distance.parallax],
+  );
+  const rotate = useTransform(
+    scrollYProgress,
+    [0, 1],
+    [0, landingMotion.tilt],
+  );
+  const scale = useTransform(scrollYProgress, [0, 1], [1, 0.985]);
+  const activeState = heroPreviewStates[activeIndex];
+  const isInView = useViewportPresence(previewRef, {
+    amount: 0.25,
+    onLeave: () => {
+      setActiveIndex(0);
+      setIsManual(false);
+    },
+  });
+
+  useEffect(() => {
+    if (shouldReduceMotion || !isInView || !isPageInView || isManual) return;
+
+    const interval = window.setInterval(() => {
+      setActiveIndex((current) => (current + 1) % heroPreviewStates.length);
+    }, 4500);
+
+    return () => window.clearInterval(interval);
+  }, [isInView, isManual, isPageInView, shouldReduceMotion]);
+
   return (
-    <section className="product-preview" aria-label="제품 예시 화면">
+    <motion.section
+      className="product-preview"
+      aria-label="제품 예시 화면"
+      data-scroll-motion={
+        shouldReduceMotion || isMobileViewport ? "disabled" : "enabled"
+      }
+      ref={previewRef}
+      style={
+        shouldReduceMotion || isMobileViewport
+          ? undefined
+          : { y, rotate, scale }
+      }
+    >
       <p className="preview-label">
         <Sparkle aria-hidden="true" weight="fill" />
         제품 예시 화면
@@ -33,11 +132,39 @@ export function ProductPreview() {
         </div>
 
         <div className="preview-shell">
+          <div className="preview-state-tabs" role="tablist" aria-label="제품 예시 단계">
+            {heroPreviewStates.map((state, index) => (
+              <button
+                aria-selected={activeIndex === index}
+                className={`preview-state-tab preview-state-${state.tone}`}
+                key={state.id}
+                onClick={() => {
+                  setActiveIndex(index);
+                  setIsManual(true);
+                }}
+                role="tab"
+                type="button"
+              >
+                {state.tabLabel}
+              </button>
+            ))}
+          </div>
+
           <div className="preview-title-row">
-            <div>
-              <span className="preview-kicker">댓글 운영 현황</span>
-              <strong>오늘의 댓글을 먼저 정리했어요</strong>
-            </div>
+            <motion.div
+              animate={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+              aria-live="polite"
+              initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
+              key={activeState.id}
+              transition={
+                shouldReduceMotion
+                  ? { duration: 0 }
+                  : { duration: landingMotion.duration.base, ease: landingMotion.ease }
+              }
+            >
+              <span className="preview-kicker">{activeState.kicker}</span>
+              <strong>{activeState.title}</strong>
+            </motion.div>
             <span className="preview-video">
               <VideoCamera aria-hidden="true" weight="fill" />
               최근 영상
@@ -46,16 +173,59 @@ export function ProductPreview() {
 
           <div className="preview-main">
             <div className="preview-metrics">
-              {previewMetrics.map(({ label, value, tone }, index) => {
+              {previewMetrics.map(({ label, tone }, index) => {
                 const Icon = metricIcons[index];
+                const delay = index * 0.06;
 
                 return (
-                  <article className={`metric-card metric-${tone}`} key={label}>
-                    <span>
-                      {label}
-                      <Icon aria-hidden="true" weight="bold" />
-                    </span>
-                    <strong>{value}</strong>
+                  <article key={label}>
+                    <motion.div
+                      animate={
+                        shouldReduceMotion
+                          ? { opacity: 1 }
+                          : { opacity: 1, y: 0 }
+                      }
+                      className={`metric-card metric-${tone}`}
+                      initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
+                      key={`${activeState.id}-${label}-card`}
+                      transition={
+                        shouldReduceMotion
+                          ? { duration: 0 }
+                          : {
+                              delay,
+                              duration: landingMotion.duration.base,
+                              ease: landingMotion.ease,
+                            }
+                      }
+                      whileHover={shouldReduceMotion ? undefined : { y: -3 }}
+                    >
+                      <span>
+                        {label}
+                        <Icon aria-hidden="true" weight="bold" />
+                      </span>
+                      <motion.strong
+                        animate={
+                          shouldReduceMotion
+                            ? { opacity: 1 }
+                            : { opacity: 1, y: 0 }
+                        }
+                        initial={
+                          shouldReduceMotion ? false : { opacity: 0, y: 6 }
+                        }
+                        key={`${activeState.id}-${label}-value`}
+                        transition={
+                          shouldReduceMotion
+                            ? { duration: 0 }
+                            : {
+                                delay,
+                                duration: landingMotion.duration.base,
+                                ease: landingMotion.ease,
+                              }
+                        }
+                      >
+                        {activeState.metricValues[index]}
+                      </motion.strong>
+                    </motion.div>
                   </article>
                 );
               })}
@@ -68,8 +238,29 @@ export function ProductPreview() {
               </div>
               <ul>
                 {previewReviewLevels.map(
-                  ({ label, count, description, tone }) => (
-                    <li className={`level-row level-${tone}`} key={label}>
+                  ({ label, description, tone }, index) => (
+                    <motion.li
+                      animate={
+                        shouldReduceMotion
+                          ? { opacity: 1 }
+                          : { opacity: 1, y: 0 }
+                      }
+                      className={`level-row level-${tone}`}
+                      data-emphasized={activeState.emphasis === tone}
+                      data-testid={`review-level-${tone}`}
+                      initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
+                      key={`${activeState.id}-${label}`}
+                      transition={
+                        shouldReduceMotion
+                          ? { duration: 0 }
+                          : {
+                              delay: index * 0.06,
+                              duration: landingMotion.duration.base,
+                              ease: landingMotion.ease,
+                            }
+                      }
+                      whileHover={shouldReduceMotion ? undefined : { y: -3 }}
+                    >
                       <span className="level-icon" aria-hidden="true">
                         {tone === "safe" ? "✓" : "!"}
                       </span>
@@ -77,26 +268,52 @@ export function ProductPreview() {
                         <strong>{label}</strong>
                         <small>{description}</small>
                       </span>
-                      <b>{count}</b>
-                    </li>
+                      <b>{activeState.reviewCounts[index]}</b>
+                    </motion.li>
                   ),
                 )}
               </ul>
             </div>
           </div>
 
-          <aside className="preview-insight">
+          <motion.aside
+            animate={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+            className="preview-insight"
+            initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
+            key={`${activeState.id}-insight`}
+            transition={
+              shouldReduceMotion
+                ? { duration: 0 }
+                : {
+                    delay: 0.18,
+                    duration: landingMotion.duration.base,
+                    ease: landingMotion.ease,
+                  }
+            }
+          >
             <span className="insight-icon" aria-hidden="true">
               <Sparkle weight="fill" />
             </span>
             <div>
               <strong>AI 요약</strong>
-              <p>반복 질문과 배송 관련 개선 의견이 늘었습니다.</p>
+              <p>{activeState.summary}</p>
             </div>
-            <span className="insight-badge">검토 23건</span>
-          </aside>
+            <motion.span
+              animate={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, scale: 1 }}
+              className={`insight-badge insight-badge-${activeState.tone}`}
+              initial={shouldReduceMotion ? false : { opacity: 0, scale: 0.96 }}
+              key={`${activeState.id}-status`}
+              transition={
+                shouldReduceMotion
+                  ? { duration: 0 }
+                  : { duration: landingMotion.duration.base, ease: landingMotion.ease }
+              }
+            >
+              {activeState.status}
+            </motion.span>
+          </motion.aside>
         </div>
       </div>
-    </section>
+    </motion.section>
   );
 }

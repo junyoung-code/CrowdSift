@@ -1,7 +1,7 @@
 import { revalidatePath } from "next/cache";
 
 import { requireViewer } from "@/features/auth/require-viewer";
-import { processAnalysisChunk } from "@/features/analysis/process-analysis-job";
+import { processClassificationChunk } from "@/features/classification/process-classification-job";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 
 export async function POST(
@@ -36,7 +36,7 @@ export async function POST(
       : 5;
 
   try {
-    const progress = await processAnalysisChunk(job.id, maxItems);
+    const progress = await processClassificationChunk(job.id, maxItems);
     revalidatePath("/app");
     revalidatePath("/app/inbox");
     revalidatePath("/app/comments");

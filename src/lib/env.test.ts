@@ -43,6 +43,17 @@ describe("parseServerEnv", () => {
     ).toBe(true);
   });
 
+  it("parses developer-tools permission and keeps the server-only allowlist", () => {
+    const parsed = parseServerEnv({
+      ...validEnvironment,
+      ENABLE_DEVELOPER_TOOLS: "true",
+      DEVELOPER_USER_IDS: "user-1,user-2",
+    });
+
+    expect(parsed.ENABLE_DEVELOPER_TOOLS).toBe(true);
+    expect(parsed.DEVELOPER_USER_IDS).toBe("user-1,user-2");
+  });
+
   it("accepts a strong optional internal worker secret", () => {
     expect(
       parseServerEnv({
@@ -50,5 +61,23 @@ describe("parseServerEnv", () => {
         INTERNAL_WORKER_SECRET: "w".repeat(32),
       }).INTERNAL_WORKER_SECRET,
     ).toBe("w".repeat(32));
+  });
+
+  it("accepts a strong optional cron secret", () => {
+    expect(
+      parseServerEnv({
+        ...validEnvironment,
+        CRON_SECRET: "c".repeat(32),
+      }).CRON_SECRET,
+    ).toBe("c".repeat(32));
+  });
+
+  it("rejects a short cron secret", () => {
+    expect(() =>
+      parseServerEnv({
+        ...validEnvironment,
+        CRON_SECRET: "too-short",
+      }),
+    ).toThrow(/CRON_SECRET/);
   });
 });

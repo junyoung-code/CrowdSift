@@ -1,4 +1,18 @@
-create or replace function public.get_inbox_conversation_page(
+drop function if exists public.get_inbox_conversation_page(
+  uuid,
+  public.review_level[],
+  public.comment_category,
+  text,
+  text,
+  public.action_state,
+  text,
+  real,
+  real,
+  integer,
+  integer
+);
+
+create function public.get_inbox_conversation_page(
   target_workspace_id uuid,
   review_levels public.review_level[] default array[
     'caution'::public.review_level,
@@ -28,6 +42,8 @@ returns table (
   source_available boolean,
   safe_source_text text,
   analysis_id uuid,
+  classification_status text,
+  classification_trace jsonb,
   category public.comment_category,
   review_level public.review_level,
   confidence real,
@@ -101,17 +117,15 @@ begin
       reply.like_count,
       reply.source_deleted_at is null as source_available,
       case
-        when reply_analysis.review_level in (
-          'safe'::public.review_level,
-          'caution'::public.review_level
-        )
+        when reply_verdict.level = 'safe'::public.review_level
+          and not reply_verdict.hide_source
           and reply.source_deleted_at is null
         then reply.text_display
         else null
       end as safe_source_text,
-      reply_analysis.review_level,
-      reply_feedback.neutral_text,
-      reply_feedback.normalized_question
+      reply_verdict.level as review_level,
+      reply_verdict.feedback_core as neutral_text,
+      null::text as normalized_question
     from selected_observations reply_observation
     join public.raw_comments reply
       on reply.id = reply_observation.raw_comment_id
@@ -119,12 +133,14 @@ begin
     join public.raw_comments parent
       on parent.workspace_id = reply.workspace_id
       and parent.youtube_comment_id = reply.parent_youtube_comment_id
-    left join public.current_comment_analyses reply_analysis
-      on reply_analysis.raw_comment_id = reply.id
-      and reply_analysis.workspace_id = reply.workspace_id
-    left join public.sanitized_feedback reply_feedback
-      on reply_feedback.analysis_id = reply_analysis.id
-      and reply_feedback.workspace_id = reply.workspace_id
+    left join lateral (
+      select cv.level, cv.hide_source, cv.feedback_core
+      from public.classification_verdicts cv
+      where cv.workspace_id = reply.workspace_id
+        and cv.raw_comment_id = reply.id
+      order by cv.created_at desc, cv.id desc
+      limit 1
+    ) reply_verdict on true
     where reply.parent_youtube_comment_id is not null
   ),
   reply_threads as (
@@ -163,25 +179,54 @@ begin
       rc.like_count,
       rc.source_deleted_at is null as source_available,
       case
-        when cca.review_level in (
-          'safe'::public.review_level,
-          'caution'::public.review_level
-        )
+        when coalesce(latest_feedback.corrected_level, cv.level)
+          = 'safe'::public.review_level
+          and not cv.hide_source
           and rc.source_deleted_at is null
         then rc.text_display
         else null
       end as safe_source_text,
       rc.text_display as source_search_text,
-      cca.id as analysis_id,
-      cca.category,
-      cca.review_level,
-      cca.confidence,
-      cca.recommended_action,
-      cca.manual_review,
-      sf.neutral_text,
-      sf.normalized_question,
+      cv.id as analysis_id,
+      cv.status as classification_status,
+      case when cv.id is null then null else jsonb_build_object(
+        'moderation', stage_runs.data -> 'moderation',
+        'luna', stage_runs.data -> 'luna',
+        'branch', case when cb.id is null then null else jsonb_build_object(
+          'outcome', cb.outcome,
+          'reasons', cb.reasons,
+          'protection', cb.protection
+        ) end,
+        'terra', stage_runs.data -> 'terra',
+        'final', jsonb_build_object(
+          'status', cv.status,
+          'level', coalesce(latest_feedback.corrected_level, cv.level),
+          'basis', cv.basis,
+          'hideSource', cv.hide_source,
+          'raisedByModeration', cv.raised_by_moderation,
+          'reasonCodes', cv.reason_codes,
+          'recommendedActions', cv.recommended_actions
+        )
+      ) end as classification_trace,
+      case cv.feedback_type
+        when 'question' then 'question'::public.comment_category
+        when 'actionable' then 'constructive_feedback'::public.comment_category
+        when 'preference' then 'constructive_feedback'::public.comment_category
+        else 'uncertain'::public.comment_category
+      end as category,
+      coalesce(latest_feedback.corrected_level, cv.level) as review_level,
+      null::real as confidence,
       case
-        when cca.id is not null then 'analyzed'
+        when cv.level = 'safe'::public.review_level
+          then 'none'::public.recommended_action
+        else 'review'::public.recommended_action
+      end as recommended_action,
+      cv.status = 'review_queue' as manual_review,
+      coalesce(latest_feedback.edited_feedback_core, cv.feedback_core)
+        as neutral_text,
+      null::text as normalized_question,
+      case
+        when cv.id is not null then 'analyzed'
         when observation_analysis.status = 'failed' then 'failed'
         else 'pending'
       end as analysis_state,
@@ -195,7 +240,7 @@ begin
       ) as delete_eligible,
       coalesce(reply_threads.reply_count, 0::bigint) as reply_count,
       coalesce(reply_threads.replies, '[]'::jsonb) as replies,
-      coalesce(cca.created_at, selected_observations.created_at) as priority_at
+      coalesce(cv.created_at, selected_observations.created_at) as priority_at
     from selected_observations
     join public.raw_comments rc
       on rc.id = selected_observations.raw_comment_id
@@ -203,12 +248,42 @@ begin
     left join public.youtube_videos yv
       on yv.workspace_id = rc.workspace_id
       and yv.youtube_video_id = rc.youtube_video_id
-    left join public.current_comment_analyses cca
-      on cca.raw_comment_id = rc.id
-      and cca.workspace_id = rc.workspace_id
-    left join public.sanitized_feedback sf
-      on sf.analysis_id = cca.id
-      and sf.workspace_id = rc.workspace_id
+    left join lateral (
+      select verdict.*
+      from public.classification_verdicts verdict
+      where verdict.workspace_id = rc.workspace_id
+        and verdict.raw_comment_id = rc.id
+      order by verdict.created_at desc, verdict.id desc
+      limit 1
+    ) cv on true
+    left join public.classification_branches cb
+      on cb.analysis_job_item_id = cv.analysis_job_item_id
+    left join lateral (
+      select jsonb_object_agg(
+        csr.stage,
+        jsonb_build_object(
+          'status', csr.status,
+          'modelIdentifier', csr.model_identifier,
+          'providerResponseId', csr.provider_response_id,
+          'promptVersion', csr.prompt_version,
+          'latencyMs', csr.latency_ms,
+          'usage', csr.usage,
+          'output', csr.output,
+          'errorCode', csr.error_code
+        )
+      ) as data
+      from public.classification_stage_runs csr
+      where csr.analysis_job_item_id = cv.analysis_job_item_id
+    ) stage_runs on true
+    left join lateral (
+      select cf.corrected_level, cf.edited_feedback_core
+      from public.classification_feedback cf
+      where cf.workspace_id = rc.workspace_id
+        and cf.raw_comment_id = rc.id
+        and cf.classification_verdict_id = cv.id
+      order by cf.created_at desc, cf.id desc
+      limit 1
+    ) latest_feedback on true
     left join reply_threads
       on reply_threads.parent_raw_comment_id = rc.id
     left join lateral (
@@ -248,6 +323,8 @@ begin
     ir.source_available,
     ir.safe_source_text,
     ir.analysis_id,
+    ir.classification_status,
+    ir.classification_trace,
     ir.category,
     ir.review_level,
     ir.confidence,
@@ -268,6 +345,7 @@ begin
     )
     and (
       analysis_state_filter in ('pending', 'failed')
+      or ir.classification_status = 'review_queue'
       or review_levels is null
       or ir.review_level = any(review_levels)
     )
@@ -280,19 +358,12 @@ begin
       search_query is null
       or search_query = ''
       or coalesce(ir.neutral_text, '') ilike '%' || search_query || '%'
-      or coalesce(ir.normalized_question, '') ilike '%' || search_query || '%'
       or ir.source_search_text ilike '%' || search_query || '%'
     )
   order by
-    case ir.review_level
-      when 'risk' then 0
-      when 'caution' then 1
-      when 'safe' then 2
-      else 3
-    end,
+    ir.published_at desc nulls last,
     ir.priority_at desc,
-    ir.raw_comment_id desc,
-    ir.source_import_job_id desc
+    ir.raw_comment_id desc
   limit least(greatest(page_size, 1), 100)
   offset greatest(page_offset, 0);
 end;

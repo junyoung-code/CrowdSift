@@ -278,12 +278,7 @@ begin
       or ir.source_search_text ilike '%' || search_query || '%'
     )
   order by
-    case ir.review_level
-      when 'risk' then 0
-      when 'caution' then 1
-      when 'safe' then 2
-      else 3
-    end,
+    ir.published_at desc nulls last,
     ir.priority_at desc,
     ir.raw_comment_id desc,
     ir.source_import_job_id desc
@@ -319,3 +314,4 @@ grant execute on function public.get_inbox_conversation_page(
   integer,
   integer
 ) to authenticated, service_role;
+
