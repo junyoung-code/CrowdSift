@@ -4491,6 +4491,27 @@ a {
   margin: 0 auto;
 }
 
+.developer-tools-page {
+  width: min(100%, 1040px);
+  margin: 0 auto;
+}
+
+.developer-tools-page > .import-explanation {
+  margin: 24px 0 0;
+}
+
+.developer-tools-page > .videos-page {
+  width: 100%;
+  margin-top: 34px;
+}
+
+.developer-tools-page .video-page-heading h2 {
+  margin: 0;
+  color: var(--ch-ink);
+  font-size: clamp(26px, 3vw, 36px);
+  letter-spacing: -0.045em;
+}
+
 .video-page-heading {
   display: flex;
   align-items: flex-end;

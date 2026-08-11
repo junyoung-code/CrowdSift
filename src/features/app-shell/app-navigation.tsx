@@ -4,7 +4,7 @@ import {
   ChatCircleDots,
   House,
   SlidersHorizontal,
-  Video,
+  Toolbox,
   YoutubeLogo,
 } from "@phosphor-icons/react";
 import Link from "next/link";
@@ -13,7 +13,6 @@ import { usePathname } from "next/navigation";
 const navigationItems = [
   { href: "/app", label: "개요", icon: House },
   { href: "/app/inbox", label: "댓글 Inbox", icon: ChatCircleDots },
-  { href: "/app/videos", label: "영상", icon: Video },
   {
     href: "/app/connect/youtube",
     label: "YouTube 연결",
@@ -31,12 +30,26 @@ export const isNavigationItemActive = (pathname: string, href: string) =>
     ? pathname === href
     : pathname === href || pathname.startsWith(`${href}/`);
 
-export function AppNavigation() {
+export function AppNavigation({
+  developerToolsEnabled = false,
+}: {
+  developerToolsEnabled?: boolean;
+}) {
   const pathname = usePathname() ?? "/app";
+  const items = developerToolsEnabled
+    ? [
+        ...navigationItems,
+        {
+          href: "/app/developer-tools",
+          label: "개발자 도구",
+          icon: Toolbox,
+        },
+      ]
+    : navigationItems;
 
   return (
     <nav className="product-navigation" aria-label="CrowdSift 메뉴">
-      {navigationItems.map(({ href, icon: Icon, label }) => {
+      {items.map(({ href, icon: Icon, label }) => {
         const active = isNavigationItemActive(pathname, href);
 
         return (

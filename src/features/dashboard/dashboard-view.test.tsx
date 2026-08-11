@@ -112,8 +112,8 @@ describe("DashboardView", () => {
     );
 
     expect(
-      screen.getByRole("link", { name: "첫 댓글 가져오기" }),
-    ).toBeInTheDocument();
+      screen.getByRole("link", { name: "자동 수집 설정하기" }),
+    ).toHaveAttribute("href", "/app/connect/youtube");
     expect(screen.queryByText("가져온 댓글")).not.toBeInTheDocument();
   });
 

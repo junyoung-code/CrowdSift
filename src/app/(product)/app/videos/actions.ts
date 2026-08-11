@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { requireViewer } from "@/features/auth/require-viewer";
+import { requireDeveloperToolsViewer } from "@/features/developer-tools/require-developer-tools-viewer";
 import {
   ImportProcessingError,
   processImportJob,
@@ -77,7 +77,7 @@ const loadYouTubeContext = async (workspaceId: string) => {
 };
 
 export const syncYouTubeVideosAction = async () => {
-  const { workspaceId } = await requireViewer();
+  const { workspaceId } = await requireDeveloperToolsViewer();
 
   try {
     const { admin, channelId, encryptionKey, tokens } =
@@ -153,14 +153,15 @@ export const syncYouTubeVideosAction = async () => {
       error instanceof Error && error.message === "permission_revoked"
         ? "permission_revoked"
         : "video_sync_failed";
-    redirect(`/app/videos?error=${reason}`);
+    redirect(`/app/developer-tools?error=${reason}`);
   }
 
-  revalidatePath("/app/videos");
-  redirect("/app/videos?synced=1");
+  revalidatePath("/app/developer-tools");
+  redirect("/app/developer-tools?synced=1");
 };
 
 export const importYouTubeCommentsAction = async (formData: FormData) => {
+  const { workspaceId } = await requireDeveloperToolsViewer();
   let request;
 
   try {
@@ -169,10 +170,9 @@ export const importYouTubeCommentsAction = async (formData: FormData) => {
       topLevelLimit: formData.get("topLevelLimit"),
     });
   } catch {
-    redirect("/app/videos?error=invalid_import_request");
+    redirect("/app/developer-tools?error=invalid_import_request");
   }
 
-  const { workspaceId } = await requireViewer();
   const admin = createAdminSupabaseClient();
   const [
     { data: video, error: videoError },
@@ -199,7 +199,7 @@ export const importYouTubeCommentsAction = async (formData: FormData) => {
     !selectedChannel ||
     video.youtube_channel_id !== selectedChannel.youtube_channel_id
   ) {
-    redirect("/app/videos?error=video_not_owned");
+    redirect("/app/developer-tools?error=video_not_owned");
   }
 
   const { data: job, error: jobError } = await admin
@@ -215,7 +215,7 @@ export const importYouTubeCommentsAction = async (formData: FormData) => {
     .single();
 
   if (jobError) {
-    redirect("/app/videos?error=job_create_failed");
+    redirect("/app/developer-tools?error=job_create_failed");
   }
 
   try {
@@ -223,9 +223,9 @@ export const importYouTubeCommentsAction = async (formData: FormData) => {
   } catch (error) {
     const reason =
       error instanceof ImportProcessingError ? error.code : "provider_error";
-    redirect(`/app/videos?job=${job.id}&error=${reason}`);
+    redirect(`/app/developer-tools?job=${job.id}&error=${reason}`);
   }
 
-  revalidatePath("/app/videos");
-  redirect(`/app/videos?job=${job.id}&imported=1`);
+  revalidatePath("/app/developer-tools");
+  redirect(`/app/developer-tools?job=${job.id}&imported=1`);
 };

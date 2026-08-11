@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import type { ChannelSyncProgress } from "./channel-sync-progress";
@@ -43,9 +42,6 @@ export function ChannelSyncSetup({
           댓글 가져오기 시작
         </button>
       </form>
-      <Link className="channel-sync-manual-link" href="/app/videos">
-        영상 하나로 분류 테스트
-      </Link>
     </div>
   );
 }
@@ -213,9 +209,6 @@ export function ChannelSyncProgressPanel({
               : "자동 동기화 다시 시작"}
           </button>
         </form>
-        <Link className="channel-sync-manual-link" href="/app/videos">
-          영상 하나로 분류 테스트
-        </Link>
       </div>
     </div>
   );

@@ -9,9 +9,11 @@ import { AppNavigation } from "./app-navigation";
 
 export function AppShell({
   children,
+  developerToolsEnabled = false,
   fixtureMode = false,
 }: {
   children: ReactNode;
+  developerToolsEnabled?: boolean;
   fixtureMode?: boolean;
 }) {
   return (
@@ -24,7 +26,7 @@ export function AppShell({
           <strong>CrowdSift</strong>
         </Link>
 
-        <AppNavigation />
+        <AppNavigation developerToolsEnabled={developerToolsEnabled} />
 
         <div className="product-sidebar-footer">
           <p>현재 단계</p>

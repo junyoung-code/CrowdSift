@@ -34,6 +34,11 @@ const serverEnvSchema = z.object({
     .enum(["true", "false"])
     .default("false")
     .transform((value) => value === "true"),
+  ENABLE_DEVELOPER_TOOLS: z
+    .enum(["true", "false"])
+    .default("false")
+    .transform((value) => value === "true"),
+  DEVELOPER_USER_IDS: z.string().default(""),
   INTERNAL_WORKER_SECRET: z.string().min(32).optional(),
   CRON_SECRET: z.string().min(32).optional(),
   APP_ORIGIN: z.url(),
