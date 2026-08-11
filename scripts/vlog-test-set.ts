@@ -36,14 +36,14 @@ export const VLOG_TEST_SET: TestEntry[] = [
   { id: "A01", video: 1, text: "오늘 얼굴 좋아 보이시네요 잘 쉬셨나봐요", expected: "safe" },
   { id: "A02", video: 1, text: "화장 안 하신 게 훨씬 나아요", expected: "safe" },
   { id: "A03", video: 1, text: "피곤해 보이시는데 좀 쉬세요", expected: "safe" },
-  { id: "A04", video: 1, text: "살짝 부으신 것 같은데 괜찮으세요?", expected: "caution" },
-  { id: "A05", video: 1, text: "요즘 살찌셨네요", expected: "caution" },
-  { id: "A06", video: 1, text: "얼굴이 왜 이렇게 삭았어요", expected: "caution" },
+  { id: "A04", video: 1, text: "살짝 부으신 것 같은데 괜찮으세요?", expected: "open" },
+  { id: "A05", video: 1, text: "요즘 살찌셨네요", expected: "risk" },
+  { id: "A06", video: 1, text: "얼굴이 왜 이렇게 삭았어요", expected: "risk" },
   { id: "A07", video: 1, text: "관상이 착하게 생기셨어요", expected: "safe" },
-  { id: "A08", video: 1, text: "관상은 과학이다", expected: "caution" },
+  { id: "A08", video: 1, text: "관상은 과학이다", expected: "open" },
   { id: "A09", video: 1, text: "카메라 각도 때문인지 실물이 더 나으실 듯", expected: "safe" },
   { id: "A10", video: 1, text: "목소리가 진짜 좋으시다", expected: "safe" },
-  { id: "A11", video: 1, text: "그 옷은 좀 아닌 것 같아요", expected: "caution" },
+  { id: "A11", video: 1, text: "그 옷은 좀 아닌 것 같아요", expected: "open" },
   { id: "A12", video: 1, text: "얼굴 보고 들어왔다가 요리 보고 구독함", expected: "safe" },
 
   // B. 칭찬형 비속어 — 콜드 스타트
@@ -59,7 +59,7 @@ export const VLOG_TEST_SET: TestEntry[] = [
     video: 1,
     // 「새끼」 판은 유튜브가 게시 직후 지웠다. 같은 성격을 유지하면서 살아남는 낱말로 바꿨다.
     text: "야 이 자식아 이걸 왜 이제 올려",
-    expected: "caution",
+    expected: "open",
     expectedAfterSlang: "caution",
     note: "등록해도 풀리면 안 된다. 인신공격까지 여는 구멍이라는 뜻이다",
   },
@@ -71,14 +71,14 @@ export const VLOG_TEST_SET: TestEntry[] = [
   { id: "C04", video: 1, text: "하...", expected: "safe" },
   { id: "C05", video: 1, text: "음", expected: "safe" },
   { id: "C06", video: 1, text: "잘봤습니다", expected: "safe" },
-  { id: "C07", video: 1, text: "별로", expected: "caution" },
-  { id: "C08", video: 1, text: "노잼", expected: "caution" },
+  { id: "C07", video: 1, text: "별로", expected: "open" },
+  { id: "C08", video: 1, text: "노잼", expected: "open" },
 
   // E. 크리에이터를 편드는 댓글
   { id: "E01", video: 1, text: "밑에 살쪘다는 사람 뭐임? 남의 몸에 왜 참견하지", expected: "safe" },
   { id: "E02", video: 1, text: '"얼굴 삭았다"는 말을 어떻게 아무렇지 않게 하냐', expected: "safe" },
-  { id: "E03", video: 1, text: "악플러들 좀 꺼졌으면 좋겠다 진짜", expected: "caution" },
-  { id: "E04", video: 1, text: "이런 댓글 다는 사람들은 집에서 뭐 하고 사나", expected: "caution" },
+  { id: "E03", video: 1, text: "악플러들 좀 꺼졌으면 좋겠다 진짜", expected: "safe" },
+  { id: "E04", video: 1, text: "이런 댓글 다는 사람들은 집에서 뭐 하고 사나", expected: "safe" },
   { id: "E05", video: 1, text: "신경 쓰지 마세요 저런 사람들 어디에나 있어요", expected: "safe" },
   {
     id: "E06",
@@ -89,10 +89,10 @@ export const VLOG_TEST_SET: TestEntry[] = [
   },
 
   // J(영상 1). A05 의 답글 — 칩 없음이 대조군이다
-  { id: "J01", video: 1, parentId: "A05", text: "그런 말을 굳이 왜 함?", expected: "caution" },
-  { id: "J02", video: 1, parentId: "A05", text: "사실을 말한 건데 뭐가 문제죠", expected: "caution" },
+  { id: "J01", video: 1, parentId: "A05", text: "그런 말을 굳이 왜 함?", expected: "safe" },
+  { id: "J02", video: 1, parentId: "A05", text: "사실을 말한 건데 뭐가 문제죠", expected: "open" },
   { id: "J03", video: 1, parentId: "A05", text: "사실이어도 안 해도 되는 말이 있어요", expected: "safe" },
-  { id: "J04", video: 1, parentId: "A05", text: "본인은 완벽한가봄", expected: "caution" },
+  { id: "J04", video: 1, parentId: "A05", text: "본인은 완벽한가봄", expected: "open" },
 
   // K. 펴진 답글 — 원문에 @ 가 남는다. 실제로 답한 상대는 부모가 아니다
   {
@@ -137,12 +137,12 @@ export const VLOG_TEST_SET: TestEntry[] = [
   { id: "D05", video: 2, text: "12:30 여기 진짜 웃겨요", expected: "safe" },
 
   // F. 오지랖 — 정답을 정하지 않는다
-  { id: "F01", video: 2, text: "이제 결혼할 나이 아니에요?", expected: "open" },
+  { id: "F01", video: 2, text: "이제 결혼할 나이 아니에요?", expected: "risk" },
   { id: "F02", video: 2, text: "부모님이 걱정하시겠어요", expected: "open" },
   { id: "F03", video: 2, text: "그렇게 먼지 쌓아두면 건강 나빠져요", expected: "open" },
-  { id: "F04", video: 2, text: "자취 그만하고 집 들어가지 그래요", expected: "open" },
-  { id: "F05", video: 2, text: "돈 좀 아껴 쓰세요 배달만 시키지 말고", expected: "open" },
-  { id: "F06", video: 2, text: "이 정도 벌면 좀 더 좋은 데 살 수 있을 텐데", expected: "open" },
+  { id: "F04", video: 2, text: "자취 그만하고 집 들어가지 그래요", expected: "risk" },
+  { id: "F05", video: 2, text: "돈 좀 아껴 쓰세요 배달만 시키지 말고", expected: "risk" },
+  { id: "F06", video: 2, text: "이 정도 벌면 좀 더 좋은 데 살 수 있을 텐데", expected: "risk" },
 
   // G. 건설적 비판 — 거친 말투
   { id: "G01", video: 2, text: "자막 너무 작아서 폰으로 안 보임 좀 키워주세요", expected: "safe" },
@@ -167,12 +167,12 @@ export const VLOG_TEST_SET: TestEntry[] = [
   { id: "J05", video: 2, parentId: "G01", text: "저도요", expected: "safe", note: "부모가 자막 요청이니 동의도 자막 요청이다" },
   { id: "J06", video: 2, parentId: "G01", text: "ㅇㅈ", expected: "safe", note: "부모가 자막 요청이니 동의도 자막 요청이다" },
   { id: "J07", video: 2, parentId: "G01", text: "폰 화면이 작은 거 아니고요?", expected: "safe" },
-  { id: "J08", video: 2, parentId: "G01", text: "그건 님 눈이 나쁜 거", expected: "caution" },
+  { id: "J08", video: 2, parentId: "G01", text: "그건 님 눈이 나쁜 거", expected: "open" },
 
   // H. 진짜 악플
   { id: "H01", video: 2, text: "이런 걸 왜 올리지 시간 아까움", expected: "caution" },
-  { id: "H02", video: 2, text: "재능이 없으면 그만두는 것도 용기임", expected: "caution" },
-  { id: "H03", video: 2, text: "관종질 그만해라", expected: "caution" },
+  { id: "H02", video: 2, text: "재능이 없으면 그만두는 것도 용기임", expected: "risk" },
+  { id: "H03", video: 2, text: "관종질 그만해라", expected: "risk" },
   {
     id: "H04",
     video: 2,

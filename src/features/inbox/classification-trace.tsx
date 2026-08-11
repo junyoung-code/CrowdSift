@@ -12,6 +12,23 @@ const LEVEL_LABELS: Record<string, string> = {
   risk: "위험",
 };
 
+/**
+ * 어떻게 그 등급에 이르렀는지.
+ *
+ * 이유 코드는 Terra 가 낸 것만 담긴다. 두 판단이 갈려 위험이 된 댓글은 Terra 가
+ * 위험이라고 하지 않았으므로 이유 코드가 비고, 화면에는 근거 없이 위험만 남는다.
+ * 그 빈자리를 메우는 것이 이 문장이다.
+ */
+const BASIS_LABELS: Record<string, string> = {
+  instant_safe: "1차에서 바로 안전으로 통과",
+  non_negotiable_risk_confirmed: "낮출 수 없는 신호를 2차가 확인",
+  verifier_uncertain: "2차가 정하지 못해 사람에게 넘김",
+  both_agreed: "두 판단이 같음",
+  danger_in_either: "두 판단이 갈려 높은 쪽을 택함",
+  verifier_decided_boundary: "안전·주의 경계를 2차가 근거를 대고 정함",
+  protective_on_boundary: "경계에서 확신이 없어 보호 쪽으로 둠",
+};
+
 const stringArray = (value: unknown) =>
   Array.isArray(value)
     ? value.filter((entry): entry is string => typeof entry === "string")
@@ -130,7 +147,9 @@ export function ClassificationTrace({
                 : trace.final?.level
                   ? LEVEL_LABELS[trace.final.level]
                   : "결과 없음"}
-              {trace.final?.basis ? ` · ${trace.final.basis}` : ""}
+              {trace.final?.basis
+                ? ` · ${BASIS_LABELS[trace.final.basis] ?? trace.final.basis}`
+                : ""}
             </p>
           </li>
         </ol>
