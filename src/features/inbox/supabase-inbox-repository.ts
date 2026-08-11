@@ -44,6 +44,7 @@ type InboxRpcRow = {
   classification_trace?: unknown;
   category: InboxItem["category"];
   review_level: InboxItem["reviewLevel"];
+  ai_review_level?: InboxItem["aiReviewLevel"];
   confidence: number | null;
   recommended_action: InboxItem["recommendedAction"];
   manual_review: boolean | null;
@@ -172,6 +173,7 @@ export const createSupabaseInboxRepository = ({
         classificationTrace: classificationTrace(row.classification_trace),
         category: row.category,
         reviewLevel: row.review_level,
+        aiReviewLevel: row.ai_review_level ?? null,
         confidence: row.confidence,
         recommendedAction: row.recommended_action,
         manualReview: row.manual_review,

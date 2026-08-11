@@ -53,6 +53,8 @@ export const saveCreatorCorrectionAction = async (formData: FormData) => {
       actor_user_id: userId,
       decision: correction.decision,
       corrected_level: correction.correctedReviewLevel,
+      corrected_category: correction.correctedCategory,
+      corrected_recommended_action: correction.correctedRecommendedAction,
       edited_feedback_core: correction.editedSanitizedFeedback,
       use_for_personalization: correction.useForPersonalization,
       use_for_training: correction.useForTraining,

@@ -607,7 +607,13 @@ export type Database = {
         Row: {
           actor_user_id: string
           classification_verdict_id: string
+          corrected_category:
+            | Database["public"]["Enums"]["comment_category"]
+            | null
           corrected_level: Database["public"]["Enums"]["review_level"] | null
+          corrected_recommended_action:
+            | Database["public"]["Enums"]["recommended_action"]
+            | null
           created_at: string
           decision: string
           edited_feedback_core: string | null
@@ -620,7 +626,13 @@ export type Database = {
         Insert: {
           actor_user_id: string
           classification_verdict_id: string
+          corrected_category?:
+            | Database["public"]["Enums"]["comment_category"]
+            | null
           corrected_level?: Database["public"]["Enums"]["review_level"] | null
+          corrected_recommended_action?:
+            | Database["public"]["Enums"]["recommended_action"]
+            | null
           created_at?: string
           decision: string
           edited_feedback_core?: string | null
@@ -633,7 +645,13 @@ export type Database = {
         Update: {
           actor_user_id?: string
           classification_verdict_id?: string
+          corrected_category?:
+            | Database["public"]["Enums"]["comment_category"]
+            | null
           corrected_level?: Database["public"]["Enums"]["review_level"] | null
+          corrected_recommended_action?:
+            | Database["public"]["Enums"]["recommended_action"]
+            | null
           created_at?: string
           decision?: string
           edited_feedback_core?: string | null
@@ -2908,6 +2926,7 @@ export type Database = {
         }
         Returns: {
           action_state: Database["public"]["Enums"]["action_state"]
+          ai_review_level: Database["public"]["Enums"]["review_level"]
           analysis_id: string
           analysis_state: string
           author_avatar_url: string

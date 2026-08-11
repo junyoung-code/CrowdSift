@@ -76,6 +76,12 @@ export type InboxItem = {
   classificationTrace: InboxClassificationTrace | null;
   category: CommentCategory | null;
   reviewLevel: ReviewLevel | null;
+  /**
+   * AI 가 마지막으로 낸 등급. reviewLevel 과 다르면 사람이 고쳐 놓은 것이다.
+   *
+   * 사람 손이 이기지만, 다시 분석해서 위험이 새로 나왔다면 그건 알려야 한다.
+   */
+  aiReviewLevel: ReviewLevel | null;
   confidence: number | null;
   recommendedAction: RecommendedAction | null;
   manualReview: boolean | null;

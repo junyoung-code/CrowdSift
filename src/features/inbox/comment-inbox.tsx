@@ -291,6 +291,31 @@ function ReviewBadge({
   );
 }
 
+/**
+ * 사람이 낮춰 둔 댓글을 AI 가 다시 보고 위험이라고 했을 때만 알린다.
+ *
+ * 등급을 되돌리지는 않는다. AI 는 추천하고 사람이 정하기 때문이다. 다만 새로
+ * 나온 위험 신호를 말없이 삼키면, 사람은 자기가 언제 판단했는지도 잊은 채
+ * 그 댓글을 안전한 것으로 계속 본다.
+ */
+function SupersededRiskNotice({ item }: { item: InboxItem }) {
+  if (item.aiReviewLevel !== "risk") return null;
+  if (item.reviewLevel === "risk") return null;
+
+  return (
+    <p className="inbox-superseded-risk" role="status">
+      <ShieldWarning aria-hidden="true" weight="fill" />
+      <span>
+        <strong>다시 분석했을 때 위험으로 나왔습니다</strong>
+        <small>
+          회원님이 내린 판단을 그대로 두었습니다. 등급을 다시 볼지는 직접
+          정해 주세요.
+        </small>
+      </span>
+    </p>
+  );
+}
+
 function CorrectionForm({
   correctionAction,
   item,
@@ -997,6 +1022,7 @@ export function CommentInbox({
                   <ClassificationTrace trace={selectedItem.classificationTrace} />
                 ) : null}
 
+                <SupersededRiskNotice item={selectedItem} />
                 <CorrectionForm
                   correctionAction={correctionAction}
                   item={selectedItem}

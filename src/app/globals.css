@@ -5734,6 +5734,45 @@ a {
   border: 1px solid #ddd8fb;
 }
 
+/*
+ * 사람이 낮춰 둔 판단을 AI 가 다시 위험이라고 했을 때만 나온다. 등급을 되돌리는
+ * 자리가 아니라 알리는 자리라서, 위험 배지만큼 세게 두지 않는다.
+ */
+.inbox-superseded-risk {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin: 0;
+  border: 1px solid color-mix(in srgb, var(--ch-risk) 26%, transparent);
+  border-radius: 12px;
+  padding: 12px 13px;
+  background: color-mix(in srgb, var(--ch-risk) 8%, transparent);
+}
+
+.inbox-superseded-risk > svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--ch-risk);
+}
+
+.inbox-superseded-risk span {
+  display: grid;
+  gap: 3px;
+}
+
+.inbox-superseded-risk strong {
+  color: var(--ch-ink);
+  font-size: 11px;
+  font-weight: 760;
+}
+
+.inbox-superseded-risk small {
+  color: var(--ch-muted);
+  font-size: 9px;
+  line-height: 1.5;
+  word-break: keep-all;
+}
+
 .inbox-moderation-actions {
   display: grid;
   gap: 7px;
@@ -7524,6 +7563,20 @@ a {
   margin: 0 16px 10px;
   border-color: var(--inbox-line);
   background: #101620;
+}
+
+.inbox-page .inbox-superseded-risk {
+  margin: 0 16px 10px;
+}
+
+.inbox-page .inbox-superseded-risk strong {
+  color: var(--inbox-text);
+  font-size: 12px;
+}
+
+.inbox-page .inbox-superseded-risk small {
+  color: var(--inbox-muted);
+  font-size: 10px;
 }
 
 /*

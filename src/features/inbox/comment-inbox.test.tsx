@@ -72,6 +72,7 @@ const item: InboxItem = {
   classificationTrace: null,
   category: "toxic_but_actionable",
   reviewLevel: "caution",
+  aiReviewLevel: "caution",
   confidence: 0.82,
   recommendedAction: "review",
   manualReview: true,
@@ -138,6 +139,40 @@ const renderInbox = (
       videos={[{ id: "video-1", title: "새 영상" }]}
     />,
   );
+
+describe("a judgement the AI has since raised", () => {
+  it("tells the creator without moving the level back", () => {
+    // AI 는 추천하고 사람이 정한다. 다만 새 위험 신호를 삼키지는 않는다.
+    renderInbox({ ...item, reviewLevel: "safe", aiReviewLevel: "risk" }, [
+      "safe",
+    ]);
+
+    expect(
+      screen.getByText("다시 분석했을 때 위험으로 나왔습니다"),
+    ).toBeInTheDocument();
+    expect(screen.getAllByText("안전").length).toBeGreaterThan(0);
+  });
+
+  it("stays quiet when the creator already sees the risk", () => {
+    renderInbox({ ...item, reviewLevel: "risk", aiReviewLevel: "risk" }, [
+      "risk",
+    ]);
+
+    expect(
+      screen.queryByText("다시 분석했을 때 위험으로 나왔습니다"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("stays quiet when the AI itself did not find risk", () => {
+    renderInbox({ ...item, reviewLevel: "safe", aiReviewLevel: "caution" }, [
+      "safe",
+    ]);
+
+    expect(
+      screen.queryByText("다시 분석했을 때 위험으로 나왔습니다"),
+    ).not.toBeInTheDocument();
+  });
+});
 
 describe("allowing a channel expression", () => {
   // 주의 댓글의 원문은 목록 데이터에 실려 오지 않는다. 그래서 등록 폼은 원문을
