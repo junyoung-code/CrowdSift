@@ -37,7 +37,7 @@ type Actual =
 const LABEL: Record<string, string> = {
   safe: "🟢안전",
   caution: "🟡주의",
-  danger: "🔴위험",
+  risk: "🔴위험",
   skip: "⛔제외",
   open: "  —  ",
 };

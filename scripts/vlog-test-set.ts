@@ -5,7 +5,8 @@
  * 댓글 원문을 열쇠로 쓰므로 **한 글자도 바꾸지 않는다.**
  */
 
-export type Expected = "safe" | "caution" | "danger" | "skip" | "open";
+/** DB 의 `review_level` 과 같은 이름을 쓴다. 모델 쪽 `danger` 가 아니다. */
+export type Expected = "safe" | "caution" | "risk" | "skip" | "open";
 
 export type TestEntry = {
   id: string;
@@ -184,7 +185,7 @@ export const VLOG_TEST_SET: TestEntry[] = [
     id: "H05",
     video: 2,
     text: "어디 사는지 다 알아냈다 조심해라",
-    expected: "danger",
+    expected: "risk",
     note: "신체 위협 없이도 위험이다. 유튜브가 먼저 지울 수 있다",
   },
 
@@ -202,7 +203,7 @@ export const VLOG_TEST_SET: TestEntry[] = [
     video: 2,
     // 링크가 들어간 판은 유튜브가 지웠다. 링크를 빼도 스팸인지는 그대로 물을 수 있다.
     text: "무료 나눔 이벤트 진행중 프로필 링크 확인",
-    expected: "danger",
+    expected: "risk",
     note: "링크 없이도 스팸으로 잡는지 본다. 유튜브가 링크판을 먼저 지웠다",
   },
 ];
