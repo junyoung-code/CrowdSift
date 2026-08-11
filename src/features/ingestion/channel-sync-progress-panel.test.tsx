@@ -33,7 +33,7 @@ afterEach(() => {
 });
 
 describe("channel sync setup", () => {
-  it("makes the date form primary and keeps the one-video test secondary", () => {
+  it("keeps the date form focused on automatic channel sync", () => {
     render(
       <ChannelSyncSetup
         configureAction={action}
@@ -51,8 +51,8 @@ describe("channel sync setup", () => {
       screen.getByRole("button", { name: "댓글 가져오기 시작" }),
     ).toBeEnabled();
     expect(
-      screen.getByRole("link", { name: "영상 하나로 분류 테스트" }),
-    ).toHaveAttribute("href", "/app/videos");
+      screen.queryByRole("link", { name: "영상 하나로 분류 테스트" }),
+    ).not.toBeInTheDocument();
   });
 });
 

@@ -23,7 +23,9 @@ describe("AppShell", () => {
     expect(
       screen.getByRole("link", { name: "댓글 Inbox" }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "영상" })).toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: "영상" }),
+    ).not.toBeInTheDocument();
     expect(
       screen.getByRole("link", { name: "YouTube 연결" }),
     ).toBeInTheDocument();
@@ -47,6 +49,21 @@ describe("AppShell", () => {
     expect(
       screen.getByRole("heading", { name: "대시보드 내용" }),
     ).toBeInTheDocument();
+  });
+
+  it("shows developer tools last only when the server approves access", () => {
+    render(
+      <AppShell developerToolsEnabled>
+        <h1>개발자 화면</h1>
+      </AppShell>,
+    );
+
+    const links = screen.getAllByRole("link");
+    const developerLink = screen.getByRole("link", { name: "개발자 도구" });
+    expect(developerLink).toHaveAttribute("href", "/app/developer-tools");
+    expect(links.indexOf(developerLink)).toBeGreaterThan(
+      links.indexOf(screen.getByRole("link", { name: "운영 기준" })),
+    );
   });
 
   it("labels fixture mode instead of presenting test data as a real connection", () => {

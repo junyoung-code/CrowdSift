@@ -43,6 +43,17 @@ describe("parseServerEnv", () => {
     ).toBe(true);
   });
 
+  it("parses developer-tools permission and keeps the server-only allowlist", () => {
+    const parsed = parseServerEnv({
+      ...validEnvironment,
+      ENABLE_DEVELOPER_TOOLS: "true",
+      DEVELOPER_USER_IDS: "user-1,user-2",
+    });
+
+    expect(parsed.ENABLE_DEVELOPER_TOOLS).toBe(true);
+    expect(parsed.DEVELOPER_USER_IDS).toBe("user-1,user-2");
+  });
+
   it("accepts a strong optional internal worker secret", () => {
     expect(
       parseServerEnv({

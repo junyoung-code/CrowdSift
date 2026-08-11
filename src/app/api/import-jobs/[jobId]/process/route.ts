@@ -39,7 +39,7 @@ export async function POST(
     const summary = await processImportJob(job.id);
     revalidatePath("/app");
     revalidatePath("/app/inbox");
-    revalidatePath("/app/videos");
+    revalidatePath("/app/developer-tools");
     return Response.json({ data: summary });
   } catch (processingError) {
     if (processingError instanceof ImportProcessingError) {

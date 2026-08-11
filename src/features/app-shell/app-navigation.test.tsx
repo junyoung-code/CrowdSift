@@ -45,4 +45,22 @@ describe("AppNavigation", () => {
       "aria-current",
     );
   });
+
+  it("removes the video menu and adds developer tools only for approved developers", () => {
+    navigationState.pathname = "/app";
+
+    const normal = render(<AppNavigation />);
+
+    expect(screen.queryByRole("link", { name: "영상" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: "개발자 도구" }),
+    ).not.toBeInTheDocument();
+    normal.unmount();
+
+    render(<AppNavigation developerToolsEnabled />);
+
+    const links = screen.getAllByRole("link");
+    expect(links.at(-1)).toHaveAccessibleName("개발자 도구");
+    expect(links.at(-1)).toHaveAttribute("href", "/app/developer-tools");
+  });
 });

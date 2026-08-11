@@ -49,7 +49,7 @@ export async function POST(
     }
   }
 
-  revalidatePath("/app/videos");
+  revalidatePath("/app/developer-tools");
   revalidatePath("/app/inbox");
   return Response.json({ data: { retriedCount: retried?.length ?? 0 } });
 }
