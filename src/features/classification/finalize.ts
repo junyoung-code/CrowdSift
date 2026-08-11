@@ -85,7 +85,11 @@ export const finalizeClassification = ({
           }
           return {
             ...decideVerdict({
-              candidateLevel: firstPass.luna.result.candidateLevel,
+              candidate: {
+                level: firstPass.luna.result.candidateLevel,
+                hardRiskFlags: firstPass.luna.result.hardRiskFlags,
+                softRiskFlags: firstPass.luna.result.softRiskFlags,
+              },
               terra,
               moderationMinimumLevel: branch.protection.moderationMinimumLevel,
             }),

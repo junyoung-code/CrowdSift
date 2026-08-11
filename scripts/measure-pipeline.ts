@@ -205,7 +205,11 @@ const main = async () => {
       terra.verify(secondInput),
     );
     const verdict = decideVerdict({
-      candidateLevel: first.luna.result.candidateLevel,
+      candidate: {
+        level: first.luna.result.candidateLevel,
+        hardRiskFlags: first.luna.result.hardRiskFlags,
+        softRiskFlags: first.luna.result.softRiskFlags,
+      },
       terra: verified.result,
       moderationMinimumLevel: routed.protection.moderationMinimumLevel,
     });

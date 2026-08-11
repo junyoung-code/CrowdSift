@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import { decideVerdict } from "./verdict";
-import type { RiskLevel, TerraVerdict } from "./schemas";
+import type {
+  HardRiskFlag,
+  RiskLevel,
+  SoftRiskFlag,
+  TerraVerdict,
+} from "./schemas";
 
 const cleanTerra: TerraVerdict = {
   verdictLevel: "safe",
@@ -18,15 +23,23 @@ const cleanTerra: TerraVerdict = {
 
 const verdict = ({
   candidateLevel = "safe",
+  candidateHardRiskFlags = [],
+  candidateSoftRiskFlags = [],
   terra,
   moderationMinimumLevel = null,
 }: {
   candidateLevel?: RiskLevel;
+  candidateHardRiskFlags?: HardRiskFlag[];
+  candidateSoftRiskFlags?: SoftRiskFlag[];
   terra?: Partial<TerraVerdict>;
   moderationMinimumLevel?: RiskLevel | null;
 }) =>
   decideVerdict({
-    candidateLevel,
+    candidate: {
+      level: candidateLevel,
+      hardRiskFlags: candidateHardRiskFlags,
+      softRiskFlags: candidateSoftRiskFlags,
+    },
     terra: { ...cleanTerra, ...terra },
     moderationMinimumLevel,
   });
@@ -86,12 +99,18 @@ describe("final verdict", () => {
     it("never lets the boundary rule reach danger", () => {
       // The lowering path exists for slang and memes. A confirmed attack must not
       // travel through it, whatever the verifier put in its level field.
+      //
+      // Opening this for the first pass's own danger was tried and reverted: the
+      // three comments it freed were all 오지랖, which the criteria call an attack.
+      // The disagreement it "resolved" was the verifier missing a rule, not the
+      // first pass over-reading a meme. See resolveDisagreement.
       const outcome = verdict({
         candidateLevel: "danger",
         terra: { verdictLevel: "safe", certainty: "clear" },
       });
 
       expect(outcome.level).toBe("danger");
+      expect(outcome.basis).toBe("danger_in_either");
     });
   });
 
@@ -157,6 +176,7 @@ describe("final verdict", () => {
 
     it("keeps the verifier's notes for whoever picks it up", () => {
       const outcome = verdict({
+        candidateLevel: "caution",
         terra: {
           certainty: "unclear",
           recommendedActions: ["hide_source", "preserve_evidence"],
@@ -169,6 +189,35 @@ describe("final verdict", () => {
         "preserve_evidence",
       ]);
       expect(outcome.safetyCase).toBe(true);
+    });
+
+    it("settles on safe when there was nothing to be sure about", () => {
+      // 「ㅋㅋㅋㅋㅋ」. The verifier hedged because the comment carries no claim, not
+      // because it is hard. Queueing laughter makes the creator empty a review
+      // list to find out it was laughter.
+      const outcome = verdict({
+        terra: { verdictLevel: "safe", certainty: "unclear" },
+      });
+
+      expect(outcome).toMatchObject({
+        status: "decided",
+        level: "safe",
+        basis: "both_safe_despite_uncertainty",
+        hideSource: false,
+      });
+    });
+
+    it.each([
+      ["the first pass attached a signal", { candidateSoftRiskFlags: ["sarcasm" as const] }],
+      ["the verifier attached a signal", { terra: { verdictLevel: "safe" as const, certainty: "unclear" as const, softRiskFlags: ["mockery" as const] } }],
+      ["the free filter set a floor", { moderationMinimumLevel: "caution" as const }],
+    ])("still queues when %s", (_label, overrides) => {
+      const outcome = verdict({
+        terra: { verdictLevel: "safe", certainty: "unclear" },
+        ...overrides,
+      });
+
+      expect(outcome.status).toBe("review_queue");
     });
   });
 

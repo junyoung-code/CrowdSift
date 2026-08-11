@@ -23,6 +23,7 @@ const BASIS_LABELS: Record<string, string> = {
   instant_safe: "1차에서 바로 안전으로 통과",
   non_negotiable_risk_confirmed: "낮출 수 없는 신호를 2차가 확인",
   verifier_uncertain: "2차가 정하지 못해 사람에게 넘김",
+  both_safe_despite_uncertainty: "2차가 확신하지 못했지만 둘 다 안전이라 확정",
   both_agreed: "두 판단이 같음",
   danger_in_either: "두 판단이 갈려 높은 쪽을 택함",
   verifier_decided_boundary: "안전·주의 경계를 2차가 근거를 대고 정함",
