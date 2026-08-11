@@ -105,7 +105,7 @@ const main = async () => {
   const { data: rows, error } = await supabase
     .from("raw_comments")
     .select(
-      "id, text_display, parent_youtube_comment_id, youtube_comment_id, classification_verdicts(level, status, feedback_core, created_at)",
+      "id, text_display, captured_at, parent_youtube_comment_id, youtube_comment_id, classification_verdicts(level, status, feedback_core, created_at)",
     )
     .order("captured_at", { ascending: false })
     .limit(2000);
@@ -125,10 +125,19 @@ const main = async () => {
     const cached = cache.get(entry.id);
     if (cached) return cached;
 
-    // 긴 문구가 짧은 문구를 품는 일이 있다. 가장 짧게 맞는 것이 그 항목이다.
+    // 원문이 같은 행이 둘 이상일 수 있다. 유튜브가 계정을 잠그면 그 댓글은 API 에서
+    // 사라지고, 다시 달면 새 ID 로 들어오기 때문이다. 옛 행에는 낡은 판단이 붙어
+    // 있으므로 **가장 최근에 수집한 것**을 본다.
+    //
+    // 긴 문구가 짧은 문구를 품는 일도 있어, 길이가 짧은 쪽을 먼저 본다.
     const candidates = all
       .filter((row) => matches(row.text_display, entry.text))
-      .sort((a, b) => normalize(a.text_display).length - normalize(b.text_display).length);
+      .sort((a, b) => {
+        const byLength =
+          normalize(a.text_display).length - normalize(b.text_display).length;
+        if (byLength !== 0) return byLength;
+        return a.captured_at < b.captured_at ? 1 : -1;
+      });
     const row = candidates[0];
 
     if (!row) {
