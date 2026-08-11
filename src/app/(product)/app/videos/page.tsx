@@ -69,7 +69,7 @@ export default async function VideosPage({ searchParams }: VideoPageProps) {
     supabase
       .from("youtube_videos")
       .select(
-        "youtube_video_id, title, thumbnail_url, published_at, comments_enabled",
+        "youtube_video_id, youtube_channel_id, title, thumbnail_url, published_at, comments_enabled",
       )
       .eq("workspace_id", workspaceId)
       .order("published_at", { ascending: false, nullsFirst: false }),
@@ -93,10 +93,24 @@ export default async function VideosPage({ searchParams }: VideoPageProps) {
     throw new Error("YouTube videos could not be loaded");
   }
 
+  /**
+   * 연결한 채널의 영상만 고를 수 있어야 한다.
+   *
+   * `youtube_videos` 에는 공개 URL 로 살펴본 남의 영상도 함께 쌓인다. 그것을 골라
+   * 가져오면 남의 댓글이 소유 채널 댓글로 저장되고, 내가 조치할 수 없는 댓글에
+   * 삭제·숨김 버튼이 열린다. 읽기 권한만으로도 남의 공개 댓글은 읽히므로 요청이
+   * 실패해 주지도 않는다.
+   */
+  const ownedVideos = (videos ?? []).filter(
+    (video) =>
+      selectedChannel != null &&
+      video.youtube_channel_id === selectedChannel.youtube_channel_id,
+  );
+
   const selectedJob =
     jobs?.find((job) => job.id === selectedJobId) ?? jobs?.[0] ?? null;
   const selectedJobVideo = selectedJob
-    ? videos?.find(
+    ? ownedVideos.find(
         (video) => video.youtube_video_id === selectedJob.youtube_video_id,
       )
     : null;
@@ -159,7 +173,7 @@ export default async function VideosPage({ searchParams }: VideoPageProps) {
         </section>
       ) : null}
 
-      {isConnected && videos?.length === 0 ? (
+      {isConnected && ownedVideos.length === 0 ? (
         <section className="video-empty-state">
           <span aria-hidden="true">
             <FilmStrip weight="duotone" />
@@ -179,19 +193,19 @@ export default async function VideosPage({ searchParams }: VideoPageProps) {
         </section>
       ) : null}
 
-      {isConnected && videos && videos.length > 0 ? (
+      {isConnected && ownedVideos.length > 0 ? (
         <form action={importYouTubeCommentsAction} className="video-import-card">
           <div className="video-import-intro">
             <div>
               <p>연결된 채널</p>
               <h2>{selectedChannel?.title}</h2>
             </div>
-            <span>{videos.length}개 영상 확인됨</span>
+            <span>{ownedVideos.length}개 영상 확인됨</span>
           </div>
 
           <fieldset className="video-options">
             <legend>댓글을 가져올 영상 하나</legend>
-            {videos.map((video, index) => (
+            {ownedVideos.map((video, index) => (
               <label key={video.youtube_video_id}>
                 <input
                   defaultChecked={index === 0}
