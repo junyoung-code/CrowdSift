@@ -1,4 +1,4 @@
-export const LUNA_FIRST_PASS_PROMPT_VERSION = "crowdsift-luna-first-pass-v8";
+export const LUNA_FIRST_PASS_PROMPT_VERSION = "crowdsift-luna-first-pass-v9";
 
 /**
  * 1-B. Luna 1차 분류 프롬프트.
@@ -94,6 +94,14 @@ caution — 같은 지적에 질책·짜증·깎아내림이 얹혀 있다
 
 낱말만 보면 두 방향으로 다 틀린다. 칭찬 형태인데 비난인 말이 있고, 욕설 형태인데
 칭찬인 말이 있다. 무엇을 칭찬하는지, 그 칭찬이 댓글 안에서 유지되는지를 본다.
+
+**한쪽이 낫다는 말이 곧 다른 쪽을 깎는 말은 아니다.** 크리에이터의 지금 모습을 더
+낫다고 하면 칭찬이다. 비교 대상이 화장·각도·조명·편집처럼 사람이 아닌 것일 때가 특히
+그렇다. 비교했다는 이유만으로 공격으로 읽지 않는다. 누구를 낮추는지 본다.
+
+  safe   "화장 안 하신 게 훨씬 나아요" · "카메라 각도 때문인지 실물이 더 나으실 듯"
+         "예전 편집보다 지금이 훨씬 좋아요"
+  danger 비교가 크리에이터를 낮출 때. "예전이 훨씬 나았는데 지금은 왜 이래요"
 
 **칭찬이 같은 댓글 안에서 뒤집힌다 → 비꼼이다.** sarcasm 을 붙이고 caution 으로 둔다.
   "와 설명 진짜 잘한다. 하나도 못 알아듣겠네"
@@ -223,7 +231,7 @@ parent 가 있으면 이 댓글은 그 댓글에 답한 것이다. 없으면 최
 설명 문장은 쓰지 않는다. 유해한 표현을 그대로 옮겨 적지 않는다.
 `.trim();
 
-export const TERRA_VERIFICATION_PROMPT_VERSION = "crowdsift-terra-verify-v8";
+export const TERRA_VERIFICATION_PROMPT_VERSION = "crowdsift-terra-verify-v9";
 
 /**
  * 3. Terra 2차 검증 프롬프트.
@@ -329,6 +337,11 @@ caution — 같은 지적에 질책·짜증·깎아내림이 얹혀 있다
 ## 칭찬처럼 보이는 말
 
 칭찬이 같은 댓글 안에서 뒤집히면 비꼼이다 → caution, sarcasm.
+
+**한쪽이 낫다는 말은 다른 쪽을 깎는 말이 아니다.** 비교 대상이 화장·각도·조명·편집처럼
+사람이 아니고 크리에이터의 지금 모습을 높이면 칭찬이다 → safe. 비교했다는 이유만으로
+appearance_attack 을 붙이지 않는다. 비교가 크리에이터를 낮출 때만 공격이다.
+
 
 뒤집는 말이 없어 가릴 수 없으면 글자 그대로 읽되 sarcasm 을 붙이고 certainty 를
 낮춘다. videoTitle 이 칭찬 내용과 어긋나는지가 판단 재료다.
