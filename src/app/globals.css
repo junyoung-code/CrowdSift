@@ -7520,15 +7520,20 @@ a {
 }
 
 .inbox-page .feedback-correction,
-.inbox-page .inbox-allow-expression,
 .inbox-page .inbox-moderation-actions {
   margin: 0 16px 10px;
   border-color: var(--inbox-line);
   background: #101620;
 }
 
+/*
+ * 오른쪽 패널이 아니라 펼친 원문 아래에 놓인다. 그래서 옆 상자와 같은 토큰을
+ * 쓴다. 배경만 어둡게 고정하면 밝은 테마에서 글씨가 배경에 묻힌다.
+ */
 .inbox-page .inbox-allow-expression {
   padding: 16px;
+  border-color: var(--inbox-line);
+  background: var(--inbox-panel-raised);
 }
 
 .inbox-page .inbox-allow-expression strong {
@@ -7541,9 +7546,10 @@ a {
   color: var(--inbox-muted);
 }
 
+/* 상자와 같은 면을 쓰면 입력칸이 사라진다. 한 단 내려서 눌린 자리로 둔다. */
 .inbox-page .inbox-allow-expression input {
   border-color: var(--inbox-line);
-  background: var(--inbox-panel-raised);
+  background: var(--inbox-panel);
   color: var(--inbox-text-soft);
 }
 

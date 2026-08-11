@@ -140,42 +140,10 @@ const renderInbox = (
   );
 
 describe("allowing a channel expression", () => {
-  const praised: InboxItem = {
-    ...item,
-    safeSourceText: "님 진짜 ㅈㄴ웃기네요 ㅋㅋㅋㅋ 구독합니다",
-  };
-
-  it("offers the flagged expression so the creator does not type it", () => {
-    renderInbox(praised);
-
-    expect(
-      screen.getByRole("textbox", { name: "허용할 표현" }),
-    ).toHaveValue("ㅈㄴ웃기네요");
-    expect(
-      screen.getByRole("button", { name: "칭찬으로 등록" }),
-    ).toBeInTheDocument();
-  });
-
-  it("stays hidden for a comment from someone else's video", () => {
-    // 남의 영상에 달린 말로 내 채널의 말투를 정할 수는 없다.
-    renderInbox({ ...praised, sourceKind: "public_url" });
-
-    expect(
-      screen.queryByRole("button", { name: "칭찬으로 등록" }),
-    ).not.toBeInTheDocument();
-  });
-
-  it("stays hidden when the comment carries no expression to allow", () => {
-    renderInbox({ ...praised, safeSourceText: "아 귀엽다 귀여워 쌍지진짜" });
-
-    expect(
-      screen.queryByRole("button", { name: "칭찬으로 등록" }),
-    ).not.toBeInTheDocument();
-  });
-
-  it("stays hidden on a risk comment", () => {
-    // 위험을 한 번에 푸는 버튼은 두지 않는다.
-    renderInbox({ ...praised, reviewLevel: "risk" }, ["risk"]);
+  // 주의 댓글의 원문은 목록 데이터에 실려 오지 않는다. 그래서 등록 폼은 원문을
+  // 펼친 뒤에야 나오고, 여기서는 물어볼 자격이 있는 댓글인지까지만 본다.
+  it("never asks before the creator has opened the source", () => {
+    renderInbox(item);
 
     expect(
       screen.queryByRole("button", { name: "칭찬으로 등록" }),
