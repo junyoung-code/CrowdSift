@@ -133,6 +133,8 @@ const decodeState = ({
     feedback_core: string | null;
     safety_case: boolean;
     raised_by_moderation: boolean;
+    raised_by_spam: boolean;
+    spam_signals: unknown;
   } | null;
 }): StoredClassificationState => {
   const lunaRow = runs.find(
@@ -215,6 +217,10 @@ const decodeState = ({
           : []) as StoredFinalVerdict["verdict"]["recommendedActions"],
         safetyCase: verdict.safety_case,
         raisedByModeration: verdict.raised_by_moderation,
+        raisedBySpam: verdict.raised_by_spam,
+        spamSignals: (Array.isArray(verdict.spam_signals)
+          ? verdict.spam_signals
+          : []) as StoredFinalVerdict["verdict"]["spamSignals"],
       },
       reasonCodes: (Array.isArray(verdict.reason_codes)
         ? verdict.reason_codes
@@ -367,7 +373,7 @@ export const processClassificationChunk = async (
         admin
           .from("classification_verdicts")
           .select(
-            "status, level, basis, agreed_with_first_pass, allow_rewrite, hide_source, recommended_actions, reason_codes, feedback_type, feedback_core, safety_case, raised_by_moderation",
+            "status, level, basis, agreed_with_first_pass, allow_rewrite, hide_source, recommended_actions, reason_codes, feedback_type, feedback_core, safety_case, raised_by_moderation, raised_by_spam, spam_signals",
           )
           .eq("analysis_job_item_id", item.id)
           .maybeSingle(),

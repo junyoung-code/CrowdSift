@@ -84,6 +84,8 @@ describe("finalizeClassification", () => {
       recommendedActions: ["show_source"],
       safetyCase: false,
       raisedByModeration: false,
+      raisedBySpam: false,
+      spamSignals: [],
     });
   });
 
@@ -116,6 +118,57 @@ describe("finalizeClassification", () => {
       level: "danger",
       basis: "both_agreed",
       agreedWithFirstPass: true,
+    });
+  });
+
+  it("raises a spam comment the criteria would call safe", () => {
+    // 등급 기준은 크리에이터를 향한 공격만 다룬다. 스팸은 아무도 공격하지 않아
+    // 기준대로 읽으면 안전이다. 그래서 코드가 최소 등급을 올린다.
+    const verdict = finalizeClassification({
+      firstPass,
+      branch: instantSafe,
+      terra: null,
+      spam: { level: "caution", signals: ["promotion", "off_platform_call"] },
+    });
+
+    expect(verdict).toMatchObject({
+      level: "caution",
+      raisedBySpam: true,
+      hideSource: true,
+      // 스팸을 다듬어 크리에이터에게 전할 이유가 없다.
+      allowRewrite: false,
+      spamSignals: ["promotion", "off_platform_call"],
+    });
+  });
+
+  it("leaves a level the models already put higher", () => {
+    const verdict = finalizeClassification({
+      firstPass,
+      branch: verify,
+      terra: terraDanger,
+      spam: { level: "caution", signals: ["promotion"] },
+    });
+
+    expect(verdict).toMatchObject({
+      level: "danger",
+      raisedBySpam: false,
+      spamSignals: ["promotion"],
+    });
+  });
+
+  it("does not settle a comment the verifier could not settle", () => {
+    // 검토 대기는 사람이 본다는 뜻이다. 등급을 얹으면 사람이 볼 이유가 사라진다.
+    const verdict = finalizeClassification({
+      firstPass,
+      branch: verify,
+      terra: { ...terraDanger, certainty: "unclear" },
+      spam: { level: "caution", signals: ["promotion"] },
+    });
+
+    expect(verdict).toMatchObject({
+      status: "review_queue",
+      level: null,
+      raisedBySpam: false,
     });
   });
 });

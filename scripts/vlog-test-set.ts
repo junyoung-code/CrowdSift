@@ -203,8 +203,8 @@ export const VLOG_TEST_SET: TestEntry[] = [
     video: 2,
     // 링크가 들어간 판은 유튜브가 지웠다. 링크를 빼도 스팸인지는 그대로 물을 수 있다.
     text: "무료 나눔 이벤트 진행중 프로필 링크 확인",
-    expected: "risk",
-    note: "링크 없이도 스팸으로 잡는지 본다. 유튜브가 링크판을 먼저 지웠다",
+    expected: "caution",
+    note: "주소를 뺐으니 피싱 신호도 없다. 스팸으로 잡히기만 하면 된다",
   },
 ];
 

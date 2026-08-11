@@ -898,6 +898,8 @@ export type Database = {
           id: string
           level: Database["public"]["Enums"]["review_level"] | null
           raised_by_moderation: boolean
+          raised_by_spam: boolean
+          spam_signals: Json
           raw_comment_id: string
           reason_codes: Json
           recommended_actions: Json
@@ -917,6 +919,8 @@ export type Database = {
           id?: string
           level?: Database["public"]["Enums"]["review_level"] | null
           raised_by_moderation?: boolean
+          raised_by_spam?: boolean
+          spam_signals?: Json
           raw_comment_id: string
           reason_codes?: Json
           recommended_actions?: Json
@@ -936,6 +940,8 @@ export type Database = {
           id?: string
           level?: Database["public"]["Enums"]["review_level"] | null
           raised_by_moderation?: boolean
+          raised_by_spam?: boolean
+          spam_signals?: Json
           raw_comment_id?: string
           reason_codes?: Json
           recommended_actions?: Json

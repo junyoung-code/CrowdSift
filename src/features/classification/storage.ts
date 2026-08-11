@@ -26,6 +26,8 @@ export type ClassificationVerdictForStorage = {
   recommendedActions: RecommendedAction[];
   safetyCase: boolean;
   raisedByModeration: boolean;
+  raisedBySpam: boolean;
+  spamSignals: string[];
 };
 
 export type ClassificationStage = "moderation" | "luna" | "terra" | "rewrite";
@@ -115,6 +117,8 @@ export const toVerdictRow = ({
   feedback_core: feedbackCore,
   safety_case: verdict.safetyCase,
   raised_by_moderation: verdict.raisedByModeration,
+  raised_by_spam: verdict.raisedBySpam,
+  spam_signals: verdict.spamSignals as Json,
 });
 
 /**

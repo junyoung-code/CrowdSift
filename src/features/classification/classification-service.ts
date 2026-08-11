@@ -9,6 +9,7 @@ import type {
 import type { BranchOutcome } from "./branch";
 import { routeFirstPass } from "./branch";
 import type { RewriteInput } from "./luna-rewrite";
+import { detectSpam } from "./spam-rules";
 import {
   finalizeClassification,
   type FinalClassificationVerdict,
@@ -236,6 +237,8 @@ export const createClassificationService = ({
         const verdict = finalizeClassification({
           firstPass: first,
           branch,
+          // 스팸은 아무도 공격하지 않아 등급 기준에 걸리지 않는다. 코드가 본다.
+          spam: detectSpam(item.sourceText),
           terra: terra?.result ?? null,
         });
         const finalResult: StoredFinalVerdict = {
