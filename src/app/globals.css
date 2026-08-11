@@ -5230,7 +5230,7 @@ a {
   padding: 9px 11px;
 }
 
-.inbox-video-filter label {
+.inbox-select-filters .inbox-video-filter label {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -5239,8 +5239,13 @@ a {
   line-height: 1.4;
 }
 
+/* 브라우저 기본 크기로 두면 옆 글자보다 작다. 누를 수 있게 조금 키운다. */
 .inbox-video-filter input {
+  width: 14px;
+  height: 14px;
   flex-shrink: 0;
+  margin: 0;
+  accent-color: var(--ch-blue);
 }
 
 .inbox-search-field {
@@ -5349,7 +5354,7 @@ a {
 }
 
 .inbox-select-filters select,
-.inbox-select-filters input,
+.inbox-select-filters input:not([type="checkbox"]),
 .feedback-correction select,
 .feedback-correction textarea {
   width: 100%;
@@ -6681,7 +6686,7 @@ a {
   background: #090e16;
 }
 
-.inbox-page .inbox-video-filter label {
+.inbox-page .inbox-select-filters .inbox-video-filter label {
   color: var(--inbox-text);
 }
 
@@ -6771,7 +6776,7 @@ a {
 }
 
 .inbox-page .inbox-select-filters select,
-.inbox-page .inbox-select-filters input,
+.inbox-page .inbox-select-filters input:not([type="checkbox"]),
 .inbox-page .feedback-correction select,
 .inbox-page .feedback-correction textarea {
   border-color: var(--inbox-line);
