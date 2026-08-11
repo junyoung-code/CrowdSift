@@ -5603,6 +5603,51 @@ a {
   font-size: 10px;
 }
 
+/*
+ * 채널 말투 등록. 판단 수정과 나란히 놓이지만 하는 일이 다르다.
+ * 하나는 이 댓글을 고치는 일이고, 이것은 앞으로 올 댓글의 기준을 바꾸는 일이다.
+ */
+.inbox-allow-expression {
+  display: grid;
+  gap: 10px;
+  border: 1px solid var(--ch-border);
+  border-radius: 12px;
+  padding: 13px;
+  background: #fbfdff;
+}
+
+.inbox-allow-expression p {
+  display: grid;
+  gap: 3px;
+  margin: 0;
+}
+
+.inbox-allow-expression strong {
+  color: var(--ch-ink);
+  font-size: 11px;
+  font-weight: 760;
+}
+
+.inbox-allow-expression small {
+  color: var(--ch-muted);
+  font-size: 8px;
+  line-height: 1.45;
+}
+
+.inbox-allow-expression label {
+  display: grid;
+  gap: 5px;
+  color: var(--ch-ink-soft);
+  font-size: 10px;
+  font-weight: 720;
+}
+
+.inbox-allow-expression .button {
+  min-height: 41px;
+  padding: 0 12px;
+  font-size: 11px;
+}
+
 .feedback-correction {
   border: 1px solid var(--ch-border);
   border-radius: 12px;
@@ -7475,10 +7520,31 @@ a {
 }
 
 .inbox-page .feedback-correction,
+.inbox-page .inbox-allow-expression,
 .inbox-page .inbox-moderation-actions {
   margin: 0 16px 10px;
   border-color: var(--inbox-line);
   background: #101620;
+}
+
+.inbox-page .inbox-allow-expression {
+  padding: 16px;
+}
+
+.inbox-page .inbox-allow-expression strong {
+  color: var(--inbox-text);
+  font-size: 13px;
+}
+
+.inbox-page .inbox-allow-expression small,
+.inbox-page .inbox-allow-expression label {
+  color: var(--inbox-muted);
+}
+
+.inbox-page .inbox-allow-expression input {
+  border-color: var(--inbox-line);
+  background: var(--inbox-panel-raised);
+  color: var(--inbox-text-soft);
 }
 
 .inbox-page .feedback-correction summary {

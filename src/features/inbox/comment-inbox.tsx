@@ -24,6 +24,8 @@ import type {
   ReviewLevel,
 } from "@/features/analysis/contracts";
 
+import { suggestAllowedExpressions } from "@/features/classification/suggest-allowed-expression";
+
 import { CommentSourceBlock } from "./comment-source-block";
 import type {
   InboxActionState,
@@ -402,6 +404,55 @@ function CorrectionForm({
   );
 }
 
+/**
+ * 이 채널에서는 칭찬으로 쓰이는 말이 주의로 잡혔을 때 한 번에 풀어 준다.
+ *
+ * 「AI 판단 수정」은 이 댓글 하나를 고치는 일이고, 이것은 앞으로 올 댓글에 쓸 말을
+ * 채널에 등록하는 일이다. 그래서 같은 상자에 넣지 않았다.
+ *
+ * 공개 URL 댓글에는 내보내지 않는다. 남의 영상에 달린 말로 내 채널의 말투를
+ * 정할 수는 없다.
+ */
+function AllowExpression({
+  allowExpressionAction,
+  item,
+}: {
+  item: InboxItem;
+  allowExpressionAction: (formData: FormData) => void | Promise<void>;
+}) {
+  if (item.sourceKind === "public_url") return null;
+  if (item.reviewLevel !== "caution") return null;
+  if (!item.sourceAvailable || !item.safeSourceText) return null;
+
+  const [suggestion] = suggestAllowedExpressions(item.safeSourceText);
+  if (!suggestion) return null;
+
+  return (
+    <form action={allowExpressionAction} className="inbox-allow-expression">
+      <p>
+        <strong>이건 우리 채널에선 칭찬인가요?</strong>
+        <small>
+          등록하면 앞으로 이 표현 때문에 주의로 잡히지 않습니다. 이미 내려진 판단은
+          그대로 둡니다.
+        </small>
+      </p>
+      <label>
+        <span>허용할 표현</span>
+        <input
+          defaultValue={suggestion}
+          maxLength={40}
+          name="expression"
+          required
+          type="text"
+        />
+      </label>
+      <button className="button" type="submit">
+        칭찬으로 등록
+      </button>
+    </form>
+  );
+}
+
 function ModerationActions({
   item,
   moderationAction,
@@ -472,6 +523,7 @@ function ModerationActions({
 }
 
 export function CommentInbox({
+  allowExpressionAction,
   correctionAction,
   data,
   filters,
@@ -485,6 +537,7 @@ export function CommentInbox({
   selectedCommentId?: string | null;
   correctionAction: (formData: FormData) => void | Promise<void>;
   moderationAction: (formData: FormData) => void | Promise<void>;
+  allowExpressionAction: (formData: FormData) => void | Promise<void>;
 }) {
   const selectedItem =
     data.items.find((item) => item.rawCommentId === selectedCommentId) ??
@@ -989,6 +1042,10 @@ export function CommentInbox({
                   <ClassificationTrace trace={selectedItem.classificationTrace} />
                 ) : null}
 
+                <AllowExpression
+                  allowExpressionAction={allowExpressionAction}
+                  item={selectedItem}
+                />
                 <CorrectionForm
                   correctionAction={correctionAction}
                   item={selectedItem}

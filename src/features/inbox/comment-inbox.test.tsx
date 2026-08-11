@@ -130,6 +130,7 @@ const renderInbox = (
 ) =>
   render(
     <CommentInbox
+      allowExpressionAction={vi.fn()}
       correctionAction={vi.fn()}
       moderationAction={vi.fn()}
       data={{ items: [inboxItem], total: 1 }}
@@ -138,10 +139,55 @@ const renderInbox = (
     />,
   );
 
+describe("allowing a channel expression", () => {
+  const praised: InboxItem = {
+    ...item,
+    safeSourceText: "님 진짜 ㅈㄴ웃기네요 ㅋㅋㅋㅋ 구독합니다",
+  };
+
+  it("offers the flagged expression so the creator does not type it", () => {
+    renderInbox(praised);
+
+    expect(
+      screen.getByRole("textbox", { name: "허용할 표현" }),
+    ).toHaveValue("ㅈㄴ웃기네요");
+    expect(
+      screen.getByRole("button", { name: "칭찬으로 등록" }),
+    ).toBeInTheDocument();
+  });
+
+  it("stays hidden for a comment from someone else's video", () => {
+    // 남의 영상에 달린 말로 내 채널의 말투를 정할 수는 없다.
+    renderInbox({ ...praised, sourceKind: "public_url" });
+
+    expect(
+      screen.queryByRole("button", { name: "칭찬으로 등록" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("stays hidden when the comment carries no expression to allow", () => {
+    renderInbox({ ...praised, safeSourceText: "아 귀엽다 귀여워 쌍지진짜" });
+
+    expect(
+      screen.queryByRole("button", { name: "칭찬으로 등록" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("stays hidden on a risk comment", () => {
+    // 위험을 한 번에 푸는 버튼은 두지 않는다.
+    renderInbox({ ...praised, reviewLevel: "risk" }, ["risk"]);
+
+    expect(
+      screen.queryByRole("button", { name: "칭찬으로 등록" }),
+    ).not.toBeInTheDocument();
+  });
+});
+
 describe("CommentInbox", () => {
   it("hides caution source text and shows the feedback core in the queue", () => {
     render(
       <CommentInbox
+        allowExpressionAction={vi.fn()}
         correctionAction={vi.fn()}
         moderationAction={vi.fn()}
         data={{ items: [item], total: 1 }}
@@ -457,6 +503,7 @@ describe("CommentInbox", () => {
   it("explains why no numbers are shown when the queue is empty", () => {
     render(
       <CommentInbox
+        allowExpressionAction={vi.fn()}
         correctionAction={vi.fn()}
         moderationAction={vi.fn()}
         data={{ items: [], total: 0 }}
@@ -473,6 +520,7 @@ describe("CommentInbox", () => {
   it("keeps active filters in pagination links", () => {
     render(
       <CommentInbox
+        allowExpressionAction={vi.fn()}
         correctionAction={vi.fn()}
         moderationAction={vi.fn()}
         data={{ items: [item], total: 30 }}
@@ -497,6 +545,7 @@ describe("CommentInbox", () => {
   it("shows exact moderation actions and only exposes delete when eligible", () => {
     const { rerender } = render(
       <CommentInbox
+        allowExpressionAction={vi.fn()}
         correctionAction={vi.fn()}
         moderationAction={vi.fn()}
         data={{ items: [item], total: 1 }}
@@ -520,6 +569,7 @@ describe("CommentInbox", () => {
 
     rerender(
       <CommentInbox
+        allowExpressionAction={vi.fn()}
         correctionAction={vi.fn()}
         moderationAction={vi.fn()}
         data={{
@@ -539,6 +589,7 @@ describe("CommentInbox", () => {
   it("marks public observations read-only and removes write-only controls", () => {
     render(
       <CommentInbox
+        allowExpressionAction={vi.fn()}
         correctionAction={vi.fn()}
         moderationAction={vi.fn()}
         data={{
