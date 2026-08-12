@@ -34,6 +34,16 @@ export type ClassificationWorkItem = {
   profile: ClassificationProfile;
   similarExamples: SimilarExample[];
   parent: ParentComment | null;
+  /**
+   * 이 댓글을 어떻게 가져왔는지.
+   *
+   * 공개 URL 로 살펴본 댓글에는 개인화를 쓰지 않는다. 제품 규칙이다 — 남의 영상을
+   * 들여다본 결과에 이 채널의 기준을 얹으면, 우리 것이 아닌 것에 우리 판단을
+   * 새기는 셈이 된다.
+   *
+   * 비워 두면 개인화를 켜지 않는다. 빠뜨렸을 때 조용히 켜지는 것보다 낫다.
+   */
+  sourceKind?: "owned_oauth" | "public_url";
 };
 
 export type StoredTerraResult = {
@@ -116,6 +126,13 @@ type SecondPassRunner = {
   }>;
 };
 
+export type PersonalizationLookup = {
+  retrieve(input: {
+    workspaceId: string;
+    text: string;
+  }): Promise<SimilarExample[]>;
+};
+
 type RewriteRunner = {
   promptVersion?: string;
   rewrite(input: RewriteInput): Promise<{
@@ -153,6 +170,7 @@ const toSecondPassInput = (
 
 export const createClassificationService = ({
   firstPass,
+  personalization,
   repository,
   rewrite,
   secondPass,
@@ -161,7 +179,35 @@ export const createClassificationService = ({
   secondPass: SecondPassRunner;
   rewrite: RewriteRunner;
   repository: ClassificationJobRepository;
+  /**
+   * 이 채널에서 사람이 이미 정한 비슷한 판단을 찾아 온다. 없으면 개인화 없이 돈다.
+   */
+  personalization?: PersonalizationLookup;
 }) => {
+  /**
+   * 유사 사례를 붙인다. 붙지 않아도 판단은 계속한다.
+   *
+   * 개인화는 판단에 얹는 것이지 판단의 조건이 아니다. 검색이 실패했다고 댓글을
+   * 분류하지 못하면, 부가 기능 하나가 제품 전체를 멈춰 세우게 된다.
+   */
+  const withSimilarExamples = async (
+    item: ClassificationWorkItem,
+  ): Promise<ClassificationWorkItem> => {
+    if (!personalization) return item;
+    // 명시적으로 소유 채널인 것만. 비어 있으면 켜지 않는다.
+    if (item.sourceKind !== "owned_oauth") return item;
+
+    try {
+      const similarExamples = await personalization.retrieve({
+        workspaceId: item.workspaceId,
+        text: item.sourceText,
+      });
+      return { ...item, similarExamples };
+    } catch {
+      return item;
+    }
+  };
+
   /**
    * 주의로 확정되고 보존할 의견이 있을 때만 순화문을 만든다.
    *
@@ -202,7 +248,8 @@ export const createClassificationService = ({
   ): Promise<ClassificationJobProgress> {
     const items = await repository.claimItems(jobId, maxItems);
 
-    for (const item of items) {
+    for (const claimed of items) {
+      let item = claimed;
       try {
         const stored = await repository.loadState(item);
 
@@ -211,6 +258,11 @@ export const createClassificationService = ({
           await ensureRewrite(item, stored.verdict, stored.rewrite);
           await repository.completeItem(item.id);
           continue;
+        }
+
+        // 이미 1차를 마친 항목은 다시 찾지 않는다. 그때 쓴 사례가 남아 있다.
+        if (!stored.firstPass) {
+          item = await withSimilarExamples(item);
         }
 
         const first =

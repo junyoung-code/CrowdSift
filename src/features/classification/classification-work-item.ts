@@ -17,6 +17,8 @@ type RawComment = {
   youtubeCommentId: string;
   parentYoutubeCommentId: string | null;
   textDisplay: string;
+  /** 공개 URL 로 살펴본 댓글에는 개인화를 쓰지 않는다. 모르면 켜지 않는다. */
+  sourceKind?: "owned_oauth" | "public_url";
 };
 
 type Video = { youtubeVideoId: string; title: string };
@@ -61,6 +63,8 @@ export const buildClassificationWorkItems = ({
       channelId,
       policyVersion,
       profile: profile ?? DEFAULT_CLASSIFICATION_PROFILE,
+      sourceKind: raw.sourceKind,
+      // 실제 사례는 분류 직전에 붙인다. 여기서는 순수하게 항목만 만든다.
       similarExamples: [],
       parent:
         parent && parent.workspaceId === claim.workspaceId

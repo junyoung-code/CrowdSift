@@ -1564,8 +1564,9 @@ export type Database = {
       }
       feedback_embeddings: {
         Row: {
+          classification_feedback_id: string | null
           created_at: string
-          creator_feedback_id: string
+          creator_feedback_id: string | null
           deleted_at: string | null
           embedding: string
           embedding_model: string
@@ -1573,8 +1574,9 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          classification_feedback_id?: string | null
           created_at?: string
-          creator_feedback_id: string
+          creator_feedback_id?: string | null
           deleted_at?: string | null
           embedding: string
           embedding_model: string
@@ -1582,8 +1584,9 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          classification_feedback_id?: string | null
           created_at?: string
-          creator_feedback_id?: string
+          creator_feedback_id?: string | null
           deleted_at?: string | null
           embedding?: string
           embedding_model?: string
@@ -1591,6 +1594,13 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "feedback_embeddings_classification_feedback_id_fkey"
+            columns: ["classification_feedback_id"]
+            isOneToOne: true
+            referencedRelation: "classification_feedback"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "feedback_embeddings_creator_feedback_id_fkey"
             columns: ["creator_feedback_id"]
@@ -3050,6 +3060,23 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      match_classification_feedback: {
+        Args: {
+          match_count?: number
+          match_threshold?: number
+          query_embedding: string
+          target_workspace_id: string
+        }
+        Returns: {
+          corrected_category: Database["public"]["Enums"]["comment_category"]
+          corrected_review_level: Database["public"]["Enums"]["review_level"]
+          decision: string
+          edited_sanitized_feedback: string
+          feedback_id: string
+          similarity: number
+          source_text: string
+        }[]
       }
       match_creator_feedback: {
         Args: {

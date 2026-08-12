@@ -85,7 +85,7 @@ describe("creator feedback service", () => {
     );
   });
 
-  it("builds a private retrieval document and stores only its vector", async () => {
+  it("embeds the comment itself, since that is what a later search compares against", async () => {
     const repository: FeedbackRepository = {
       loadOwnedContext: vi.fn().mockResolvedValue({
         sourceText: "원본 댓글",
@@ -105,15 +105,12 @@ describe("creator feedback service", () => {
       embeddingProvider: { embed },
     });
 
-    expect(embed).toHaveBeenCalledWith(
-      expect.stringContaining("원본 댓글"),
-    );
-    expect(embed).toHaveBeenCalledWith(
-      expect.stringContaining("자막을 더 크게 해 달라는 요청"),
-    );
+    // 원문 그대로. 교정 내용을 함께 묶으면 검색 쪽이 임베딩하는 맨 문장과 모양이
+    // 달라져 유사도가 임계값을 넘지 못한다.
+    expect(embed).toHaveBeenCalledWith("원본 댓글");
     expect(repository.insertEmbedding).toHaveBeenCalledWith({
       workspaceId: "workspace-1",
-      creatorFeedbackId: "feedback-1",
+      feedbackId: "feedback-1",
       vector: expect.any(Array),
       model: "text-embedding-3-small",
     });

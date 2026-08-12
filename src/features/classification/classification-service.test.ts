@@ -452,6 +452,75 @@ describe("classification job service", () => {
     expect(stored.completed).toBe(true);
   });
 
+  describe("personalization", () => {
+    const example = {
+      text: "개맛있겠다 진짜",
+      level: "safe" as const,
+      similarity: 0.9,
+      note: null,
+    };
+
+    const runWith = async (
+      sourceKind: ClassificationWorkItem["sourceKind"],
+      retrieve = vi.fn(async () => [example]),
+    ) => {
+      const memory = createMemoryRepository();
+      memory.repository.claimItems = vi.fn(async () => [
+        { ...item, sourceKind },
+      ]);
+      const firstPass = { run: vi.fn(async () => firstPassResult("safe")) };
+
+      await createClassificationService({
+        firstPass,
+        secondPass: { verify: vi.fn() },
+        rewrite: rewriteRunner(),
+        repository: memory.repository,
+        personalization: { retrieve },
+      }).processChunk("job-1", 5);
+
+      return { firstPass, memory, retrieve };
+    };
+
+    it("hands the channel's own settled judgements to the first pass", async () => {
+      const { firstPass } = await runWith("owned_oauth");
+
+      expect(firstPass.run).toHaveBeenCalledWith(
+        expect.objectContaining({ similarExamples: [example] }),
+      );
+    });
+
+    it("leaves a public-URL comment alone", async () => {
+      // 남의 영상을 들여다본 결과에 이 채널의 기준을 얹지 않는다. 제품 규칙이다.
+      const { firstPass, retrieve } = await runWith("public_url");
+
+      expect(retrieve).not.toHaveBeenCalled();
+      expect(firstPass.run).toHaveBeenCalledWith(
+        expect.objectContaining({ similarExamples: [] }),
+      );
+    });
+
+    it("stays off when nobody said where the comment came from", async () => {
+      // 빠뜨렸을 때 조용히 켜지는 것보다 꺼지는 편이 낫다.
+      const { retrieve } = await runWith(undefined);
+
+      expect(retrieve).not.toHaveBeenCalled();
+    });
+
+    it("classifies anyway when the search breaks", async () => {
+      // 개인화는 판단에 얹는 것이지 판단의 조건이 아니다.
+      const { memory } = await runWith(
+        "owned_oauth",
+        vi.fn(async () => {
+          throw new Error("search_down");
+        }),
+      );
+
+      expect(memory.state.verdict?.verdict.level).toBe("safe");
+      expect(memory.completed).toBe(true);
+      expect(memory.failed).toBeNull();
+    });
+  });
+
   it("stores a stable failure code when Luna fails", async () => {
     const memory = createMemoryRepository();
     const service = createClassificationService({

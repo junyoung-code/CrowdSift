@@ -17,7 +17,9 @@ import {
 import { buildClassificationWorkItems } from "./classification-work-item";
 import type { FirstPassResult, ModelRun } from "./contracts";
 import { classificationStageProvider } from "./fixture-classification-clients";
+import { createOpenAIEmbedding } from "./openai-embedding";
 import { createFirstPass, createRewrite, createSecondPass } from "./openai-clients";
+import { createPersonalizationLookup } from "./personalization-lookup";
 import { toClassificationProfile } from "./profile";
 import {
   LunaFirstPassSchema,
@@ -275,7 +277,7 @@ export const processClassificationChunk = async (
       const { data: rawComments, error: rawError } = await admin
         .from("raw_comments")
         .select(
-          "id, workspace_id, youtube_video_id, youtube_comment_id, parent_youtube_comment_id, text_display",
+          "id, workspace_id, youtube_video_id, youtube_comment_id, parent_youtube_comment_id, text_display, first_import_job_id",
         )
         .eq("workspace_id", workspaceId)
         .in("id", rawIds);
@@ -292,7 +294,7 @@ export const processClassificationChunk = async (
         ? await admin
             .from("raw_comments")
             .select(
-              "id, workspace_id, youtube_video_id, youtube_comment_id, parent_youtube_comment_id, text_display",
+              "id, workspace_id, youtube_video_id, youtube_comment_id, parent_youtube_comment_id, text_display, first_import_job_id",
             )
             .eq("workspace_id", workspaceId)
             .in("youtube_comment_id", parentYoutubeIds)
@@ -303,6 +305,25 @@ export const processClassificationChunk = async (
         ...rawComments,
         ...(parentRows.data ?? []),
       ];
+
+      /**
+       * 어떤 경로로 들어온 댓글인지 알아 둔다.
+       *
+       * 개인화는 소유 채널 댓글에만 쓴다. `raw_comments` 자체에는 그 표시가 없고,
+       * 처음 이 댓글을 담아 온 가져오기 작업이 알고 있다.
+       */
+      const importJobIds = [
+        ...new Set(rawCommentsWithParents.map((row) => row.first_import_job_id)),
+      ];
+      const { data: importJobs, error: importJobError } = await admin
+        .from("comment_import_jobs")
+        .select("id, source_kind")
+        .eq("workspace_id", workspaceId)
+        .in("id", importJobIds);
+      if (importJobError) throw importJobError;
+      const sourceKindByJobId = new Map(
+        (importJobs ?? []).map((job) => [job.id, job.source_kind]),
+      );
 
       const videoIds = [...new Set(rawComments.map((row) => row.youtube_video_id))];
       const [
@@ -347,6 +368,10 @@ export const processClassificationChunk = async (
           youtubeCommentId: row.youtube_comment_id,
           parentYoutubeCommentId: row.parent_youtube_comment_id,
           textDisplay: row.text_display,
+          sourceKind: sourceKindByJobId.get(row.first_import_job_id) as
+            | "owned_oauth"
+            | "public_url"
+            | undefined,
         })),
         videos: videos.map((video) => ({
           youtubeVideoId: video.youtube_video_id,
@@ -639,5 +664,14 @@ export const processClassificationChunk = async (
     secondPass: createSecondPass(),
     rewrite: createRewrite(),
     repository,
+    // 크리에이터가 고쳐 준 판단 중 비슷한 것을 찾아 붙인다. 소유 채널 댓글만이며,
+    // 검색이 실패해도 분류는 그대로 진행된다.
+    personalization: createPersonalizationLookup({
+      rpc: admin.rpc.bind(admin) as never,
+      embedding: createOpenAIEmbedding({
+        apiKey: environment.OPENAI_API_KEY,
+        model: environment.OPENAI_EMBEDDING_MODEL,
+      }),
+    }),
   }).processChunk(jobId, Math.min(Math.max(maxItems, 1), 5));
 };
