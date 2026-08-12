@@ -1,4 +1,4 @@
-export const LUNA_FIRST_PASS_PROMPT_VERSION = "crowdsift-luna-first-pass-v10";
+export const LUNA_FIRST_PASS_PROMPT_VERSION = "crowdsift-luna-first-pass-v11";
 
 /**
  * 1-B. Luna 1차 분류 프롬프트.
@@ -185,8 +185,25 @@ profile 로 danger 를 낮출 수는 없다. 특히 협박·스토킹·성희롱
 
 ## 유사 사례 반영
 
-similarExamples 는 이 채널에서 이미 확정된 판단이다. 판단이 애매할 때 참고한다.
-유사 사례만으로 등급을 결정하지 않는다. 위 판단 순서가 항상 우선한다.
+similarExamples 는 **이 채널의 크리에이터가 직접 고쳐 준 판단**이다. AI 가 낸 것이
+아니다. 그 말이 이 채널에서 어떻게 받아들여지는지에 대해서는 공통 기준보다 가까운
+증거다.
+
+**쓰는 자리는 safe 와 caution 사이뿐이다.**
+
+- 거의 같은 말에 safe 판단이 있으면 safe 로 둔다. allowedSlang 에 없는 강조 비속어라도
+  그렇다. 크리에이터가 그 말을 직접 보고 괜찮다고 한 것이기 때문이다
+- 거의 같은 말에 caution 판단이 있으면 caution 으로 둔다
+- **danger 는 사례로 낮추지 않는다.** 협박·스토킹·성희롱·개인정보 노출·자해 유도·
+  혐오 표현은 어떤 사례로도 완화하지 않는다
+- 사례로 등급을 **올리지도** 않는다. 낮추는 쪽으로만 쓴다
+
+「거의 같은 말」은 같은 낱말로 같은 것을 가리키는 말이다. 늘이지 않는다.
+
+  같은 말   "개맛있겠다 진짜" 와 "개같이 맛있겠다"
+  다른 말   "개맛있겠다 진짜" 와 "존나 부럽다" — 종류만 같고 가리키는 것이 다르다
+
+사례를 근거로 삼았으면 matchedRules 에 남긴다.
 
 ## 이 댓글이 답글이라면
 
@@ -254,7 +271,7 @@ parent 가 있으면 이 댓글은 그 댓글에 답한 것이다. 없으면 최
 설명 문장은 쓰지 않는다. 유해한 표현을 그대로 옮겨 적지 않는다.
 `.trim();
 
-export const TERRA_VERIFICATION_PROMPT_VERSION = "crowdsift-terra-verify-v10";
+export const TERRA_VERIFICATION_PROMPT_VERSION = "crowdsift-terra-verify-v11";
 
 /**
  * 3. Terra 2차 검증 프롬프트.
@@ -524,8 +541,25 @@ profile 로 danger 를 낮출 수는 없다. 특히 협박·스토킹·성희롱
 
 ## 유사 사례 반영
 
-similarExamples 는 이 채널에서 이미 확정된 판단이다. 판단이 애매할 때 참고한다.
-유사 사례만으로 등급을 결정하지 않는다. 위 판단 순서가 항상 우선한다.
+similarExamples 는 **이 채널의 크리에이터가 직접 고쳐 준 판단**이다. AI 가 낸 것이
+아니다. 그 말이 이 채널에서 어떻게 받아들여지는지에 대해서는 공통 기준보다 가까운
+증거다.
+
+**쓰는 자리는 safe 와 caution 사이뿐이다.**
+
+- 거의 같은 말에 safe 판단이 있으면 safe 로 둔다. allowedSlang 에 없는 강조 비속어라도
+  그렇다
+- 거의 같은 말에 caution 판단이 있으면 caution 으로 둔다
+- **danger 는 사례로 낮추지 않는다.** 협박·스토킹·성희롱·개인정보 노출·자해 유도·
+  혐오 표현은 어떤 사례로도 완화하지 않는다
+- 사례로 등급을 **올리지도** 않는다. 낮추는 쪽으로만 쓴다
+
+「거의 같은 말」은 같은 낱말로 같은 것을 가리키는 말이다. 늘이지 않는다.
+
+  같은 말   "개맛있겠다 진짜" 와 "개같이 맛있겠다"
+  다른 말   "개맛있겠다 진짜" 와 "존나 부럽다" — 종류만 같고 가리키는 것이 다르다
+
+사례를 근거로 삼았으면 reasonCodes 에 남긴다.
 
 ## 출력
 
