@@ -11,6 +11,7 @@ import type {
   InboxItem,
   InboxReply,
   InboxRepository,
+  SourceModerationStatus,
 } from "./inbox-query";
 
 type InboxRpcReply = {
@@ -52,6 +53,7 @@ type InboxRpcRow = {
   normalized_question: string | null;
   analysis_state: string;
   action_state: InboxActionState | null;
+  source_moderation_status?: unknown;
   delete_eligible: boolean;
   reply_count: number;
   replies: unknown;
@@ -80,6 +82,16 @@ type InboxRpc = (
 
 const optionalString = (value: unknown) =>
   typeof value === "string" ? value : null;
+
+const sourceModerationStatus = (
+  value: unknown,
+): SourceModerationStatus | null =>
+  value === "published" ||
+  value === "heldForReview" ||
+  value === "rejected" ||
+  value === "likelySpam"
+    ? value
+    : null;
 
 const classificationStatus = (
   value: unknown,
@@ -181,6 +193,9 @@ export const createSupabaseInboxRepository = ({
         normalizedQuestion: row.normalized_question,
         analysisState: row.analysis_state as InboxAnalysisState,
         actionState: row.action_state,
+        sourceModerationStatus: sourceModerationStatus(
+          row.source_moderation_status,
+        ),
         deleteEligible: row.delete_eligible,
         replyCount: row.reply_count,
         replies: rpcReplies(row.replies)

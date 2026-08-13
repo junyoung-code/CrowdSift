@@ -80,6 +80,7 @@ const item: InboxItem = {
   normalizedQuestion: null,
   analysisState: "analyzed",
   actionState: null,
+  sourceModerationStatus: null,
   deleteEligible: false,
   replyCount: 3,
   replies: [
@@ -596,6 +597,74 @@ describe("CommentInbox", () => {
     expect(
       screen.getByRole("button", { name: "내 댓글 영구 삭제" }),
     ).toBeInTheDocument();
+  });
+
+  it("drops the action that would change nothing and says the current state", () => {
+    // 이미 게시된 댓글에 「게시 승인」을 눌러도 아무 일이 없다. 50 유닛만 나간다.
+    const { rerender } = render(
+      <CommentInbox
+        allowExpressionAction={vi.fn()}
+        correctionAction={vi.fn()}
+        moderationAction={vi.fn()}
+        data={{
+          items: [{ ...item, sourceModerationStatus: "published" }],
+          total: 1,
+        }}
+        filters={{ reviewLevels: ["caution", "risk"] }}
+        videos={[]}
+      />,
+    );
+
+    expect(
+      screen.queryByRole("button", { name: "게시 승인" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "검토 대기로 이동" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/현재 게시됨/)).toBeInTheDocument();
+
+    rerender(
+      <CommentInbox
+        allowExpressionAction={vi.fn()}
+        correctionAction={vi.fn()}
+        moderationAction={vi.fn()}
+        data={{
+          items: [{ ...item, sourceModerationStatus: "heldForReview" }],
+          total: 1,
+        }}
+        filters={{ reviewLevels: ["caution", "risk"] }}
+        videos={[]}
+      />,
+    );
+
+    expect(
+      screen.queryByRole("button", { name: "검토 대기로 이동" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "게시 승인" }),
+    ).toBeInTheDocument();
+  });
+
+  it("keeps every action when the state is unknown", () => {
+    // API 키로 읽던 시절 댓글은 상태가 없다. 모르면 가리지 않는다.
+    render(
+      <CommentInbox
+        allowExpressionAction={vi.fn()}
+        correctionAction={vi.fn()}
+        moderationAction={vi.fn()}
+        data={{
+          items: [{ ...item, sourceModerationStatus: null }],
+          total: 1,
+        }}
+        filters={{ reviewLevels: ["caution", "risk"] }}
+        videos={[]}
+      />,
+    );
+
+    expect(
+      screen.getByRole("button", { name: "게시 승인" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/현재 /)).not.toBeInTheDocument();
   });
 
   it("marks public observations read-only and removes write-only controls", () => {

@@ -37,6 +37,18 @@ export type InboxClassificationTrace = {
     recommendedActions: string[];
   } | null;
 };
+/**
+ * YouTube 가 쓰는 댓글 상태. 우리 등급(safe/caution/risk)과는 다른 축이다.
+ *
+ * `likelySpam` 은 유튜브가 붙이고 우리는 바꿀 수 없다. 그래서 조치 버튼을 고를 때
+ * 게시된 것과 같이 취급하지 않는다.
+ */
+export type SourceModerationStatus =
+  | "published"
+  | "heldForReview"
+  | "rejected"
+  | "likelySpam";
+
 export type InboxActionState =
   | "pending_confirmation"
   | "awaiting_scope"
@@ -89,6 +101,13 @@ export type InboxItem = {
   normalizedQuestion: string | null;
   analysisState: InboxAnalysisState;
   actionState: InboxActionState | null;
+  /**
+   * 이 댓글이 지금 YouTube 에서 어떤 상태인지.
+   *
+   * null 은 「모른다」다. API 키로 읽던 시절에 들어온 댓글이 그렇다. 모를 때는
+   * 조치 버튼을 가리지 않는다 — 아는 척하는 것보다 낫다.
+   */
+  sourceModerationStatus: SourceModerationStatus | null;
   deleteEligible: boolean;
   replyCount: number;
   replies: InboxReply[];
