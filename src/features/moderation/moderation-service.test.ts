@@ -104,8 +104,11 @@ const createDependencies = () => {
     reconcileStaleRequest: vi.fn(async () => null),
   };
   const provider: YouTubeModerationProvider = {
-    setModerationStatus: vi.fn(async () => ({ status: 204 })),
-    deleteComment: vi.fn(async () => ({ status: 204 })),
+    setModerationStatus: vi.fn(async () => ({
+      status: 204,
+      quotaUnitsUsed: 50,
+    })),
+    deleteComment: vi.fn(async () => ({ status: 204, quotaUnitsUsed: 50 })),
   };
 
   return { provider, repository };

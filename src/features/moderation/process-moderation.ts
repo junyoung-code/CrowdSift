@@ -350,6 +350,7 @@ const createModerationDependencies = (workspaceId: string) => {
           target_provider_status: input.providerStatus as number,
           target_executed_at: input.executedAt,
           target_error_code: input.errorCode as string,
+          target_quota_units: input.quotaUnitsUsed,
         },
       );
       if (error || !data) {

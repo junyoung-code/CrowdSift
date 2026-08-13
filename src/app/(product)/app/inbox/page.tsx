@@ -9,6 +9,12 @@ import type {
   ModerationRequestState,
 } from "@/features/moderation/contracts";
 import { ModerationDialog } from "@/features/moderation/moderation-dialog";
+import {
+  loadQuotaUsage,
+  type QuotaUsage,
+} from "@/features/youtube/quota-usage";
+import { createSupabaseQuotaRepository } from "@/features/youtube/supabase-quota-repository";
+import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 import {
@@ -55,6 +61,8 @@ export default async function InboxPage({ searchParams }: InboxPageProps) {
       ? parameters.moderation
       : null;
   let moderationRequest = null;
+  /** 조치 대화상자를 띄울 때만 잰다. 인박스를 열 때마다 두 표를 훑을 이유가 없다. */
+  let quota: QuotaUsage | null = null;
 
   if (moderationId) {
     const { data: request, error: requestError } = await supabase
@@ -75,7 +83,17 @@ export default async function InboxPage({ searchParams }: InboxPageProps) {
         request.state === "pending_confirmation" ||
         request.state === "running")
     ) {
-      const { data: rawComment, error: rawError } = await supabase
+      /**
+       * 이 한 줄만 admin 으로 읽는다.
+       *
+       * `raw_comments` 는 `authenticated` 에게 열려 있지 않다. 유해 원문이 든 표라
+       * 목록은 SECURITY DEFINER RPC 로, 원문은 펼치기 흐름으로만 나가게 해 둔
+       * 설계다. 표를 여는 대신 여기서만 서버 권한으로 읽는다.
+       *
+       * 가져오는 것은 YouTube 댓글 ID 하나뿐이고, 어느 행을 읽을지는 바로 위에서
+       * 워크스페이스와 요청자까지 맞춰 확인한 조치 요청이 정한다.
+       */
+      const { data: rawComment, error: rawError } = await createAdminSupabaseClient()
         .from("raw_comments")
         .select("youtube_comment_id")
         .eq("id", request.raw_comment_id)
@@ -92,6 +110,10 @@ export default async function InboxPage({ searchParams }: InboxPageProps) {
         action: request.action as ModerationAction,
         state: request.state as ModerationRequestState,
       };
+      quota = await loadQuotaUsage(
+        { workspaceId },
+        { repository: createSupabaseQuotaRepository({ supabase }) },
+      );
     }
   }
 
@@ -152,6 +174,7 @@ export default async function InboxPage({ searchParams }: InboxPageProps) {
         <ModerationDialog
           confirmAction={confirmYouTubeModerationAction}
           dismissHref="/app/inbox"
+          quota={quota}
           request={moderationRequest}
         />
       ) : null}
