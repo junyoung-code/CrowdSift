@@ -1,7 +1,9 @@
 import {
   NON_NEGOTIABLE_RISK_FLAGS,
+  type HardRiskFlag,
   type RecommendedAction,
   type RiskLevel,
+  type SoftRiskFlag,
   type TerraVerdict,
 } from "./schemas";
 
@@ -17,6 +19,11 @@ export type VerdictBasis =
   | "non_negotiable_risk_confirmed"
   /** Terra 가 이 댓글만으로는 정할 수 없다고 했다. */
   | "verifier_uncertain"
+  /**
+   * Terra 가 확신하지 못했지만, 두 판단이 모두 안전이고 어느 쪽도 위험 신호를
+   * 달지 않았다. 사람이 볼 것이 없어 그대로 확정한다.
+   */
+  | "both_safe_despite_uncertainty"
   /** 두 판단이 같았다. */
   | "both_agreed"
   /** 한쪽이 위험이라 높은 쪽을 택했다. */
@@ -68,12 +75,24 @@ const confirmedNonNegotiableRisk = (terra: TerraVerdict): boolean =>
  * 무조건 높은 쪽으로 올리면 등급이 영원히 내려가지 않아, 2차 검증의 목적 중 하나인
  * "채널 밈을 악성으로 오해했는지 확인" 이 할 수 있는 일이 없어진다. 그렇다고 위험까지
  * 내리게 두면 협박을 놓친다. 두 실수의 무게가 다르므로 나눠서 다룬다.
+ *
+ * 한때 **Luna 만 위험이라 했을 때** Terra 가 주의까지 낮추도록 열어 본 적이 있다.
+ * 완화 불가 신호가 없고 Terra 가 clear 일 때만 걸리게 좁혔는데도, 실측 69건에서 세 번
+ * 걸렸고 셋 다 오지랖이었다 — 「이제 결혼할 나이 아니에요?」 「부모님이 걱정하시겠어요」
+ * 「그건 님 눈이 나쁜 거」. 기준은 사생활 참견을 공격으로 본다. 그 셋을 위험으로 읽은
+ * 쪽은 Luna 였고 Terra 는 조언으로 읽었다.
+ *
+ * 즉 여기서 갈리는 것은 「1차가 채널 밈을 악플로 오해했다」가 아니라 「2차가 기준 하나를
+ * 적용하지 않는다」였다. 그 상태에서 2차에 거부권을 주면 2차의 맹점이 그대로 최종
+ * 등급이 된다. 아래 규칙은 낭비가 아니라 그 구멍을 메우고 있었다.
+ *
+ * 2차가 오지랖을 읽게 만드는 것은 프롬프트가 할 일이지 이 함수가 할 일이 아니다.
  */
 const resolveDisagreement = (
-  candidateLevel: RiskLevel,
+  candidate: CandidateJudgement,
   terra: TerraVerdict,
 ): { level: RiskLevel; basis: VerdictBasis } => {
-  if (candidateLevel === "danger" || terra.verdictLevel === "danger") {
+  if (candidate.level === "danger" || terra.verdictLevel === "danger") {
     return { level: "danger", basis: "danger_in_either" };
   }
 
@@ -83,23 +102,42 @@ const resolveDisagreement = (
   }
 
   return {
-    level: higher(candidateLevel, terra.verdictLevel),
+    level: higher(candidate.level, terra.verdictLevel),
     basis: "protective_on_boundary",
   };
 };
 
+/**
+ * 1차가 낸 것 중 확정에 필요한 부분.
+ *
+ * 등급만으로는 부족하다. Terra 가 위험을 낮출 수 있는지, 확신 부족을 넘길 수 있는지가
+ * 1차가 어떤 신호를 달았는지에 달려 있다.
+ */
+export type CandidateJudgement = {
+  level: RiskLevel;
+  hardRiskFlags: HardRiskFlag[];
+  softRiskFlags: SoftRiskFlag[];
+};
+
+/** 어느 쪽도 위험·주의 신호를 달지 않았는지. */
+const noRiskSignals = (candidate: CandidateJudgement, terra: TerraVerdict) =>
+  candidate.hardRiskFlags.length === 0 &&
+  candidate.softRiskFlags.length === 0 &&
+  terra.hardRiskFlags.length === 0 &&
+  terra.softRiskFlags.length === 0;
+
 export const decideVerdict = ({
-  candidateLevel,
+  candidate,
   terra,
   moderationMinimumLevel,
 }: {
-  /** Luna 의 후보 등급. Terra 는 이것을 보지 못한 채 판단했다. */
-  candidateLevel: RiskLevel;
+  /** Luna 의 후보 판단. Terra 는 이것을 보지 못한 채 판단했다. */
+  candidate: CandidateJudgement;
   terra: TerraVerdict;
   /** 걸린 모더레이션 범주가 함의하는 최소 등급. 없으면 null. */
   moderationMinimumLevel: RiskLevel | null;
 }): Verdict => {
-  const agreedWithFirstPass = candidateLevel === terra.verdictLevel;
+  const agreedWithFirstPass = candidate.level === terra.verdictLevel;
 
   const shared = {
     agreedWithFirstPass,
@@ -121,6 +159,30 @@ export const decideVerdict = ({
     };
   }
 
+  // 확신하지 못한 것과 볼 것이 없는 것은 다르다.
+  //
+  // 「ㅋㅋㅋㅋㅋ」이나 「ㅇㅇ」에 Terra 가 확신을 내지 못하는 것은 판단이 어려워서가
+  // 아니라 판단할 거리가 없어서다. 그것까지 사람에게 넘기면, 크리에이터는 웃음소리를
+  // 확인하려고 검토 대기를 비우게 된다. 두 판단이 모두 안전이고, 어느 쪽도 신호를
+  // 달지 않았고, 무료 필터도 걸지 않았다면 넘길 것이 없다.
+  if (
+    terra.certainty === "unclear" &&
+    candidate.level === "safe" &&
+    terra.verdictLevel === "safe" &&
+    !moderationMinimumLevel &&
+    noRiskSignals(candidate, terra)
+  ) {
+    return {
+      ...shared,
+      status: "decided",
+      level: "safe",
+      basis: "both_safe_despite_uncertainty",
+      allowRewrite: false,
+      hideSource: false,
+      raisedByModeration: false,
+    };
+  }
+
   // 마지막 판단자가 정하지 못했으면 등급을 만들어내지 않는다. 사람이 본다.
   if (terra.certainty === "unclear") {
     return {
@@ -136,7 +198,7 @@ export const decideVerdict = ({
 
   const resolved = agreedWithFirstPass
     ? { level: terra.verdictLevel, basis: "both_agreed" as const }
-    : resolveDisagreement(candidateLevel, terra);
+    : resolveDisagreement(candidate, terra);
 
   const level = moderationMinimumLevel
     ? higher(resolved.level, moderationMinimumLevel)

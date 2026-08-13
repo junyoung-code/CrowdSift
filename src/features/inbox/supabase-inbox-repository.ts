@@ -44,6 +44,7 @@ type InboxRpcRow = {
   classification_trace?: unknown;
   category: InboxItem["category"];
   review_level: InboxItem["reviewLevel"];
+  ai_review_level?: InboxItem["aiReviewLevel"];
   confidence: number | null;
   recommended_action: InboxItem["recommendedAction"];
   manual_review: boolean | null;
@@ -63,7 +64,7 @@ type InboxRpc = (
     target_workspace_id: string;
     review_levels: ReviewLevel[];
     category_filter: CommentCategory | undefined;
-    video_id: string | undefined;
+    video_ids: string[] | undefined;
     analysis_state_filter: InboxAnalysisState | undefined;
     action_state_filter: InboxActionState | undefined;
     search_query: string | undefined;
@@ -137,7 +138,7 @@ export const createSupabaseInboxRepository = ({
       target_workspace_id: input.workspaceId,
       review_levels: input.reviewLevels,
       category_filter: input.category ?? undefined,
-      video_id: input.videoId ?? undefined,
+      video_ids: input.videoIds.length > 0 ? input.videoIds : undefined,
       analysis_state_filter: input.analysisState ?? undefined,
       action_state_filter: input.actionState ?? undefined,
       search_query: input.search ?? undefined,
@@ -172,6 +173,7 @@ export const createSupabaseInboxRepository = ({
         classificationTrace: classificationTrace(row.classification_trace),
         category: row.category,
         reviewLevel: row.review_level,
+        aiReviewLevel: row.ai_review_level ?? null,
         confidence: row.confidence,
         recommendedAction: row.recommended_action,
         manualReview: row.manual_review,

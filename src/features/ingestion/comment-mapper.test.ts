@@ -86,4 +86,67 @@ describe("fetchSourceCommentPage", () => {
     });
     expect(result.nextPageToken).toBe("next-1");
   });
+
+  it("drops a comment that only marks a playback position", async () => {
+    // 읽을 거리가 없는데 분류 비용은 똑같이 든다.
+    const provider: YouTubeCommentCollectionProvider = {
+      listCommentThreads: vi.fn(async () => ({
+        items: [
+          {
+            topLevelComment: providerComment("top-1", "3:15"),
+            inlineReplies: [],
+            totalReplyCount: 0,
+          },
+          {
+            topLevelComment: providerComment(
+              "top-2",
+              "3:15 이 부분 자막 오타 났어요",
+            ),
+            inlineReplies: [],
+            totalReplyCount: 0,
+          },
+        ],
+        nextPageToken: null,
+      })),
+      listReplies: vi.fn(),
+    };
+
+    const result = await fetchSourceCommentPage({
+      provider,
+      youtubeVideoId: "video-1",
+      topLevelLimit: 50,
+    });
+
+    expect(result.comments.map((comment) => comment.youtubeCommentId)).toEqual([
+      "top-2",
+    ]);
+  });
+
+  it("keeps a playback position that people replied to", async () => {
+    // 부모가 사라지면 답글이 맥락을 잃는다.
+    const provider: YouTubeCommentCollectionProvider = {
+      listCommentThreads: vi.fn(async () => ({
+        items: [
+          {
+            topLevelComment: providerComment("top-1", "5:20 베란다"),
+            inlineReplies: [providerComment("reply-1", "여기 진짜 웃김", "top-1")],
+            totalReplyCount: 1,
+          },
+        ],
+        nextPageToken: null,
+      })),
+      listReplies: vi.fn(),
+    };
+
+    const result = await fetchSourceCommentPage({
+      provider,
+      youtubeVideoId: "video-1",
+      topLevelLimit: 50,
+    });
+
+    expect(result.comments.map((comment) => comment.youtubeCommentId)).toEqual([
+      "top-1",
+      "reply-1",
+    ]);
+  });
 });

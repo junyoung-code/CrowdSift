@@ -5,7 +5,11 @@ import { redirect } from "next/navigation";
 
 import { requireViewer } from "@/features/auth/require-viewer";
 import { allowExpression } from "@/features/classification/allow-expression";
+import { createOpenAIEmbedding } from "@/features/classification/openai-embedding";
 import { parseCreatorCorrectionForm } from "@/features/feedback/feedback-contract";
+import { saveCreatorCorrection } from "@/features/feedback/feedback-service";
+import { createSupabaseFeedbackRepository } from "@/features/feedback/supabase-feedback-repository";
+import { getServerEnv } from "@/lib/env";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 
 export const saveCreatorCorrectionAction = async (formData: FormData) => {
@@ -19,45 +23,28 @@ export const saveCreatorCorrectionAction = async (formData: FormData) => {
 
   const { userId, workspaceId } = await requireViewer();
   const admin = createAdminSupabaseClient();
+  const environment = getServerEnv();
 
   try {
-    const [verdictResult, sourceItemResult] = await Promise.all([
-      admin
-        .from("classification_verdicts")
-        .select("id")
-        .eq("id", correction.analysisId)
-        .eq("workspace_id", workspaceId)
-        .eq("raw_comment_id", correction.rawCommentId)
-        .maybeSingle(),
-      admin
-        .from("comment_import_items")
-        .select("id")
-        .eq("workspace_id", workspaceId)
-        .eq("import_job_id", correction.sourceImportJobId)
-        .eq("raw_comment_id", correction.rawCommentId)
-        .maybeSingle(),
-    ]);
-    if (
-      verdictResult.error ||
-      sourceItemResult.error ||
-      !verdictResult.data ||
-      !sourceItemResult.data
-    ) {
-      throw new Error("SOURCE_OBSERVATION_MISMATCH");
-    }
-
-    const { error } = await admin.from("classification_feedback").insert({
-      workspace_id: workspaceId,
-      raw_comment_id: correction.rawCommentId,
-      classification_verdict_id: correction.analysisId,
-      actor_user_id: userId,
-      decision: correction.decision,
-      corrected_level: correction.correctedReviewLevel,
-      edited_feedback_core: correction.editedSanitizedFeedback,
-      use_for_personalization: correction.useForPersonalization,
-      use_for_training: correction.useForTraining,
-    });
-    if (error) throw error;
+    /**
+     * 저장과 임베딩을 한 자리에서 한다.
+     *
+     * 여기서 만든 벡터가 다음 분석의 유사 사례가 된다. 교정만 저장하고 벡터를 만들지
+     * 않으면 크리에이터가 고쳐 준 것이 다음 댓글에 닿지 않는다.
+     *
+     * 개인화에 쓰겠다고 한 것만 임베딩하고, 공개 URL 로 본 댓글은 아예 막는다.
+     * 두 규칙 모두 `saveCreatorCorrection` 안에 있다.
+     */
+    await saveCreatorCorrection(
+      { ...correction, workspaceId, actorUserId: userId },
+      {
+        repository: createSupabaseFeedbackRepository({ supabase: admin }),
+        embeddingProvider: createOpenAIEmbedding({
+          apiKey: environment.OPENAI_API_KEY,
+          model: environment.OPENAI_EMBEDDING_MODEL,
+        }),
+      },
+    );
   } catch {
     redirect("/app/inbox?error=feedback_save_failed");
   }

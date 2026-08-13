@@ -72,6 +72,7 @@ const item: InboxItem = {
   classificationTrace: null,
   category: "toxic_but_actionable",
   reviewLevel: "caution",
+  aiReviewLevel: "caution",
   confidence: 0.82,
   recommendedAction: "review",
   manualReview: true,
@@ -130,6 +131,7 @@ const renderInbox = (
 ) =>
   render(
     <CommentInbox
+      allowExpressionAction={vi.fn()}
       correctionAction={vi.fn()}
       moderationAction={vi.fn()}
       data={{ items: [inboxItem], total: 1 }}
@@ -138,10 +140,57 @@ const renderInbox = (
     />,
   );
 
+describe("a judgement the AI has since raised", () => {
+  it("tells the creator without moving the level back", () => {
+    // AI 는 추천하고 사람이 정한다. 다만 새 위험 신호를 삼키지는 않는다.
+    renderInbox({ ...item, reviewLevel: "safe", aiReviewLevel: "risk" }, [
+      "safe",
+    ]);
+
+    expect(
+      screen.getByText("다시 분석했을 때 위험으로 나왔습니다"),
+    ).toBeInTheDocument();
+    expect(screen.getAllByText("안전").length).toBeGreaterThan(0);
+  });
+
+  it("stays quiet when the creator already sees the risk", () => {
+    renderInbox({ ...item, reviewLevel: "risk", aiReviewLevel: "risk" }, [
+      "risk",
+    ]);
+
+    expect(
+      screen.queryByText("다시 분석했을 때 위험으로 나왔습니다"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("stays quiet when the AI itself did not find risk", () => {
+    renderInbox({ ...item, reviewLevel: "safe", aiReviewLevel: "caution" }, [
+      "safe",
+    ]);
+
+    expect(
+      screen.queryByText("다시 분석했을 때 위험으로 나왔습니다"),
+    ).not.toBeInTheDocument();
+  });
+});
+
+describe("allowing a channel expression", () => {
+  // 주의 댓글의 원문은 목록 데이터에 실려 오지 않는다. 그래서 등록 폼은 원문을
+  // 펼친 뒤에야 나오고, 여기서는 물어볼 자격이 있는 댓글인지까지만 본다.
+  it("never asks before the creator has opened the source", () => {
+    renderInbox(item);
+
+    expect(
+      screen.queryByRole("button", { name: "칭찬으로 등록" }),
+    ).not.toBeInTheDocument();
+  });
+});
+
 describe("CommentInbox", () => {
   it("hides caution source text and shows the feedback core in the queue", () => {
     render(
       <CommentInbox
+        allowExpressionAction={vi.fn()}
         correctionAction={vi.fn()}
         moderationAction={vi.fn()}
         data={{ items: [item], total: 1 }}
@@ -184,6 +233,15 @@ describe("CommentInbox", () => {
         name: /^향후 공통 모델 학습 후보로 표시/,
       }),
     ).toBeInTheDocument();
+  });
+
+  it("does not claim a personalization the pipeline never performs", () => {
+    // 동의를 미리 받아 두는 칸이다. 읽는 코드가 생기기 전까지는 한다고 쓰지 않는다.
+    renderInbox(item);
+
+    expect(
+      screen.getByRole("checkbox", { name: /^내 기준 개인화에 사용/ }),
+    ).toHaveAccessibleName(/지금은 판단에 쓰지 않습니다/);
   });
 
   it("keeps risk source text out of the queue preview", () => {
@@ -457,6 +515,7 @@ describe("CommentInbox", () => {
   it("explains why no numbers are shown when the queue is empty", () => {
     render(
       <CommentInbox
+        allowExpressionAction={vi.fn()}
         correctionAction={vi.fn()}
         moderationAction={vi.fn()}
         data={{ items: [], total: 0 }}
@@ -473,6 +532,7 @@ describe("CommentInbox", () => {
   it("keeps active filters in pagination links", () => {
     render(
       <CommentInbox
+        allowExpressionAction={vi.fn()}
         correctionAction={vi.fn()}
         moderationAction={vi.fn()}
         data={{ items: [item], total: 30 }}
@@ -497,6 +557,7 @@ describe("CommentInbox", () => {
   it("shows exact moderation actions and only exposes delete when eligible", () => {
     const { rerender } = render(
       <CommentInbox
+        allowExpressionAction={vi.fn()}
         correctionAction={vi.fn()}
         moderationAction={vi.fn()}
         data={{ items: [item], total: 1 }}
@@ -520,6 +581,7 @@ describe("CommentInbox", () => {
 
     rerender(
       <CommentInbox
+        allowExpressionAction={vi.fn()}
         correctionAction={vi.fn()}
         moderationAction={vi.fn()}
         data={{
@@ -539,6 +601,7 @@ describe("CommentInbox", () => {
   it("marks public observations read-only and removes write-only controls", () => {
     render(
       <CommentInbox
+        allowExpressionAction={vi.fn()}
         correctionAction={vi.fn()}
         moderationAction={vi.fn()}
         data={{

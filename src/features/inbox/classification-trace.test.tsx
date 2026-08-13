@@ -86,7 +86,9 @@ describe("ClassificationTrace", () => {
     expect(screen.getByText("Terra 2차 검증")).toBeInTheDocument();
     expect(screen.getByText("위험 · clear")).toBeInTheDocument();
     expect(screen.getByText("최종 판정")).toBeInTheDocument();
-    expect(screen.getByText("위험 · danger_in_either")).toBeInTheDocument();
+    expect(
+      screen.getByText("위험 · 두 판단이 갈려 높은 쪽을 택함"),
+    ).toBeInTheDocument();
     expect(
       screen.getByText("기술 정보 보기").closest("details"),
     ).not.toHaveAttribute("open");
@@ -110,5 +112,22 @@ describe("ClassificationTrace", () => {
     );
 
     expect(screen.getByText("안전 즉시 통과로 생략")).toBeInTheDocument();
+  });
+
+  it("says how the level was reached when Terra gave no reason codes", () => {
+    // 두 판단이 갈려 위험이 된 댓글은 Terra 가 위험이라 하지 않아 이유 코드가 빈다.
+    // 그 자리를 이 문장이 메운다.
+    render(
+      <ClassificationTrace
+        trace={{
+          ...trace,
+          final: { ...trace.final!, reasonCodes: [] },
+        }}
+      />,
+    );
+
+    expect(
+      screen.getByText("위험 · 두 판단이 갈려 높은 쪽을 택함"),
+    ).toBeInTheDocument();
   });
 });

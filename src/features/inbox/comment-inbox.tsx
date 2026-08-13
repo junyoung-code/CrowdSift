@@ -24,6 +24,7 @@ import type {
   ReviewLevel,
 } from "@/features/analysis/contracts";
 
+import { canAllowChannelExpression } from "./allow-expression-eligibility";
 import { CommentSourceBlock } from "./comment-source-block";
 import type {
   InboxActionState,
@@ -83,7 +84,7 @@ const ACTION_STATE_LABELS: Record<InboxActionState, string> = {
 type ActiveFilters = {
   reviewLevels: ReviewLevel[];
   category?: CommentCategory | null;
-  videoId?: string | null;
+  videoIds?: string[];
   analysisState?: InboxAnalysisState | null;
   actionState?: InboxActionState | null;
   minConfidence?: number | null;
@@ -202,6 +203,24 @@ const getCertainty = (item: InboxItem) => {
   return certainty ? `${labels[certainty] ?? "확인 필요"} · ${certainty}` : "분석 전";
 };
 
+/**
+ * 접힌 토글에 무엇이 골라져 있는지 적는다.
+ *
+ * 열어 보지 않고도 알 수 있어야 한다. 하나면 제목을, 여럿이면 개수를 보여 준다.
+ */
+const describeVideoSelection = (
+  videoIds: string[] | undefined,
+  videos: { id: string; title: string | null }[],
+) => {
+  const selected = videoIds ?? [];
+  if (selected.length === 0) return "전체 영상";
+  if (selected.length === 1) {
+    const only = videos.find((video) => video.id === selected[0]);
+    return only?.title ?? "영상 1개";
+  }
+  return `${selected.length}개 선택`;
+};
+
 const buildParameters = (
   filters: ActiveFilters,
   additions: Record<string, string | null>,
@@ -209,7 +228,7 @@ const buildParameters = (
   const parameters = new URLSearchParams();
   filters.reviewLevels.forEach((level) => parameters.append("levels", level));
   if (filters.category) parameters.set("category", filters.category);
-  if (filters.videoId) parameters.set("video", filters.videoId);
+  filters.videoIds?.forEach((videoId) => parameters.append("video", videoId));
   if (filters.analysisState) parameters.set("analysis", filters.analysisState);
   if (filters.actionState) parameters.set("action", filters.actionState);
   if (filters.minConfidence !== null && filters.minConfidence !== undefined) {
@@ -287,6 +306,31 @@ function ReviewBadge({
       <Icon aria-hidden="true" weight="fill" />
       {details.label}
     </span>
+  );
+}
+
+/**
+ * 사람이 낮춰 둔 댓글을 AI 가 다시 보고 위험이라고 했을 때만 알린다.
+ *
+ * 등급을 되돌리지는 않는다. AI 는 추천하고 사람이 정하기 때문이다. 다만 새로
+ * 나온 위험 신호를 말없이 삼키면, 사람은 자기가 언제 판단했는지도 잊은 채
+ * 그 댓글을 안전한 것으로 계속 본다.
+ */
+function SupersededRiskNotice({ item }: { item: InboxItem }) {
+  if (item.aiReviewLevel !== "risk") return null;
+  if (item.reviewLevel === "risk") return null;
+
+  return (
+    <p className="inbox-superseded-risk" role="status">
+      <ShieldWarning aria-hidden="true" weight="fill" />
+      <span>
+        <strong>다시 분석했을 때 위험으로 나왔습니다</strong>
+        <small>
+          회원님이 내린 판단을 그대로 두었습니다. 등급을 다시 볼지는 직접
+          정해 주세요.
+        </small>
+      </span>
+    </p>
   );
 }
 
@@ -380,8 +424,13 @@ function CorrectionForm({
               />
               <span>
                 <strong>내 기준 개인화에 사용</strong>
+                {/*
+                  동의를 미리 받아 두는 칸이다. 읽는 코드가 아직 없으므로 「활용
+                  합니다」라고 쓰면 하지 않는 일을 한다고 말하는 것이 된다.
+                */}
                 <small>
-                  같은 workspace의 비슷한 댓글을 판단할 때만 활용합니다.
+                  동의만 저장하며 지금은 판단에 쓰지 않습니다. 판단에 바로
+                  반영되는 것은 원문에서 표현을 등록할 때뿐입니다.
                 </small>
               </span>
             </label>
@@ -472,6 +521,7 @@ function ModerationActions({
 }
 
 export function CommentInbox({
+  allowExpressionAction,
   correctionAction,
   data,
   filters,
@@ -485,6 +535,7 @@ export function CommentInbox({
   selectedCommentId?: string | null;
   correctionAction: (formData: FormData) => void | Promise<void>;
   moderationAction: (formData: FormData) => void | Promise<void>;
+  allowExpressionAction: (formData: FormData) => void | Promise<void>;
 }) {
   const selectedItem =
     data.items.find((item) => item.rawCommentId === selectedCommentId) ??
@@ -562,17 +613,32 @@ export function CommentInbox({
                   )}
                 </select>
               </label>
-              <label>
+              <div className="inbox-video-filter">
                 <span>영상</span>
-                <select defaultValue={filters.videoId ?? ""} name="video">
-                  <option value="">전체 영상</option>
-                  {videos.map((video) => (
-                    <option key={video.id} value={video.id}>
-                      {video.title}
-                    </option>
-                  ))}
-                </select>
-              </label>
+                {/*
+                  「전체 영상」 항목을 따로 두지 않는다. 그것과 개별 선택이 어긋났을 때
+                  무엇이 맞는지 사람이 알 수 없다. 하나도 고르지 않으면 전체를 본다.
+                */}
+                <details>
+                  <summary>
+                    <span>{describeVideoSelection(filters.videoIds, videos)}</span>
+                    <CaretDown aria-hidden="true" weight="bold" />
+                  </summary>
+                  <div>
+                    {videos.map((video) => (
+                      <label key={video.id}>
+                        <input
+                          defaultChecked={filters.videoIds?.includes(video.id)}
+                          name="video"
+                          type="checkbox"
+                          value={video.id}
+                        />
+                        <span>{video.title}</span>
+                      </label>
+                    ))}
+                  </div>
+                </details>
+              </div>
               <label>
                 <span>분석 상태</span>
                 <select
@@ -813,6 +879,11 @@ export function CommentInbox({
                                 : "원문에는 거친 표현이 포함될 수 있습니다."}
                             </span>
                             <SourceReveal
+                              allowExpressionAction={
+                                canAllowChannelExpression(selectedItem)
+                                  ? allowExpressionAction
+                                  : undefined
+                              }
                               commentId={selectedItem.rawCommentId}
                               key={selectedItem.rawCommentId}
                             />
@@ -989,6 +1060,7 @@ export function CommentInbox({
                   <ClassificationTrace trace={selectedItem.classificationTrace} />
                 ) : null}
 
+                <SupersededRiskNotice item={selectedItem} />
                 <CorrectionForm
                   correctionAction={correctionAction}
                   item={selectedItem}

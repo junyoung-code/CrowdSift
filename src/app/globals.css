@@ -5216,10 +5216,97 @@ a {
 }
 
 .inbox-filter-form label > span:first-child,
-.inbox-level-filters legend {
+.inbox-level-filters legend,
+.inbox-video-filter > span:first-child {
   color: var(--ch-ink-soft);
   font-size: 11px;
   font-weight: 760;
+}
+
+/*
+ * 영상은 여럿 고를 수 있다. 접어 두는 까닭이 둘이다. 목록이 길어지면 이 칸이
+ * 세로로 늘어나 같은 줄의 다른 칸까지 함께 늘어나고, 대개는 전체를 보므로 늘
+ * 펼쳐 둘 이유가 없다. 펼친 목록은 띄워서 겹치게 두어 다른 칸의 높이를 건드리지
+ * 않는다.
+ */
+.inbox-video-filter {
+  display: grid;
+  gap: 6px;
+}
+
+.inbox-video-filter > details {
+  position: relative;
+}
+
+.inbox-video-filter summary {
+  display: flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border: 1px solid var(--ch-border-strong);
+  border-radius: 11px;
+  padding: 0 11px;
+  color: var(--ch-ink);
+  cursor: pointer;
+  font-size: 12px;
+  list-style: none;
+}
+
+.inbox-video-filter summary::-webkit-details-marker {
+  display: none;
+}
+
+.inbox-video-filter summary > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inbox-video-filter summary svg {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+  transition: transform 140ms ease;
+}
+
+.inbox-video-filter details[open] summary svg {
+  transform: rotate(180deg);
+}
+
+.inbox-video-filter details > div {
+  position: absolute;
+  z-index: 5;
+  top: calc(100% + 5px);
+  right: 0;
+  left: 0;
+  display: grid;
+  max-height: 168px;
+  gap: 7px;
+  overflow-y: auto;
+  border: 1px solid var(--ch-border-strong);
+  border-radius: 11px;
+  padding: 10px 11px;
+  background: #fbfdff;
+  box-shadow: 0 16px 36px rgb(15 23 42 / 12%);
+}
+
+.inbox-select-filters .inbox-video-filter label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ch-ink);
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+/* 브라우저 기본 크기로 두면 옆 글자보다 작다. 누를 수 있게 조금 키운다. */
+.inbox-video-filter input {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  margin: 0;
+  accent-color: var(--ch-blue);
 }
 
 .inbox-search-field {
@@ -5328,7 +5415,7 @@ a {
 }
 
 .inbox-select-filters select,
-.inbox-select-filters input,
+.inbox-select-filters input:not([type="checkbox"]),
 .feedback-correction select,
 .feedback-correction textarea {
   width: 100%;
@@ -5624,6 +5711,51 @@ a {
   font-size: 10px;
 }
 
+/*
+ * 채널 말투 등록. 판단 수정과 나란히 놓이지만 하는 일이 다르다.
+ * 하나는 이 댓글을 고치는 일이고, 이것은 앞으로 올 댓글의 기준을 바꾸는 일이다.
+ */
+.inbox-allow-expression {
+  display: grid;
+  gap: 10px;
+  border: 1px solid var(--ch-border);
+  border-radius: 12px;
+  padding: 13px;
+  background: #fbfdff;
+}
+
+.inbox-allow-expression p {
+  display: grid;
+  gap: 3px;
+  margin: 0;
+}
+
+.inbox-allow-expression strong {
+  color: var(--ch-ink);
+  font-size: 11px;
+  font-weight: 760;
+}
+
+.inbox-allow-expression small {
+  color: var(--ch-muted);
+  font-size: 8px;
+  line-height: 1.45;
+}
+
+.inbox-allow-expression label {
+  display: grid;
+  gap: 5px;
+  color: var(--ch-ink-soft);
+  font-size: 10px;
+  font-weight: 720;
+}
+
+.inbox-allow-expression .button {
+  min-height: 41px;
+  padding: 0 12px;
+  font-size: 11px;
+}
+
 .feedback-correction {
   border: 1px solid var(--ch-border);
   border-radius: 12px;
@@ -5708,6 +5840,45 @@ a {
 
 .public-moderation-policy {
   border: 1px solid #ddd8fb;
+}
+
+/*
+ * 사람이 낮춰 둔 판단을 AI 가 다시 위험이라고 했을 때만 나온다. 등급을 되돌리는
+ * 자리가 아니라 알리는 자리라서, 위험 배지만큼 세게 두지 않는다.
+ */
+.inbox-superseded-risk {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin: 0;
+  border: 1px solid color-mix(in srgb, var(--ch-risk) 26%, transparent);
+  border-radius: 12px;
+  padding: 12px 13px;
+  background: color-mix(in srgb, var(--ch-risk) 8%, transparent);
+}
+
+.inbox-superseded-risk > svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--ch-risk);
+}
+
+.inbox-superseded-risk span {
+  display: grid;
+  gap: 3px;
+}
+
+.inbox-superseded-risk strong {
+  color: var(--ch-ink);
+  font-size: 11px;
+  font-weight: 760;
+}
+
+.inbox-superseded-risk small {
+  color: var(--ch-muted);
+  font-size: 9px;
+  line-height: 1.5;
+  word-break: keep-all;
 }
 
 .inbox-moderation-actions {
@@ -6563,6 +6734,19 @@ a {
   gap: 6px;
 }
 
+/*
+ * 면과 테두리는 여기서 정하지 않는다. 파일 끝의 테마 파생 목록이 맡는다. 색을
+ * 직접 박아 두면 밝은 테마에서 이 칸만 시커멓게 남는다.
+ */
+.inbox-page .inbox-video-filter > span:first-child {
+  color: var(--inbox-text-soft);
+}
+
+.inbox-page .inbox-video-filter summary,
+.inbox-page .inbox-select-filters .inbox-video-filter label {
+  color: var(--inbox-text);
+}
+
 .inbox-page .inbox-level-filters label {
   display: flex;
   min-height: 40px;
@@ -6649,7 +6833,7 @@ a {
 }
 
 .inbox-page .inbox-select-filters select,
-.inbox-page .inbox-select-filters input,
+.inbox-page .inbox-select-filters input:not([type="checkbox"]),
 .inbox-page .feedback-correction select,
 .inbox-page .feedback-correction textarea {
   border-color: var(--inbox-line);
@@ -7502,6 +7686,47 @@ a {
   background: #101620;
 }
 
+.inbox-page .inbox-superseded-risk {
+  margin: 0 16px 10px;
+}
+
+.inbox-page .inbox-superseded-risk strong {
+  color: var(--inbox-text);
+  font-size: 12px;
+}
+
+.inbox-page .inbox-superseded-risk small {
+  color: var(--inbox-muted);
+  font-size: 10px;
+}
+
+/*
+ * 오른쪽 패널이 아니라 펼친 원문 아래에 놓인다. 그래서 옆 상자와 같은 토큰을
+ * 쓴다. 배경만 어둡게 고정하면 밝은 테마에서 글씨가 배경에 묻힌다.
+ */
+.inbox-page .inbox-allow-expression {
+  padding: 16px;
+  border-color: var(--inbox-line);
+  background: var(--inbox-panel-raised);
+}
+
+.inbox-page .inbox-allow-expression strong {
+  color: var(--inbox-text);
+  font-size: 13px;
+}
+
+.inbox-page .inbox-allow-expression small,
+.inbox-page .inbox-allow-expression label {
+  color: var(--inbox-muted);
+}
+
+/* 상자와 같은 면을 쓰면 입력칸이 사라진다. 한 단 내려서 눌린 자리로 둔다. */
+.inbox-page .inbox-allow-expression input {
+  border-color: var(--inbox-line);
+  background: var(--inbox-panel);
+  color: var(--inbox-text-soft);
+}
+
 .inbox-page .feedback-correction summary {
   display: flex;
   align-items: center;
@@ -7906,6 +8131,8 @@ a {
     .inbox-search-field > span:last-child,
     .inbox-level-filters label,
     .inbox-advanced-filters[open] .inbox-select-filters,
+    .inbox-video-filter summary,
+    .inbox-video-filter details > div,
     .feedback-correction textarea,
     .analysis-state,
     .source-unavailable,

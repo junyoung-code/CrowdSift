@@ -34,24 +34,24 @@ export interface FeedbackRepository {
   insertFeedback(input: CreatorCorrection): Promise<string>;
   insertEmbedding(input: {
     workspaceId: string;
-    creatorFeedbackId: string;
+    feedbackId: string;
     vector: number[];
     model: string;
   }): Promise<void>;
 }
 
-const buildRetrievalDocument = (
-  input: CreatorCorrection,
-  sourceText: string,
-) =>
-  JSON.stringify({
-    sourceComment: sourceText,
-    creatorDecision: input.decision,
-    correctedCategory: input.correctedCategory,
-    correctedReviewLevel: input.correctedReviewLevel,
-    correctedRecommendedAction: input.correctedRecommendedAction,
-    editedSanitizedFeedback: input.editedSanitizedFeedback,
-  });
+/**
+ * 이 교정을 나중에 무엇으로 찾을 것인지.
+ *
+ * **댓글 원문만 넣는다.** 검색하는 쪽(`rag-service`)이 새 댓글의 원문을 임베딩해
+ * 비교하므로, 저장하는 쪽도 같은 모양이어야 코사인 거리가 뜻을 갖는다.
+ *
+ * 처음에는 교정 내용까지 JSON 으로 묶어 임베딩했다. 맨 문장과 JSON 덩어리를 견주는
+ * 셈이라 임계값 0.78 을 넘길 일이 거의 없다. 한 번도 돌려본 적이 없어 드러나지 않았다.
+ *
+ * 교정 내용은 임베딩에 넣지 않아도 잃지 않는다. 검색이 돌려주는 행에 그대로 실려 있다.
+ */
+const buildRetrievalKey = (sourceText: string) => sourceText.replaceAll("\n", " ");
 
 export class PublicSourceReadOnlyError extends Error {
   readonly code = "PUBLIC_SOURCE_READ_ONLY";
@@ -97,7 +97,7 @@ export const saveCreatorCorrection = async (
   }
 
   const embedding = await embeddingProvider.embed(
-    buildRetrievalDocument(input, context.sourceText),
+    buildRetrievalKey(context.sourceText),
   );
   if (embedding.vector.length !== 1536) {
     throw new EmbeddingSchemaError(
@@ -108,7 +108,7 @@ export const saveCreatorCorrection = async (
   const feedbackId = await repository.insertFeedback(input);
   await repository.insertEmbedding({
     workspaceId: input.workspaceId,
-    creatorFeedbackId: feedbackId,
+    feedbackId,
     vector: embedding.vector,
     model: embedding.model,
   });

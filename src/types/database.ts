@@ -607,7 +607,13 @@ export type Database = {
         Row: {
           actor_user_id: string
           classification_verdict_id: string
+          corrected_category:
+            | Database["public"]["Enums"]["comment_category"]
+            | null
           corrected_level: Database["public"]["Enums"]["review_level"] | null
+          corrected_recommended_action:
+            | Database["public"]["Enums"]["recommended_action"]
+            | null
           created_at: string
           decision: string
           edited_feedback_core: string | null
@@ -620,7 +626,13 @@ export type Database = {
         Insert: {
           actor_user_id: string
           classification_verdict_id: string
+          corrected_category?:
+            | Database["public"]["Enums"]["comment_category"]
+            | null
           corrected_level?: Database["public"]["Enums"]["review_level"] | null
+          corrected_recommended_action?:
+            | Database["public"]["Enums"]["recommended_action"]
+            | null
           created_at?: string
           decision: string
           edited_feedback_core?: string | null
@@ -633,7 +645,13 @@ export type Database = {
         Update: {
           actor_user_id?: string
           classification_verdict_id?: string
+          corrected_category?:
+            | Database["public"]["Enums"]["comment_category"]
+            | null
           corrected_level?: Database["public"]["Enums"]["review_level"] | null
+          corrected_recommended_action?:
+            | Database["public"]["Enums"]["recommended_action"]
+            | null
           created_at?: string
           decision?: string
           edited_feedback_core?: string | null
@@ -880,6 +898,8 @@ export type Database = {
           id: string
           level: Database["public"]["Enums"]["review_level"] | null
           raised_by_moderation: boolean
+          raised_by_spam: boolean
+          spam_signals: Json
           raw_comment_id: string
           reason_codes: Json
           recommended_actions: Json
@@ -899,6 +919,8 @@ export type Database = {
           id?: string
           level?: Database["public"]["Enums"]["review_level"] | null
           raised_by_moderation?: boolean
+          raised_by_spam?: boolean
+          spam_signals?: Json
           raw_comment_id: string
           reason_codes?: Json
           recommended_actions?: Json
@@ -918,6 +940,8 @@ export type Database = {
           id?: string
           level?: Database["public"]["Enums"]["review_level"] | null
           raised_by_moderation?: boolean
+          raised_by_spam?: boolean
+          spam_signals?: Json
           raw_comment_id?: string
           reason_codes?: Json
           recommended_actions?: Json
@@ -1540,8 +1564,9 @@ export type Database = {
       }
       feedback_embeddings: {
         Row: {
+          classification_feedback_id: string | null
           created_at: string
-          creator_feedback_id: string
+          creator_feedback_id: string | null
           deleted_at: string | null
           embedding: string
           embedding_model: string
@@ -1549,8 +1574,9 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          classification_feedback_id?: string | null
           created_at?: string
-          creator_feedback_id: string
+          creator_feedback_id?: string | null
           deleted_at?: string | null
           embedding: string
           embedding_model: string
@@ -1558,8 +1584,9 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          classification_feedback_id?: string | null
           created_at?: string
-          creator_feedback_id?: string
+          creator_feedback_id?: string | null
           deleted_at?: string | null
           embedding?: string
           embedding_model?: string
@@ -1567,6 +1594,13 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "feedback_embeddings_classification_feedback_id_fkey"
+            columns: ["classification_feedback_id"]
+            isOneToOne: true
+            referencedRelation: "classification_feedback"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "feedback_embeddings_creator_feedback_id_fkey"
             columns: ["creator_feedback_id"]
@@ -2904,10 +2938,11 @@ export type Database = {
           review_levels?: Database["public"]["Enums"]["review_level"][]
           search_query?: string
           target_workspace_id: string
-          video_id?: string
+          video_ids?: string[]
         }
         Returns: {
           action_state: Database["public"]["Enums"]["action_state"]
+          ai_review_level: Database["public"]["Enums"]["review_level"]
           analysis_id: string
           analysis_state: string
           author_avatar_url: string
@@ -3025,6 +3060,23 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      match_classification_feedback: {
+        Args: {
+          match_count?: number
+          match_threshold?: number
+          query_embedding: string
+          target_workspace_id: string
+        }
+        Returns: {
+          corrected_category: Database["public"]["Enums"]["comment_category"]
+          corrected_review_level: Database["public"]["Enums"]["review_level"]
+          decision: string
+          edited_sanitized_feedback: string
+          feedback_id: string
+          similarity: number
+          source_text: string
+        }[]
       }
       match_creator_feedback: {
         Args: {

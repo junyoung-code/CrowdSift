@@ -98,6 +98,8 @@ describe("classification storage mappers", () => {
       recommendedActions: ["hide_source", "consider_delete"],
       safetyCase: false,
       raisedByModeration: false,
+      raisedBySpam: false,
+      spamSignals: [],
     };
 
     expect(
@@ -129,6 +131,8 @@ describe("classification storage mappers", () => {
       recommendedActions: ["hide_source"],
       safetyCase: false,
       raisedByModeration: false,
+      raisedBySpam: false,
+      spamSignals: [],
     };
 
     expect(

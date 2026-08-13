@@ -11,7 +11,10 @@ import type {
 import { ModerationDialog } from "@/features/moderation/moderation-dialog";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
-import { saveCreatorCorrectionAction } from "./actions";
+import {
+  allowChannelExpressionAction,
+  saveCreatorCorrectionAction,
+} from "./actions";
 import {
   confirmYouTubeModerationAction,
   requestYouTubeModerationAction,
@@ -154,12 +157,13 @@ export default async function InboxPage({ searchParams }: InboxPageProps) {
       ) : null}
 
       <CommentInbox
+        allowExpressionAction={allowChannelExpressionAction}
         correctionAction={saveCreatorCorrectionAction}
         data={{ items: inbox.items, total: inbox.total }}
         filters={{
           reviewLevels: inbox.filters.reviewLevels,
           category: inbox.filters.category,
-          videoId: inbox.filters.videoId,
+          videoIds: inbox.filters.videoIds,
           analysisState: inbox.filters.analysisState,
           actionState: inbox.filters.actionState,
           minConfidence: inbox.filters.minConfidence,

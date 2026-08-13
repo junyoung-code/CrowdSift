@@ -82,6 +82,72 @@ describe("SourceReveal", () => {
     ).toBeInTheDocument();
   });
 
+  it("asks about a channel expression only once the source is on screen", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: vi.fn().mockResolvedValue({
+          authorDisplayName: "테스트 작성자",
+          authorAvatarUrl: null,
+          publishedAt: "2026-07-23T00:00:00.000Z",
+          textDisplay: "님 진짜 ㅈㄴ웃기네요 ㅋㅋㅋㅋ 구독합니다",
+          capturedAt: "2026-07-23T00:01:00.000Z",
+        }),
+      }),
+    );
+
+    render(
+      <SourceReveal allowExpressionAction={vi.fn()} commentId="comment-1" />,
+    );
+
+    // 무엇을 풀어 주는지 읽지도 않은 채 등록하게 두어서는 안 된다.
+    expect(
+      screen.queryByRole("button", { name: "칭찬으로 등록" }),
+    ).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "원문 확인" }));
+    await user.click(
+      screen.getByRole("button", { name: "경고를 확인하고 원문 보기" }),
+    );
+
+    expect(
+      await screen.findByRole("textbox", { name: "허용할 표현" }),
+    ).toHaveValue("ㅈㄴ웃기네요");
+  });
+
+  it("keeps quiet on a comment the channel may not learn from", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: vi.fn().mockResolvedValue({
+          authorDisplayName: "테스트 작성자",
+          authorAvatarUrl: null,
+          publishedAt: "2026-07-23T00:00:00.000Z",
+          textDisplay: "님 진짜 ㅈㄴ웃기네요 ㅋㅋㅋㅋ 구독합니다",
+          capturedAt: "2026-07-23T00:01:00.000Z",
+        }),
+      }),
+    );
+
+    render(<SourceReveal commentId="comment-1" />);
+
+    await user.click(screen.getByRole("button", { name: "원문 확인" }));
+    await user.click(
+      screen.getByRole("button", { name: "경고를 확인하고 원문 보기" }),
+    );
+    expect(
+      await screen.findByText("님 진짜 ㅈㄴ웃기네요 ㅋㅋㅋㅋ 구독합니다"),
+    ).toBeInTheDocument();
+
+    expect(
+      screen.queryByRole("button", { name: "칭찬으로 등록" }),
+    ).not.toBeInTheDocument();
+  });
+
   it("drops a revealed source when the comment changes", async () => {
     const user = userEvent.setup();
     vi.stubGlobal(

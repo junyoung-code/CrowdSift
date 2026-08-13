@@ -69,7 +69,7 @@ export async function OwnedVideoTestPanel({
     supabase
       .from("youtube_videos")
       .select(
-        "youtube_video_id, title, thumbnail_url, published_at, comments_enabled",
+        "youtube_video_id, youtube_channel_id, title, thumbnail_url, published_at, comments_enabled",
       )
       .eq("workspace_id", workspaceId)
       .order("published_at", { ascending: false, nullsFirst: false }),
@@ -88,10 +88,23 @@ export async function OwnedVideoTestPanel({
     throw new Error("YouTube videos could not be loaded");
   }
 
+  /**
+   * 연결한 채널의 영상만 고를 수 있어야 한다.
+   *
+   * `youtube_videos` 에는 공개 URL 로 살펴본 남의 영상도 함께 쌓인다. 고를 수 없는
+   * 것이 고를 수 있는 것처럼 나열되면 화면이 거짓말을 하는 셈이다. 서버 쪽에는 이미
+   * 검증이 있어 고르더라도 video_not_owned 로 튕기므로 데이터가 섞이지는 않는다.
+   */
+  const ownedVideos = (videos ?? []).filter(
+    (video) =>
+      selectedChannel != null &&
+      video.youtube_channel_id === selectedChannel.youtube_channel_id,
+  );
+
   const selectedJob =
     jobs?.find((job) => job.id === selectedJobId) ?? jobs?.[0] ?? null;
   const selectedJobVideo = selectedJob
-    ? videos?.find(
+    ? ownedVideos.find(
         (video) => video.youtube_video_id === selectedJob.youtube_video_id,
       )
     : null;
@@ -154,7 +167,7 @@ export async function OwnedVideoTestPanel({
         </section>
       ) : null}
 
-      {isConnected && videos?.length === 0 ? (
+      {isConnected && ownedVideos.length === 0 ? (
         <section className="video-empty-state">
           <span aria-hidden="true">
             <FilmStrip weight="duotone" />
@@ -174,19 +187,19 @@ export async function OwnedVideoTestPanel({
         </section>
       ) : null}
 
-      {isConnected && videos && videos.length > 0 ? (
+      {isConnected && ownedVideos.length > 0 ? (
         <form action={importYouTubeCommentsAction} className="video-import-card">
           <div className="video-import-intro">
             <div>
               <p>연결된 채널</p>
               <h2>{selectedChannel?.title}</h2>
             </div>
-            <span>{videos.length}개 영상 확인됨</span>
+            <span>{ownedVideos.length}개 영상 확인됨</span>
           </div>
 
           <fieldset className="video-options">
             <legend>댓글을 가져올 영상 하나</legend>
-            {videos.map((video, index) => (
+            {ownedVideos.map((video, index) => (
               <label key={video.youtube_video_id}>
                 <input
                   defaultChecked={index === 0}

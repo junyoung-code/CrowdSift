@@ -3,15 +3,22 @@
 import { CaretUp, Eye, WarningCircle, X } from "@phosphor-icons/react";
 import { useEffect, useRef, useState } from "react";
 
+import { AllowExpressionForm } from "./allow-expression-form";
 import type { CommentSource } from "./source-service";
 import { CommentSourceBlock } from "./comment-source-block";
 
 type SourceRevealProps = {
   commentId: string;
   label?: string;
+  /**
+   * 원문을 펼친 뒤에 이어서 물어볼 것이 있으면 준다. 물어봐도 되는 댓글인지는
+   * 서버가 이미 가려서 넘기고, 여기서는 펼쳐진 원문을 넘겨줄 뿐이다.
+   */
+  allowExpressionAction?: (formData: FormData) => void | Promise<void>;
 };
 
 export function SourceReveal({
+  allowExpressionAction,
   commentId,
   label = "원문 확인",
 }: SourceRevealProps) {
@@ -114,6 +121,12 @@ export function SourceReveal({
           <CaretUp aria-hidden="true" weight="bold" />
           원문 접기
         </button>
+        {allowExpressionAction ? (
+          <AllowExpressionForm
+            action={allowExpressionAction}
+            sourceText={source.textDisplay}
+          />
+        ) : null}
       </div>
     );
   }

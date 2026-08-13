@@ -1,3 +1,5 @@
+import { isTimestampOnlyComment } from "./timestamp-only-comment";
+
 export type ProviderComment = {
   id: string;
   parentId: string | null;
@@ -97,7 +99,16 @@ export const fetchSourceCommentPage = async ({
   };
 
   for (const thread of page.items) {
-    append(thread.topLevelComment);
+    // 재생 위치만 적힌 최상위 댓글은 읽을 거리가 없는데 분류 비용은 똑같이 든다.
+    // 답글이 달려 있으면 남긴다. 부모가 사라지면 답글이 맥락을 잃는다.
+    const parentIsNoise =
+      isTimestampOnlyComment(thread.topLevelComment.textDisplay) &&
+      thread.totalReplyCount === 0 &&
+      thread.inlineReplies.length === 0;
+
+    if (!parentIsNoise) {
+      append(thread.topLevelComment);
+    }
     thread.inlineReplies.forEach(append);
 
     if (thread.totalReplyCount > thread.inlineReplies.length) {
