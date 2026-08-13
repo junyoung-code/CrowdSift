@@ -4,7 +4,9 @@ vi.mock("server-only", () => ({}));
 
 const { commentThreadsList, commentsList, videosList, youtubeClient } =
   vi.hoisted(() => {
-    const commentThreadsList = vi.fn<() => Promise<unknown>>(async () => ({
+    const commentThreadsList = vi.fn<
+      (input: { moderationStatus?: string }) => Promise<unknown>
+    >(async () => ({
       data: { items: [], nextPageToken: null },
     }));
     const commentsList = vi.fn<() => Promise<unknown>>(async () => ({
@@ -58,16 +60,19 @@ describe("GoogleYouTubeProvider comment reads", () => {
     videosList.mockResolvedValue({ data: { items: [] } });
   });
 
-  it("uses the server API key instead of owner OAuth for published comments", async () => {
-    const configuration = {
+  /**
+   * 8/8 에 이 자리는 API 키로 바뀌어 있었다. 그러자 `moderationStatus` 가 실려 오지
+   * 않고 게시된 것만 돌아왔고, 유튜브가 먼저 잡아 둔 악플은 인박스에 들어오지도
+   * 못했다. 실제로 226건이 전부 상태 null 이었다. 그래서 소유자 토큰이 있으면
+   * 소유자로 읽는 쪽으로 되돌린다.
+   */
+  it("reads an owned video as the owner and asks for held comments too", async () => {
+    const provider = new GoogleYouTubeProvider({
       clientId: "client-id",
       clientSecret: "client-secret",
       redirectUri: "http://localhost:3000/api/youtube/oauth/callback",
       commentReadApiKey: "server-api-key",
-    } as ConstructorParameters<typeof GoogleYouTubeProvider>[0] & {
-      commentReadApiKey: string;
-    };
-    const provider = new GoogleYouTubeProvider(configuration);
+    });
 
     await provider.listCommentThreads({
       youtubeVideoId: "video-1",
@@ -79,12 +84,7 @@ describe("GoogleYouTubeProvider comment reads", () => {
       tokens: oauthTokens,
     });
 
-    expect(youtubeClient).toHaveBeenCalledTimes(2);
-    expect(youtubeClient).toHaveBeenNthCalledWith(1, {
-      version: "v3",
-      auth: "server-api-key",
-    });
-    expect(youtubeClient).toHaveBeenNthCalledWith(2, {
+    expect(youtubeClient).not.toHaveBeenCalledWith({
       version: "v3",
       auth: "server-api-key",
     });
@@ -96,6 +96,16 @@ describe("GoogleYouTubeProvider comment reads", () => {
       textFormat: "plainText",
       pageToken: undefined,
     });
+    // 보류 목록은 따로 부른다. 기본값이 게시된 것뿐이라 한 번으로는 안 온다.
+    expect(commentThreadsList).toHaveBeenCalledWith({
+      part: ["id", "snippet", "replies"],
+      videoId: "video-1",
+      maxResults: 20,
+      order: "time",
+      textFormat: "plainText",
+      pageToken: undefined,
+      moderationStatus: "heldForReview",
+    });
     expect(commentsList).toHaveBeenCalledWith({
       part: ["id", "snippet"],
       parentId: "comment-1",
@@ -103,6 +113,146 @@ describe("GoogleYouTubeProvider comment reads", () => {
       textFormat: "plainText",
       pageToken: undefined,
     });
+  });
+
+  it("falls back to the server API key when there is no owner token", async () => {
+    // 공개 URL 로 들어온 영상에는 토큰이 없다. 그 길은 그대로 두어야 한다.
+    const provider = new GoogleYouTubeProvider({
+      clientId: "client-id",
+      clientSecret: "client-secret",
+      redirectUri: "http://localhost:3000/api/youtube/oauth/callback",
+      commentReadApiKey: "server-api-key",
+    });
+
+    await provider.listCommentThreads({
+      youtubeVideoId: "video-1",
+      maxResults: 20,
+    });
+
+    expect(youtubeClient).toHaveBeenCalledTimes(1);
+    expect(youtubeClient).toHaveBeenCalledWith({
+      version: "v3",
+      auth: "server-api-key",
+    });
+    // 권한이 없는데 보류 목록을 물으면 403 이 난다. 묻지 않아야 한다.
+    expect(commentThreadsList).not.toHaveBeenCalledWith(
+      expect.objectContaining({ moderationStatus: "heldForReview" }),
+    );
+  });
+
+  it("does not ask for held comments once it is paging", async () => {
+    // 상태마다 페이지 토큰이 따로 논다. 보류는 첫 장에서 한 번만 본다.
+    const provider = new GoogleYouTubeProvider({
+      clientId: "client-id",
+      clientSecret: "client-secret",
+      redirectUri: "http://localhost:3000/api/youtube/oauth/callback",
+      commentReadApiKey: "server-api-key",
+    });
+
+    await provider.listCommentThreads({
+      youtubeVideoId: "video-1",
+      maxResults: 20,
+      pageToken: "page-2",
+      tokens: oauthTokens,
+    });
+
+    expect(commentThreadsList).toHaveBeenCalledTimes(1);
+    expect(commentThreadsList).not.toHaveBeenCalledWith(
+      expect.objectContaining({ moderationStatus: "heldForReview" }),
+    );
+  });
+
+  it("records that an owner's published comment is published", async () => {
+    // 유튜브는 게시된 댓글에 moderationStatus 를 실어 주지 않는다. 값이 붙는 것은
+    // 게시가 아닐 때뿐이다. 어느 목록에서 왔는지는 우리가 알고 있으므로 적어 둔다.
+    // 한 댓글이 두 목록에 동시에 있을 수는 없다. 보류 목록은 비어 있어야 한다.
+    commentThreadsList.mockImplementation(
+      async (input: { moderationStatus?: string }) =>
+        input.moderationStatus === "heldForReview"
+          ? { data: { nextPageToken: null, items: [] } }
+          : {
+              data: {
+                nextPageToken: null,
+                items: [
+                  {
+                    id: "thread-1",
+                    snippet: {
+                      totalReplyCount: 0,
+                      topLevelComment: {
+                        id: "comment-1",
+                        snippet: { textDisplay: "그냥 댓글" },
+                      },
+                    },
+                  },
+                ],
+              },
+            },
+    );
+    const provider = new GoogleYouTubeProvider({
+      clientId: "client-id",
+      clientSecret: "client-secret",
+      redirectUri: "http://localhost:3000/api/youtube/oauth/callback",
+      commentReadApiKey: "server-api-key",
+    });
+
+    const asOwner = await provider.listCommentThreads({
+      youtubeVideoId: "video-1",
+      maxResults: 20,
+      tokens: oauthTokens,
+    });
+
+    expect(asOwner.items[0]?.topLevelComment.moderationStatus).toBe(
+      "published",
+    );
+
+    const asPublic = await provider.listCommentThreads({
+      youtubeVideoId: "video-1",
+      maxResults: 20,
+    });
+
+    // 공개 읽기로는 알 수 없다. 모르는 것은 모르는 채로 둔다.
+    expect(asPublic.items[0]?.topLevelComment.moderationStatus).toBeNull();
+  });
+
+  it("keeps a held comment when the published page repeats it", async () => {
+    // 두 목록을 이어 붙이므로 같은 댓글이 두 번 들어올 수 있다.
+    commentThreadsList.mockResolvedValue({
+      data: {
+        nextPageToken: null,
+        items: [
+          {
+            id: "thread-1",
+            snippet: {
+              totalReplyCount: 0,
+              topLevelComment: {
+                id: "comment-1",
+                snippet: {
+                  textDisplay: "같은 댓글",
+                  moderationStatus: "heldForReview",
+                },
+              },
+            },
+          },
+        ],
+      },
+    });
+    const provider = new GoogleYouTubeProvider({
+      clientId: "client-id",
+      clientSecret: "client-secret",
+      redirectUri: "http://localhost:3000/api/youtube/oauth/callback",
+      commentReadApiKey: "server-api-key",
+    });
+
+    const result = await provider.listCommentThreads({
+      youtubeVideoId: "video-1",
+      maxResults: 20,
+      tokens: oauthTokens,
+    });
+
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0]?.topLevelComment.moderationStatus).toBe(
+      "heldForReview",
+    );
   });
 
   it("reads channel-wide threads newest first and preserves their video IDs", async () => {
