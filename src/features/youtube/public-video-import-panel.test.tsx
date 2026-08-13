@@ -114,6 +114,7 @@ describe("PublicVideoImportPanel", () => {
             status: "succeeded",
             observedCount: 20,
             storedCount: 17,
+            updatedCount: 0,
             duplicateCount: 2,
             failedCount: 1,
             topLevelCount: 12,

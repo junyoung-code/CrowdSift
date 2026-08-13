@@ -2,6 +2,7 @@ type ImportProgressSummary = {
   requestedTopLevelCount: number;
   fetchedCount: number;
   storedCount: number;
+  updatedCount: number;
   duplicateCount: number;
   failedCount: number;
   status:
@@ -24,6 +25,8 @@ const countItems = [
   ["requestedTopLevelCount", "요청한 상위 댓글"],
   ["fetchedCount", "확인한 전체 댓글"],
   ["storedCount", "신규 저장"],
+  // 「이미 저장됨」과 나눠 둔다. 다시 읽어서 뭐가 달라졌는지가 여기에만 보인다.
+  ["updatedCount", "상태 갱신"],
   ["duplicateCount", "이미 저장됨"],
   ["failedCount", "저장 실패"],
 ] as const;

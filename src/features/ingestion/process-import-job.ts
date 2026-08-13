@@ -70,7 +70,7 @@ export const processImportJob = async (jobId: string) => {
   const { data: job, error: jobError } = await admin
     .from("comment_import_jobs")
     .select(
-      "id, workspace_id, youtube_video_id, requested_top_level_count, provider_mode, source_kind, next_page_token, status, fetched_count, stored_count, duplicate_count, failed_count",
+      "id, workspace_id, youtube_video_id, requested_top_level_count, provider_mode, source_kind, next_page_token, status, fetched_count, stored_count, updated_count, duplicate_count, failed_count",
     )
     .eq("id", jobId)
     .maybeSingle();
@@ -220,6 +220,7 @@ export const processImportJob = async (jobId: string) => {
         status: job.status,
         fetchedCount: job.fetched_count,
         storedCount: job.stored_count,
+        updatedCount: job.updated_count,
         duplicateCount: job.duplicate_count,
         failedCount: job.failed_count,
       };
@@ -264,10 +265,19 @@ export const processImportJob = async (jobId: string) => {
       });
       const result = data?.[0];
 
+      /**
+       * `updated` 는 성공이다.
+       *
+       * 이미 있던 댓글의 내용이 달라져 관찰 기록을 새로 남겼다는 뜻이다. 여기서
+       * 이 값을 몰라 실패로 세던 시절이 있었다. 그때는 다시 읽어도 스냅샷이 늘
+       * 같아서 드러나지 않다가, 소유자 권한으로 읽어 유튜브 상태가 처음 붙는 순간
+       * 20건이 한꺼번에 「저장 실패」로 찍혔다.
+       */
       if (
         error ||
         !result ||
         (result.disposition !== "stored" &&
+          result.disposition !== "updated" &&
           result.disposition !== "duplicate")
       ) {
         throw error ?? new Error("Comment source was not stored");
@@ -298,6 +308,7 @@ export const processImportJob = async (jobId: string) => {
           status: summary.status,
           fetched_count: summary.fetched,
           stored_count: summary.stored,
+          updated_count: summary.updated,
           duplicate_count: summary.duplicates,
           failed_count: summary.failed,
           next_page_token: summary.nextPageToken,

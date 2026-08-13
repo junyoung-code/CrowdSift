@@ -14,6 +14,7 @@ type ImportProgressInput = {
     status: PublicImportJobStatus;
     fetchedCount: number;
     storedCount: number;
+    updatedCount: number;
     duplicateCount: number;
     failedCount: number;
     topLevelCount: number;
@@ -47,6 +48,8 @@ export type ImportJobProgress = {
     status: PublicImportJobStatus;
     observedCount: number;
     storedCount: number;
+    /** 이미 있던 댓글인데 내용이 달라져 관찰 기록을 새로 남긴 수. */
+    updatedCount: number;
     duplicateCount: number;
     failedCount: number;
     topLevelCount: number;
@@ -93,6 +96,7 @@ export function toImportJobProgress({
       status: job.status,
       observedCount: job.fetchedCount,
       storedCount: job.storedCount,
+      updatedCount: job.updatedCount,
       duplicateCount: job.duplicateCount,
       failedCount: job.failedCount,
       topLevelCount: job.topLevelCount,

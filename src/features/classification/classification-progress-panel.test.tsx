@@ -17,6 +17,7 @@ const pendingProgress: ImportJobProgress = {
     status: "succeeded",
     observedCount: 9,
     storedCount: 9,
+    updatedCount: 0,
     duplicateCount: 0,
     failedCount: 0,
     topLevelCount: 9,

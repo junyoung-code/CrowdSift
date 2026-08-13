@@ -16,6 +16,7 @@ export type ImportJobRecord = {
   status: ImportJobStatus;
   fetchedCount: number;
   storedCount: number;
+  updatedCount: number;
   duplicateCount: number;
   failedCount: number;
 };
@@ -24,6 +25,13 @@ export type ImportSummary = {
   requested: number;
   fetched: number;
   stored: number;
+  /**
+   * 이미 있던 댓글인데 **내용이 달라져서** 관찰 기록을 새로 남긴 것.
+   *
+   * 원문을 덮어쓰지 않고 새 관찰로 쌓는 설계라, 좋아요 수나 유튜브 상태가 바뀌면
+   * 여기에 잡힌다. 「그대로였다」와 뭉치면 다시 읽어 온 보람이 안 보인다.
+   */
+  updated: number;
   duplicates: number;
   failed: number;
   nextPageToken: string | null;
@@ -50,7 +58,7 @@ export interface CommentImportRepository {
     youtubeVideoId: string;
     comment: SourceComment;
   }): Promise<{
-    disposition: "stored" | "duplicate";
+    disposition: "stored" | "updated" | "duplicate";
     rawCommentId: string;
   }>;
   recordFailedItem(input: {
@@ -75,6 +83,7 @@ const storedSummary = (job: ImportJobRecord): ImportSummary => ({
   requested: job.requestedTopLevelCount,
   fetched: job.fetchedCount,
   stored: job.storedCount,
+  updated: job.updatedCount,
   duplicates: job.duplicateCount,
   failed: job.failedCount,
   nextPageToken: job.nextPageToken,
@@ -108,6 +117,7 @@ export const createCommentImportService = ({
       pageToken: job.nextPageToken ?? undefined,
     });
     let stored = 0;
+    let updated = 0;
     let duplicates = 0;
     let failed = 0;
     const rawCommentIds: string[] = [];
@@ -124,6 +134,8 @@ export const createCommentImportService = ({
 
         if (result.disposition === "stored") {
           stored += 1;
+        } else if (result.disposition === "updated") {
+          updated += 1;
         } else {
           duplicates += 1;
         }
@@ -141,13 +153,14 @@ export const createCommentImportService = ({
     const status: ImportJobStatus =
       failed === 0
         ? "succeeded"
-        : stored + duplicates > 0
+        : stored + updated + duplicates > 0
           ? "partially_succeeded"
           : "failed";
     const summary: ImportSummary = {
       requested: job.requestedTopLevelCount,
       fetched: page.comments.length,
       stored,
+      updated,
       duplicates,
       failed,
       nextPageToken: page.nextPageToken,

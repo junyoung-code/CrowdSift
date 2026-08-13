@@ -13,7 +13,7 @@ export async function GET(
   const { data: job, error: jobError } = await admin
     .from("comment_import_jobs")
     .select(
-      "id, workspace_id, provider_mode, source_kind, requested_top_level_count, requested_total_count, status, fetched_count, stored_count, duplicate_count, failed_count, top_level_count, reply_count, youtube_quota_units_used, last_error_code",
+      "id, workspace_id, provider_mode, source_kind, requested_top_level_count, requested_total_count, status, fetched_count, stored_count, updated_count, duplicate_count, failed_count, top_level_count, reply_count, youtube_quota_units_used, last_error_code",
     )
     .eq("id", jobId)
     .maybeSingle();
@@ -98,6 +98,7 @@ export async function GET(
         status: job.status,
         fetchedCount: job.fetched_count,
         storedCount: job.stored_count,
+        updatedCount: job.updated_count,
         duplicateCount: job.duplicate_count,
         failedCount: job.failed_count,
         topLevelCount: job.top_level_count,

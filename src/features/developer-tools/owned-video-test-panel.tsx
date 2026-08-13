@@ -76,7 +76,7 @@ export async function OwnedVideoTestPanel({
     supabase
       .from("comment_import_jobs")
       .select(
-        "id, requested_top_level_count, fetched_count, stored_count, duplicate_count, failed_count, status, last_error_code, created_at, youtube_video_id",
+        "id, requested_top_level_count, fetched_count, stored_count, updated_count, duplicate_count, failed_count, status, last_error_code, created_at, youtube_video_id",
       )
       .eq("workspace_id", workspaceId)
       .eq("source_kind", "owned_oauth")
@@ -285,6 +285,7 @@ export async function OwnedVideoTestPanel({
                 selectedJob.requested_top_level_count ?? 20,
               status: selectedJob.status,
               storedCount: selectedJob.stored_count,
+              updatedCount: selectedJob.updated_count,
             }}
           />
           {selectedJob.status === "succeeded" ||
