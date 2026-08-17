@@ -162,17 +162,26 @@ const createPublicImportRepository = (
     });
     const result = data?.[0];
 
+    /**
+     * `updated` 는 성공이다. 이미 있던 댓글의 내용이 달라져 관찰 기록을 새로 남긴
+     * 것뿐이다. 공개 읽기로는 유튜브 상태가 오지 않지만 좋아요 수는 바뀌므로 여기도
+     * 같은 구멍이 있었다.
+     *
+     * 공개 경로는 「이미 저장됨」으로 함께 센다. 이 화면에서 갈라 보여 줄 이유가 아직
+     * 없고, 어느 쪽이든 새로 저장된 댓글이 아닌 것은 맞다.
+     */
     if (
       error ||
       !result ||
       (result.disposition !== "stored" &&
+        result.disposition !== "updated" &&
         result.disposition !== "duplicate")
     ) {
       throw error ?? new Error("Public comment source was not stored");
     }
 
     return {
-      disposition: result.disposition,
+      disposition: result.disposition === "stored" ? "stored" : "duplicate",
       rawCommentId: result.raw_comment_id,
     };
   },

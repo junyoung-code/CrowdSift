@@ -242,11 +242,28 @@ export const ModerationResultSchema = z
  * 사용자별 분류 프로필. 안전과 주의의 경계를 조정하는 데 쓰인다.
  * 완화 불가 신호에는 영향을 주지 못한다.
  */
+/**
+ * 프로필에 담을 수 있는 양.
+ *
+ * 이름을 붙여 둔 이유가 있다. 넘치면 `toClassificationProfile` 이 파싱에 실패하고
+ * **프로필 전체가 기본값으로 돌아간다.** 채우는 쪽이 이 한계를 모르면, 표현 하나를
+ * 더 넣었다가 등록해 둔 것이 통째로 사라진다. 두 곳이 같은 숫자를 보게 한다.
+ */
+export const PROFILE_LIMITS = {
+  phraseChars: 40,
+  allowedSlang: 50,
+  sensitiveTopics: 30,
+} as const;
+
 export const ClassificationProfileSchema = z
   .object({
     protectionLevel: z.enum(["low", "standard", "high"]),
-    allowedSlang: z.array(z.string().min(1).max(40)).max(50),
-    sensitiveTopics: z.array(z.string().min(1).max(40)).max(30),
+    allowedSlang: z
+      .array(z.string().min(1).max(PROFILE_LIMITS.phraseChars))
+      .max(PROFILE_LIMITS.allowedSlang),
+    sensitiveTopics: z
+      .array(z.string().min(1).max(PROFILE_LIMITS.phraseChars))
+      .max(PROFILE_LIMITS.sensitiveTopics),
     hidePersonalAttacks: z.boolean(),
     rewriteTone: z.enum(["neutral", "friendly", "soft_disappointment"]),
     emojiFrequency: z.enum(["none", "low", "medium"]),

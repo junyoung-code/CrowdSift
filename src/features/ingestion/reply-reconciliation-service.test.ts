@@ -438,7 +438,18 @@ describe("reply reconciliation Supabase adapter", () => {
     const queryFor = (table: string) => {
       const result =
         table === "youtube_connections"
-          ? { data: { id: "connection-1", status: "connected" }, error: null }
+          ? {
+              data: {
+                id: "connection-1",
+                status: "connected",
+                encrypted_access_token: "encrypted-access",
+                encrypted_refresh_token: "encrypted-refresh",
+                token_expires_at: null,
+                granted_scopes: [],
+                google_subject: null,
+              },
+              error: null,
+            }
           : { data: { version: 7 }, error: null };
       const builder: Record<string, unknown> = {};
       for (const method of ["select", "eq", "order", "limit"]) {
@@ -458,13 +469,21 @@ describe("reply reconciliation Supabase adapter", () => {
     vi.doMock("@/lib/env", () => ({
       getServerEnv: () => ({
         EXTERNAL_PROVIDER_MODE: "live",
+        YOUTUBE_TOKEN_ENCRYPTION_KEY: Buffer.alloc(32).toString("base64"),
         OPENAI_MODERATION_MODEL: "moderation-current",
         OPENAI_LUNA_MODEL: "luna-current",
         OPENAI_TERRA_MODEL: "terra-current",
       }),
     }));
-    vi.doMock("@/features/youtube/provider-factory", () => ({
-      createYouTubeProvider: () => provider,
+    // 이 테스트가 보는 것은 「어느 서비스로 넘기는가」다. 토큰 복호화는 여기 관심사가
+    // 아니므로 연결을 여는 자리를 통째로 대신한다.
+    vi.doMock("@/features/youtube/owner-connection", () => ({
+      OWNER_CONNECTION_COLUMNS: "id, status",
+      isUsableOwnerConnection: () => true,
+      openOwnerConnection: () => ({
+        provider,
+        tokens: { accessToken: "owner-access", refreshToken: null, expiresAt: null },
+      }),
     }));
     vi.doMock("@/features/classification/configuration", () => ({
       createClassificationConfigurationKey: () => "classification-v1-key",

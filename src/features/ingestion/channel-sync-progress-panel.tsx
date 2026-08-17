@@ -172,10 +172,20 @@ export function ChannelSyncProgressPanel({
         </div>
       </dl>
 
+      {progress.latestRunLabel ? (
+        <p className="channel-sync-run-label">
+          아래 숫자는 마지막으로 {progress.latestRunLabel} 결과입니다
+        </p>
+      ) : null}
+
       <dl className="channel-sync-metrics">
         <div>
           <dt>신규 저장</dt>
           <dd>{progress.counts.stored}</dd>
+        </div>
+        <div>
+          <dt>상태 갱신</dt>
+          <dd>{progress.counts.updated}</dd>
         </div>
         <div>
           <dt>중복 건너뜀</dt>

@@ -55,7 +55,10 @@ export function PolicyForm({
       <div className="policy-textarea-grid">
         <label>
           <span>주의해서 볼 표현</span>
-          <small>한 줄에 하나씩 입력하세요.</small>
+          <small>
+            한 줄에 하나씩. 이 표현이 나오면 등급을 올리지 않고 한 번 더
+            확인합니다.
+          </small>
           <textarea
             aria-label="주의해서 볼 표현"
             defaultValue={initial.blocked}
@@ -66,7 +69,10 @@ export function PolicyForm({
         </label>
         <label>
           <span>허용할 표현</span>
-          <small>친근한 별명이나 채널에서 허용하는 표현입니다.</small>
+          <small>
+            이 채널에서 칭찬으로 쓰이는 말입니다. 다음 분류부터 이 표현 때문에
+            주의로 올리지 않습니다.
+          </small>
           <textarea
             aria-label="허용할 표현"
             defaultValue={initial.allowed}
@@ -78,7 +84,8 @@ export function PolicyForm({
         <label>
           <span>맥락 예외</span>
           <small>
-            `표현 | 설명` 형식으로 입력하면 판단할 맥락도 함께 저장합니다.
+            `표현 | 설명` 형식으로 기록해 둡니다. <b>아직 분류에는 쓰이지
+            않습니다.</b>
           </small>
           <textarea
             aria-label="맥락 예외"
@@ -106,6 +113,7 @@ export function PolicyForm({
             <option value="review">사용자 검토</option>
             <option value="hold_for_review">검토 보류</option>
           </select>
+          <small>아직 분류에는 쓰이지 않습니다.</small>
         </label>
         <label>
           <span>위험 댓글 추천</span>
@@ -114,6 +122,7 @@ export function PolicyForm({
             <option value="hold_for_review">검토 보류</option>
             <option value="none">추천 없음</option>
           </select>
+          <small>아직 분류에는 쓰이지 않습니다.</small>
         </label>
       </div>
 

@@ -12,6 +12,7 @@ export type ChannelSyncProgressRun = {
   kind: string;
   status: string;
   stored_count: number;
+  updated_count: number;
   duplicate_count: number;
   failed_count: number;
   analyzed_count: number;
@@ -35,12 +36,48 @@ export type ChannelSyncProgress = {
   lastSuccessfulSyncAt: string | null;
   counts: {
     stored: number;
+    /**
+     * 이미 있던 댓글인데 내용이 달라져 관찰 기록을 새로 남긴 수.
+     *
+     * 「중복」과 뭉치면 다시 읽어 온 보람이 화면에서 사라진다. 유튜브 상태가 처음
+     * 붙던 판에서 34건이 여기 잡혔는데, 그것 없이는 아무 일도 없었던 것처럼 보였다.
+     */
+    updated: number;
     duplicate: number;
     failed: number;
     analyzed: number;
   };
+  /**
+   * 위 숫자가 어느 판의 것인지.
+   *
+   * 초기 수집이 끝난 뒤에도 화면은 「초기 댓글 수집 완료」를 머리에 달고 있는데,
+   * 그 아래 숫자는 방금 돈 이어받기 판의 것이다. 어느 판인지 적지 않으면 초기
+   * 수집이 아무것도 못 가져온 것처럼 읽힌다.
+   */
+  latestRunLabel: string | null;
   statusMessage: string;
   errorMessage: string | null;
+};
+
+/**
+ * 마지막 실행이 무엇을 했는지. 화면에서 「아래 숫자는 마지막으로 ○○ 결과입니다」로
+ * 이어 붙으므로 **문장에 들어가는 꼴**로 적는다.
+ *
+ * 같은 숫자라도 무엇을 하다 나온 것인지에 따라 뜻이 다르다. 초기 수집이 끝난 뒤에도
+ * 새 댓글 확인은 계속 도는데, 그때 0 이 뜨는 것은 실패가 아니라 새 댓글이 없다는
+ * 뜻이다.
+ */
+const runKindLabel = (kind: string) => {
+  switch (kind) {
+    case "backfill_recent":
+      return "지난 댓글을 가져온";
+    case "incremental":
+      return "새 댓글을 확인한";
+    case "reply_reconciliation":
+      return "답글을 확인한";
+    default:
+      return "동기화한";
+  }
 };
 
 const backfillStatus = (
@@ -139,7 +176,8 @@ export const toChannelSyncProgress = ({
       backfillStatus: "not_configured",
       backfillLabel: "시작 날짜를 선택해 주세요",
       lastSuccessfulSyncAt: null,
-      counts: { stored: 0, duplicate: 0, failed: 0, analyzed: 0 },
+      counts: { stored: 0, updated: 0, duplicate: 0, failed: 0, analyzed: 0 },
+      latestRunLabel: null,
       statusMessage: "채널 댓글 동기화를 아직 설정하지 않았습니다.",
       errorMessage: null,
     };
@@ -165,10 +203,12 @@ export const toChannelSyncProgress = ({
     lastSuccessfulSyncAt: setting.last_successful_sync_at,
     counts: {
       stored: latestRun?.stored_count ?? 0,
+      updated: latestRun?.updated_count ?? 0,
       duplicate: latestRun?.duplicate_count ?? 0,
       failed: latestRun?.failed_count ?? 0,
       analyzed: latestRun?.analyzed_count ?? 0,
     },
+    latestRunLabel: latestRun ? runKindLabel(latestRun.kind) : null,
     statusMessage: statusMessage({
       enabled: setting.enabled,
       active,

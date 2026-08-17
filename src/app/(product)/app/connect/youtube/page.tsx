@@ -95,7 +95,7 @@ export default async function YouTubeConnectionPage({
     ? await supabase
         .from("channel_comment_sync_runs")
         .select(
-          "kind, status, stored_count, duplicate_count, failed_count, analyzed_count, error_code, started_at, finished_at",
+          "kind, status, stored_count, updated_count, duplicate_count, failed_count, analyzed_count, error_code, started_at, finished_at",
         )
         .eq("workspace_id", workspaceId)
         .eq("setting_id", syncSetting.id)

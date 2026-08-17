@@ -5,6 +5,7 @@ import type {
   ModerationAction,
   ModerationRequestState,
 } from "./contracts";
+import { YOUTUBE_QUOTA_UNITS } from "@/features/youtube/quota";
 
 export const FORCE_SSL_SCOPE =
   "https://www.googleapis.com/auth/youtube.force-ssl";
@@ -95,6 +96,8 @@ export interface ModerationRepository {
     providerStatus: number | null;
     executedAt: string;
     errorCode: string | null;
+    /** 이 요청이 실제로 태운 YouTube 할당량. 실패해도 나간 것은 나간 것이다. */
+    quotaUnitsUsed: number;
   }): Promise<ActionResult>;
   reconcileStaleRequest(input: {
     workspaceId: string;
@@ -116,7 +119,7 @@ export interface YouTubeModerationProvider {
       connectionId: string;
       connectionUpdatedAt: string;
     };
-  }): Promise<{ status: number }>;
+  }): Promise<{ status: number; quotaUnitsUsed: number }>;
   deleteComment(input: {
     youtubeCommentId: string;
     tokens: {
@@ -126,8 +129,18 @@ export interface YouTubeModerationProvider {
       connectionId: string;
       connectionUpdatedAt: string;
     };
-  }): Promise<{ status: number }>;
+  }): Promise<{ status: number; quotaUnitsUsed: number }>;
 }
+
+/**
+ * 이 조치가 태우는 유닛.
+ *
+ * 보류·승인·거절은 모두 같은 `setModerationStatus` 호출이라 값이 같다.
+ */
+const unitsForAction = (action: string) =>
+  action === "delete"
+    ? YOUTUBE_QUOTA_UNITS.deleteComment
+    : YOUTUBE_QUOTA_UNITS.setModerationStatus;
 
 export class PublicSourceReadOnlyError extends Error {
   readonly code = "PUBLIC_SOURCE_READ_ONLY";
@@ -263,6 +276,8 @@ export const createModerationService = ({
         providerStatus: request.result.providerStatus,
         executedAt: request.result.executedAt ?? new Date().toISOString(),
         errorCode: request.result.errorCode,
+        // 이미 끝난 요청을 그대로 돌려주는 길이다. 유닛은 그때 기록됐다.
+        quotaUnitsUsed: 0,
       });
     }
     if (!request.bindingValid) {
@@ -308,6 +323,7 @@ export const createModerationService = ({
           providerStatus: current.result.providerStatus,
           executedAt: current.result.executedAt ?? reconciledAt,
           errorCode: current.result.errorCode,
+          quotaUnitsUsed: 0,
         });
       }
       throw new Error("Moderation request is already being processed");
@@ -321,7 +337,7 @@ export const createModerationService = ({
       connectionUpdatedAt: request.connectionUpdatedAt,
     };
 
-    let providerResult: { status: number };
+    let providerResult: { status: number; quotaUnitsUsed: number };
     try {
       providerResult =
         request.action === "delete"
@@ -352,6 +368,8 @@ export const createModerationService = ({
         providerStatus,
         executedAt,
         errorCode,
+        // 실패해도 요청이 구글에 닿았으면 유닛은 나갔다. 예산은 넉넉히 잡는 쪽이 안전하다.
+        quotaUnitsUsed: unitsForAction(request.action),
       });
     }
 
@@ -363,6 +381,7 @@ export const createModerationService = ({
       providerStatus: providerResult.status,
       executedAt,
       errorCode: null,
+      quotaUnitsUsed: providerResult.quotaUnitsUsed,
     });
   },
 });

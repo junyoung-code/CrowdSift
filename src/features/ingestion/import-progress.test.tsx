@@ -14,6 +14,7 @@ describe("ImportProgress", () => {
           requestedTopLevelCount: 20,
           status: "partially_succeeded",
           storedCount: 24,
+          updatedCount: 0,
         }}
       />,
     );
@@ -40,6 +41,7 @@ describe("ImportProgress", () => {
           requestedTopLevelCount: 20,
           status: "succeeded",
           storedCount: 20,
+          updatedCount: 0,
         }}
       />,
     );

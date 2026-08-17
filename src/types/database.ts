@@ -1717,6 +1717,7 @@ export type Database = {
           workspace_id: string
           youtube_channel_id: string | null
           youtube_connection_id: string | null
+          youtube_quota_units_used: number
         }
         Insert: {
           action: Database["public"]["Enums"]["moderation_action"]
@@ -1735,6 +1736,7 @@ export type Database = {
           workspace_id: string
           youtube_channel_id?: string | null
           youtube_connection_id?: string | null
+          youtube_quota_units_used?: number
         }
         Update: {
           action?: Database["public"]["Enums"]["moderation_action"]
@@ -1753,6 +1755,7 @@ export type Database = {
           workspace_id?: string
           youtube_channel_id?: string | null
           youtube_connection_id?: string | null
+          youtube_quota_units_used?: number
         }
         Relationships: [
           {
@@ -2636,6 +2639,7 @@ export type Database = {
           target_error_code: string
           target_executed_at: string
           target_provider_status: number
+          target_quota_units: number
           target_request_id: string
           target_state: Database["public"]["Enums"]["action_state"]
           target_workspace_id: string
@@ -2966,6 +2970,7 @@ export type Database = {
           source_available: boolean
           source_import_job_id: string
           source_kind: Database["public"]["Enums"]["comment_source_kind"]
+          source_moderation_status: string
           total_count: number
           video_thumbnail_url: string
           video_title: string

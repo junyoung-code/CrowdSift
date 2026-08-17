@@ -6,7 +6,12 @@ import {
   processClassificationChunk,
 } from "@/features/classification/process-classification-job";
 import type { ClassificationJobProgress } from "@/features/classification/classification-service";
-import { createYouTubeProvider } from "@/features/youtube/provider-factory";
+import {
+  isUsableOwnerConnection,
+  openOwnerConnection,
+  OWNER_CONNECTION_COLUMNS,
+  type OwnerConnectionRow,
+} from "@/features/youtube/owner-connection";
 import { getServerEnv } from "@/lib/env";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import type { Json } from "@/types/database";
@@ -537,11 +542,12 @@ export async function processOneChannelSyncWork(input: {
   if (!claim) return null;
 
   let policyVersion: number;
+  let connectionRow: OwnerConnectionRow | null = null;
   try {
     const [connectionResult, policyResult] = await Promise.all([
       admin
         .from("youtube_connections")
-        .select("id, status")
+        .select(`id, ${OWNER_CONNECTION_COLUMNS}`)
         .eq("id", claim.connectionId)
         .eq("workspace_id", claim.workspaceId)
         .maybeSingle(),
@@ -556,16 +562,34 @@ export async function processOneChannelSyncWork(input: {
     if (connectionResult.error || policyResult.error) {
       throw connectionResult.error ?? policyResult.error;
     }
-    if (!connectionResult.data || connectionResult.data.status !== "connected") {
+    if (!isUsableOwnerConnection(connectionResult.data)) {
       throw new ChannelSyncProcessingError("permission_revoked");
     }
+    connectionRow = connectionResult.data;
     policyVersion = policyResult.data?.version ?? 1;
   } catch (error) {
     return failClaim(admin, claim, error);
   }
 
   const environment = getServerEnv();
-  const provider = createYouTubeProvider();
+  /**
+   * 채널 댓글도 **소유자로 읽는다.**
+   *
+   * API 키로 읽으면 게시된 것만 돌아오고 `moderationStatus` 도 실려 오지 않는다.
+   * 유튜브가 먼저 잡아 둔 악플이 인박스에 들어오지 못한다는 뜻이라, 유해한 것부터
+   * 보여 주겠다는 자동 수집에서 그것이 빠지면 앞뒤가 맞지 않는다.
+   */
+  const { provider, tokens } = openOwnerConnection({
+    admin,
+    connection: connectionRow as OwnerConnectionRow & {
+      encrypted_access_token: string;
+    },
+    encryptionKey: Buffer.from(
+      environment.YOUTUBE_TOKEN_ENCRYPTION_KEY,
+      "base64",
+    ),
+    workspaceId: claim.workspaceId,
+  });
   const repository = createRepository(admin);
   const analysisConfigurationKey = createChannelSyncAnalysisConfigurationKey({
     policyVersion,
@@ -581,7 +605,8 @@ export async function processOneChannelSyncWork(input: {
       providerMode: environment.EXTERNAL_PROVIDER_MODE,
       analysisConfigurationKey,
       source: {
-        listReplies: (replyInput) => provider.listReplies(replyInput),
+        listReplies: (replyInput) =>
+          provider.listReplies({ ...replyInput, tokens }),
       },
     }).process(claim);
   }
@@ -595,6 +620,7 @@ export async function processOneChannelSyncWork(input: {
         collectChannelCommentPage({
           ...collectionInput,
           provider,
+          tokens,
         }),
       listVideosByIds: (videoIds) => provider.listVideosByIds(videoIds),
     },

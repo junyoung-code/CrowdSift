@@ -25,11 +25,19 @@ const ACTION_WARNINGS = {
 export function ModerationDialog({
   confirmAction,
   dismissHref,
+  quota,
   request,
 }: {
   confirmAction(formData: FormData): void | Promise<void>;
   dismissHref: string;
   request: ModerationRequest;
+  /**
+   * 오늘 남은 조치 횟수.
+   *
+   * 조치 한 번이 댓글 가져오기 스무 번 값이라 하루 200건에서 끊긴다. 누르기 전에
+   * 보여야 의미가 있다. 모르면(null) 아무 말도 하지 않는다 — 지어내면 더 나쁘다.
+   */
+  quota?: { remainingActions: number } | null;
 }) {
   const [confirmed, setConfirmed] = useState(false);
 
@@ -110,6 +118,17 @@ export function ModerationDialog({
           <dt>예상 결과</dt>
           <dd>{ACTION_WARNINGS[request.action]}</dd>
         </div>
+        {quota ? (
+          <div>
+            <dt>오늘 남은 조치</dt>
+            <dd>
+              {quota.remainingActions}회
+              {quota.remainingActions <= 10
+                ? " · YouTube 하루 한도가 곧 끝납니다"
+                : ""}
+            </dd>
+          </div>
+        ) : null}
       </dl>
       <input type="hidden" name="requestId" value={request.requestId} />
       <label>

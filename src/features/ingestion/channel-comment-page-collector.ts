@@ -1,4 +1,8 @@
-import type { ChannelCommentProvider } from "@/features/youtube/channel-comment-contracts";
+import type {
+  ChannelCommentProvider,
+  ChannelCommentThread,
+  OwnerReadTokens,
+} from "@/features/youtube/channel-comment-contracts";
 
 import {
   mapProviderComment,
@@ -102,11 +106,13 @@ async function collectReplies({
   inlineReplies,
   parentYoutubeCommentId,
   provider,
+  tokens,
   totalReplyCount,
 }: {
   inlineReplies: ProviderComment[];
   parentYoutubeCommentId: string;
   provider: ChannelCommentProvider;
+  tokens?: OwnerReadTokens;
   totalReplyCount: number;
 }) {
   const replies = inlineReplies.map((reply) =>
@@ -123,6 +129,7 @@ async function collectReplies({
         parentYoutubeCommentId,
         maxResults: 100,
         pageToken,
+        tokens,
       });
       quotaUnitsUsed += page.quotaUnitsUsed;
       replies.push(
@@ -159,6 +166,7 @@ export async function collectChannelCommentPage({
   kind,
   pageToken,
   provider,
+  tokens,
   youtubeChannelId,
 }: {
   provider: ChannelCommentProvider;
@@ -166,6 +174,8 @@ export async function collectChannelCommentPage({
   pageToken: string | null;
   boundaryAt: string;
   kind: ChannelCommentCollectionKind;
+  /** 있으면 소유자로 읽어 보류된 댓글까지 가져온다. */
+  tokens?: OwnerReadTokens;
 }): Promise<ChannelCommentCollectionPage> {
   const boundaryValue = parseRfc3339Timestamp(boundaryAt);
   if (boundaryValue === null) {
@@ -176,6 +186,7 @@ export async function collectChannelCommentPage({
     youtubeChannelId,
     maxResults: 100,
     pageToken: pageToken ?? undefined,
+    tokens,
   });
   const comments: SourceComment[] = [];
   const groups = new Map<string, SourceComment[]>();
@@ -195,24 +206,13 @@ export async function collectChannelCommentPage({
     (typeof includedThreads)[number]
   >();
 
-  for (const thread of page.items) {
+  const include = (thread: ChannelCommentThread) => {
     const parent = {
       ...thread.topLevelComment,
       parentId: null,
     };
-
-    if (
-      !isCandidate({
-        boundaryValue,
-        kind,
-        publishedAt: parent.publishedAt,
-      })
-    ) {
-      reachedBoundary = true;
-      break;
-    }
-
     const includedThread = includedThreadsByParentId.get(parent.id);
+
     if (includedThread) {
       for (const reply of thread.inlineReplies) {
         if (!includedThread.inlineReplies.has(reply.id)) {
@@ -226,7 +226,7 @@ export async function collectChannelCommentPage({
         includedThread.totalReplyCount,
         thread.totalReplyCount,
       );
-      continue;
+      return;
     }
 
     const newIncludedThread = {
@@ -242,6 +242,35 @@ export async function collectChannelCommentPage({
     };
     includedThreads.push(newIncludedThread);
     includedThreadsByParentId.set(parent.id, newIncludedThread);
+  };
+
+  const withinBoundary = (thread: ChannelCommentThread) =>
+    isCandidate({
+      boundaryValue,
+      kind,
+      publishedAt: thread.topLevelComment.publishedAt,
+    });
+
+  // 게시 목록은 최신순이다. 경계보다 오래된 것을 만나면 그 뒤는 볼 필요가 없다.
+  for (const thread of page.items) {
+    if (!withinBoundary(thread)) {
+      reachedBoundary = true;
+      break;
+    }
+    include(thread);
+  }
+
+  /**
+   * 보류 목록은 따로 훑는다.
+   *
+   * 시간과 무관하게 딸려 오므로 위와 같은 규칙을 쓰면 오래된 보류 댓글 하나가
+   * 백필 전체를 첫 장에서 끊는다. 여기서는 한 건씩 걸러 내고 넘어가며,
+   * `reachedBoundary` 도 건드리지 않는다 — 페이지 넘김은 게시 목록이 정한다.
+   */
+  for (const thread of page.heldItems) {
+    if (withinBoundary(thread)) {
+      include(thread);
+    }
   }
 
   for (const thread of includedThreads) {
@@ -258,6 +287,7 @@ export async function collectChannelCommentPage({
       inlineReplies: [...thread.inlineReplies.values()],
       parentYoutubeCommentId: parent.id,
       provider,
+      tokens,
       totalReplyCount: thread.totalReplyCount,
     });
     quotaUnitsUsed += collectedReplies.quotaUnitsUsed;

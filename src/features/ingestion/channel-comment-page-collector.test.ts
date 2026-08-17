@@ -70,6 +70,7 @@ describe("collectChannelCommentPage", () => {
         ],
         nextPageToken: "provider-next",
         quotaUnitsUsed: 1,
+        heldItems: [],
         invalidItemCount: 0,
       }),
     });
@@ -110,6 +111,7 @@ describe("collectChannelCommentPage", () => {
       ],
       nextPageToken: "provider-next",
       quotaUnitsUsed: 2,
+      heldItems: [],
       invalidItemCount: 1,
     });
     const source = provider({ listChannelCommentThreads });
@@ -162,6 +164,7 @@ describe("collectChannelCommentPage", () => {
         ],
         nextPageToken: "provider-next",
         quotaUnitsUsed: 1,
+        heldItems: [],
         invalidItemCount: 2,
       }),
     });
@@ -234,6 +237,7 @@ describe("collectChannelCommentPage", () => {
         ],
         nextPageToken: "provider-next",
         quotaUnitsUsed: 1,
+        heldItems: [],
         invalidItemCount: 0,
       }),
     });
@@ -291,6 +295,7 @@ describe("collectChannelCommentPage", () => {
         ],
         nextPageToken: null,
         quotaUnitsUsed: 1,
+        heldItems: [],
         invalidItemCount: 0,
       }),
       listReplies,
@@ -364,6 +369,7 @@ describe("collectChannelCommentPage", () => {
         ],
         nextPageToken: null,
         quotaUnitsUsed: 1,
+        heldItems: [],
         invalidItemCount: 0,
       }),
       listReplies,
@@ -407,6 +413,7 @@ describe("collectChannelCommentPage", () => {
         ],
         nextPageToken: null,
         quotaUnitsUsed: 1,
+        heldItems: [],
         invalidItemCount: 0,
       }),
       listReplies: vi.fn(async () => {
@@ -445,6 +452,7 @@ describe("collectChannelCommentPage", () => {
         ],
         nextPageToken: "provider-next",
         quotaUnitsUsed: 1,
+        heldItems: [],
         invalidItemCount: 0,
       }),
       listReplies: vi.fn(async () => {
@@ -516,6 +524,7 @@ describe("collectChannelCommentPage", () => {
         ],
         nextPageToken: "provider-next",
         quotaUnitsUsed: 1,
+        heldItems: [],
         invalidItemCount: 0,
       }),
     });
@@ -557,6 +566,7 @@ describe("collectChannelCommentPage", () => {
         ],
         nextPageToken: null,
         quotaUnitsUsed: 1,
+        heldItems: [],
         invalidItemCount: 0,
       }),
       listReplies: vi.fn(async () => {
@@ -586,5 +596,97 @@ describe("collectChannelCommentPage", () => {
     ]);
     expect(result.quotaUnitsUsed).toBe(3);
     expect(replyCalls).toBe(2);
+  });
+  it("does not let an old held comment cut the backfill short", async () => {
+    /**
+     * 보류 댓글은 시간과 무관하게 딸려 온다. 게시 목록과 같은 줄에 세우면 오래된
+     * 것 하나가 「경계에 닿았다」로 읽혀 백필 전체가 첫 장에서 끊긴다.
+     */
+    const source = provider({
+      listChannelCommentThreads: vi.fn().mockResolvedValue({
+        items: [
+          {
+            youtubeVideoId: "video-1",
+            topLevelComment: comment("new-1"),
+            inlineReplies: [],
+            totalReplyCount: 0,
+          },
+        ],
+        heldItems: [
+          {
+            youtubeVideoId: "video-2",
+            topLevelComment: comment("held-old", {
+              publishedAt: "2020-01-01T00:00:00.000Z",
+            }),
+            inlineReplies: [],
+            totalReplyCount: 0,
+          },
+        ],
+        nextPageToken: "provider-next",
+        quotaUnitsUsed: 2,
+        invalidItemCount: 0,
+      }),
+    });
+
+    const result = await collectChannelCommentPage({
+      provider: source,
+      youtubeChannelId: "channel-1",
+      pageToken: null,
+      boundaryAt: "2026-08-01T00:00:00+09:00",
+      kind: "backfill_recent",
+    });
+
+    // 경계보다 오래된 보류 댓글은 저장하지 않는다. 다만 페이지 넘김은 살아 있어야 한다.
+    expect(result.comments.map((item) => item.youtubeCommentId)).toEqual([
+      "new-1",
+    ]);
+    expect(result.reachedBoundary).toBe(false);
+    expect(result.nextPageToken).toBe("provider-next");
+  });
+
+  it("collects a held comment that sits inside the boundary", async () => {
+    const source = provider({
+      listChannelCommentThreads: vi.fn().mockResolvedValue({
+        items: [
+          {
+            youtubeVideoId: "video-1",
+            topLevelComment: comment("published-1"),
+            inlineReplies: [],
+            totalReplyCount: 0,
+          },
+        ],
+        heldItems: [
+          {
+            youtubeVideoId: "video-1",
+            topLevelComment: {
+              ...comment("held-1"),
+              moderationStatus: "heldForReview",
+            },
+            inlineReplies: [],
+            totalReplyCount: 0,
+          },
+        ],
+        nextPageToken: null,
+        quotaUnitsUsed: 2,
+        invalidItemCount: 0,
+      }),
+    });
+
+    const result = await collectChannelCommentPage({
+      provider: source,
+      youtubeChannelId: "channel-1",
+      pageToken: null,
+      boundaryAt: "2026-08-01T00:00:00+09:00",
+      kind: "backfill_recent",
+    });
+
+    expect(result.comments.map((item) => item.youtubeCommentId)).toEqual([
+      "published-1",
+      "held-1",
+    ]);
+    expect(
+      result.comments.find((item) => item.youtubeCommentId === "held-1")
+        ?.sourceModerationStatus,
+    ).toBe("heldForReview");
   });
 });

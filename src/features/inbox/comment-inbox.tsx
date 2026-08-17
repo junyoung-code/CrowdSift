@@ -24,6 +24,8 @@ import type {
   ReviewLevel,
 } from "@/features/analysis/contracts";
 
+import type { ModerationAction } from "@/features/moderation/contracts";
+
 import { canAllowChannelExpression } from "./allow-expression-eligibility";
 import { CommentSourceBlock } from "./comment-source-block";
 import type {
@@ -31,6 +33,7 @@ import type {
   InboxAnalysisState,
   InboxItem,
   InboxReply,
+  SourceModerationStatus,
 } from "./inbox-query";
 import { SourceReveal } from "./source-reveal";
 import { ClassificationTrace } from "./classification-trace";
@@ -451,6 +454,22 @@ function CorrectionForm({
   );
 }
 
+/** 지금 상태에서 아무것도 바꾸지 못하는 조치. 눌러도 50 유닛만 나간다. */
+const NO_OP_ACTION: Record<SourceModerationStatus, ModerationAction | null> = {
+  published: "publish",
+  heldForReview: "hold_for_review",
+  rejected: "reject",
+  // 유튜브가 붙인 것이라 우리 조치 중 어느 것도 무의미하지 않다.
+  likelySpam: null,
+};
+
+const STATUS_LABELS: Record<SourceModerationStatus, string> = {
+  published: "게시됨",
+  heldForReview: "검토 대기",
+  rejected: "거절됨",
+  likelySpam: "스팸으로 분류됨",
+};
+
 function ModerationActions({
   item,
   moderationAction,
@@ -468,36 +487,48 @@ function ModerationActions({
   }
   if (!item.sourceAvailable) return null;
 
+  const status = item.sourceModerationStatus;
+  const noOpAction = status ? NO_OP_ACTION[status] : null;
+
   return (
     <div
       className="inbox-moderation-actions"
       aria-label="YouTube 댓글 조치"
     >
-      <p>실제 YouTube 조치</p>
+      <p>
+        실제 YouTube 조치
+        {status ? <span> · 현재 {STATUS_LABELS[status]}</span> : null}
+      </p>
       {(
         [
           ["hold_for_review", "검토 대기로 이동"],
           ["publish", "게시 승인"],
           ["reject", "거절하여 숨기기"],
         ] as const
-      ).map(([action, label]) => (
-        <form action={moderationAction} key={action}>
-          <input name="rawCommentId" type="hidden" value={item.rawCommentId} />
-          <input
-            name="sourceImportJobId"
-            type="hidden"
-            value={item.sourceImportJobId}
-          />
-          <button
-            className="button button-secondary"
-            name="action"
-            type="submit"
-            value={action}
-          >
-            {label}
-          </button>
-        </form>
-      ))}
+      )
+        .filter(([action]) => action !== noOpAction)
+        .map(([action, label]) => (
+          <form action={moderationAction} key={action}>
+            <input
+              name="rawCommentId"
+              type="hidden"
+              value={item.rawCommentId}
+            />
+            <input
+              name="sourceImportJobId"
+              type="hidden"
+              value={item.sourceImportJobId}
+            />
+            <button
+              className="button button-secondary"
+              name="action"
+              type="submit"
+              value={action}
+            >
+              {label}
+            </button>
+          </form>
+        ))}
       {item.deleteEligible ? (
         <form action={moderationAction}>
           <input name="rawCommentId" type="hidden" value={item.rawCommentId} />

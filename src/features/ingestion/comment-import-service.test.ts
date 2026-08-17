@@ -47,6 +47,7 @@ describe("CommentImportService", () => {
         status: "pending" as const,
         fetchedCount: 0,
         storedCount: 0,
+        updatedCount: 0,
         duplicateCount: 0,
         failedCount: 0,
       })),
@@ -54,6 +55,13 @@ describe("CommentImportService", () => {
       upsertSource: vi.fn(async ({ comment }) => {
         if (comment.youtubeCommentId === "reply-3") {
           return { disposition: "duplicate" as const, rawCommentId: "raw-4" };
+        }
+        // 이미 있던 댓글인데 유튜브 상태가 새로 붙은 경우. 실패가 아니다.
+        if (comment.youtubeCommentId === "reply-2") {
+          return {
+            disposition: "updated" as const,
+            rawCommentId: "raw-reply-2",
+          };
         }
         if (comment.youtubeCommentId === "top-2") {
           throw new Error("database unavailable");
@@ -78,7 +86,8 @@ describe("CommentImportService", () => {
     expect(result).toMatchObject({
       requested: 20,
       fetched: 6,
-      stored: 4,
+      stored: 3,
+      updated: 1,
       duplicates: 1,
       failed: 1,
       nextPageToken: "next-1",
@@ -126,6 +135,7 @@ describe("CommentImportService", () => {
         status: "succeeded" as const,
         fetchedCount: 5,
         storedCount: 5,
+        updatedCount: 0,
         duplicateCount: 0,
         failedCount: 0,
       })),
