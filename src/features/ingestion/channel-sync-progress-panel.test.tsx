@@ -19,7 +19,8 @@ const progress = (
   backfillStatus: "running",
   backfillLabel: "초기 댓글 수집 중",
   lastSuccessfulSyncAt: null,
-  counts: { stored: 12, duplicate: 3, failed: 1, analyzed: 10 },
+  counts: { stored: 12, updated: 4, duplicate: 3, failed: 1, analyzed: 10 },
+  latestRunLabel: "지난 댓글을 가져온",
   statusMessage: "선택한 날짜까지 댓글을 가져오고 있습니다.",
   errorMessage: null,
   ...overrides,
@@ -57,6 +58,32 @@ describe("channel sync setup", () => {
 });
 
 describe("channel sync progress panel", () => {
+  it("shows what re-reading found and which pass the numbers came from", () => {
+    /**
+     * 갱신을 「중복」과 뭉치면 다시 읽어 온 보람이 화면에서 사라진다. 유튜브 상태가
+     * 처음 붙던 판에서 34건이 갱신으로 잡혔는데, 화면은 「신규 0 · 중복 69」만
+     * 보여 주어 아무 일도 없었던 것처럼 읽혔다.
+     */
+    render(
+      <ChannelSyncProgressPanel
+        initialProgress={progress({
+          backfillLabel: "초기 댓글 수집 완료",
+          counts: { stored: 0, updated: 34, duplicate: 32, failed: 0, analyzed: 3 },
+          latestRunLabel: "새 댓글을 확인한",
+        })}
+        requestNowAction={action}
+        setEnabledAction={action}
+      />,
+    );
+
+    expect(screen.getByText("상태 갱신")).toBeInTheDocument();
+    expect(screen.getByText("34")).toBeInTheDocument();
+    // 머리는 「초기 수집 완료」인데 숫자는 방금 돈 판의 것이다. 어느 판인지 적는다.
+    expect(
+      screen.getByText(/마지막으로 새 댓글을 확인한 결과입니다/),
+    ).toBeInTheDocument();
+  });
+
   it("shows real dates and counts with an indeterminate accessible progress state", () => {
     render(
       <ChannelSyncProgressPanel

@@ -24,6 +24,7 @@ const latestRun = (
     kind: string;
     status: string;
     stored_count: number;
+    updated_count: number;
     duplicate_count: number;
     failed_count: number;
     analyzed_count: number;
@@ -35,6 +36,7 @@ const latestRun = (
   kind: "backfill_recent",
   status: "running",
   stored_count: 12,
+  updated_count: 0,
   duplicate_count: 3,
   failed_count: 1,
   analyzed_count: 10,
@@ -56,7 +58,8 @@ describe("channel sync progress DTO", () => {
       backfillStatus: "not_configured",
       backfillLabel: "시작 날짜를 선택해 주세요",
       lastSuccessfulSyncAt: null,
-      counts: { stored: 0, duplicate: 0, failed: 0, analyzed: 0 },
+      counts: { stored: 0, updated: 0, duplicate: 0, failed: 0, analyzed: 0 },
+      latestRunLabel: null,
       statusMessage: "채널 댓글 동기화를 아직 설정하지 않았습니다.",
       errorMessage: null,
     });
@@ -79,7 +82,8 @@ describe("channel sync progress DTO", () => {
       backfillStatus: "running",
       backfillLabel: "초기 댓글 수집 중",
       lastSuccessfulSyncAt: null,
-      counts: { stored: 12, duplicate: 3, failed: 1, analyzed: 10 },
+      counts: { stored: 12, updated: 0, duplicate: 3, failed: 1, analyzed: 10 },
+      latestRunLabel: "지난 댓글을 가져온",
       statusMessage: "선택한 날짜까지 댓글을 가져오고 있습니다.",
       errorMessage: null,
     });
@@ -96,6 +100,7 @@ describe("channel sync progress DTO", () => {
         kind: "incremental",
         status: "succeeded",
         stored_count: 2,
+        updated_count: 0,
         duplicate_count: 8,
         failed_count: 0,
         analyzed_count: 2,
@@ -126,6 +131,7 @@ describe("channel sync progress DTO", () => {
         kind: "incremental",
         status: "succeeded",
         stored_count: 7,
+        updated_count: 0,
         analyzed_count: 7,
         finished_at: "2026-08-08T03:00:00.000Z",
       }),

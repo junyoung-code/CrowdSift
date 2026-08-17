@@ -5,7 +5,7 @@ import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 const SETTING_SELECT =
   "id, enabled, backfill_start_at, backfill_status, last_successful_sync_at, last_error_code";
 const RUN_SELECT =
-  "kind, status, stored_count, duplicate_count, failed_count, analyzed_count, error_code, started_at, finished_at";
+  "kind, status, stored_count, updated_count, duplicate_count, failed_count, analyzed_count, error_code, started_at, finished_at";
 
 export async function GET() {
   const { workspaceId } = await requireViewer();
