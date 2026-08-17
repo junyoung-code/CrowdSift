@@ -3,9 +3,11 @@ import "server-only";
 import type { Json } from "@/types/database";
 import { getServerEnv } from "@/lib/env";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
-import { createYouTubeProvider } from "@/features/youtube/provider-factory";
-import { decryptToken, encryptToken } from "@/features/youtube/token-crypto";
-import type { OAuthTokens } from "@/features/youtube/contracts";
+import {
+  isUsableOwnerConnection,
+  openOwnerConnection,
+  OWNER_CONNECTION_COLUMNS,
+} from "@/features/youtube/owner-connection";
 import {
   ProviderModeMismatchError,
   assertProviderModeMatchesJob,
@@ -112,9 +114,7 @@ export const processImportJob = async (jobId: string) => {
   ] = await Promise.all([
     admin
       .from("youtube_connections")
-      .select(
-        "encrypted_access_token, encrypted_refresh_token, token_expires_at, granted_scopes, google_subject, status",
-      )
+      .select(OWNER_CONNECTION_COLUMNS)
       .eq("workspace_id", job.workspace_id)
       .maybeSingle(),
     admin
@@ -136,9 +136,8 @@ export const processImportJob = async (jobId: string) => {
     connectionError ||
     channelError ||
     policyError ||
-    !connection?.encrypted_access_token ||
     !selectedChannel ||
-    connection.status !== "connected"
+    !isUsableOwnerConnection(connection)
   ) {
     await admin
       .from("comment_import_jobs")
@@ -155,48 +154,11 @@ export const processImportJob = async (jobId: string) => {
     environment.YOUTUBE_TOKEN_ENCRYPTION_KEY,
     "base64",
   );
-  const tokens: OAuthTokens = {
-    accessToken: decryptToken(
-      connection.encrypted_access_token,
-      encryptionKey,
-    ),
-    refreshToken: connection.encrypted_refresh_token
-      ? decryptToken(connection.encrypted_refresh_token, encryptionKey)
-      : null,
-    expiresAt: connection.token_expires_at,
-    grantedScopes: connection.granted_scopes,
-    googleSubject: connection.google_subject,
-  };
-  const provider = createYouTubeProvider({
-    async onTokenRefresh(refreshed) {
-      const update: {
-        encrypted_access_token?: string;
-        encrypted_refresh_token?: string;
-        token_expires_at?: string | null;
-        updated_at: string;
-      } = { updated_at: new Date().toISOString() };
-
-      if (refreshed.accessToken) {
-        update.encrypted_access_token = encryptToken(
-          refreshed.accessToken,
-          encryptionKey,
-        );
-      }
-      if (refreshed.refreshToken) {
-        update.encrypted_refresh_token = encryptToken(
-          refreshed.refreshToken,
-          encryptionKey,
-        );
-      }
-      if (refreshed.expiresAt !== null) {
-        update.token_expires_at = refreshed.expiresAt;
-      }
-
-      await admin
-        .from("youtube_connections")
-        .update(update)
-        .eq("workspace_id", job.workspace_id);
-    },
+  const { provider, tokens } = openOwnerConnection({
+    admin,
+    connection,
+    encryptionKey,
+    workspaceId: job.workspace_id,
   });
   const configurationKey = createClassificationConfigurationKey({
     policyVersion: currentPolicy?.version ?? 1,

@@ -17,6 +17,7 @@ import type {
   ChannelCommentPage,
   ChannelCommentProvider,
   ChannelCommentThread,
+  OwnerReadTokens,
 } from "./channel-comment-contracts";
 import type { YouTubeVideo } from "./video-service";
 
@@ -95,6 +96,27 @@ const mapGoogleComment = (
     publishedAt: comment.snippet.publishedAt ?? null,
     updatedAt: comment.snippet.updatedAt ?? null,
     rawPayload,
+  };
+};
+
+/**
+ * 게시된 댓글에는 유튜브가 `moderationStatus` 를 실어 주지 않는다. 값이 붙는 것은
+ * 게시가 아닐 때뿐이다. 그래서 「없음」을 「모름」으로 두면 아무것도 모르는 것이 된다.
+ *
+ * 소유자로 읽을 때는 모르는 것이 아니다. 기본 목록은 게시된 것만 주고, 보류된 것은
+ * 따로 불러 왔다. 여기서 우리가 아는 것을 적어 둔다 — 지어내는 것이 아니라 **어느
+ * 목록에서 왔는지**를 옮기는 것이다.
+ *
+ * 소유자가 아니면 적지 않는다. 공개 읽기로는 게시 여부 말고 알 수 있는 것이 없다.
+ */
+const withKnownModerationStatus = (
+  comment: ProviderComment,
+  { asOwner, fromHeld }: { asOwner: boolean; fromHeld: boolean },
+): ProviderComment => {
+  if (comment.moderationStatus || !asOwner) return comment;
+  return {
+    ...comment,
+    moderationStatus: fromHeld ? "heldForReview" : "published",
   };
 };
 
@@ -345,25 +367,6 @@ export class GoogleYouTubeProvider
       asOwner && !pageToken ? readPage("heldForReview") : null,
     ]);
 
-    /**
-     * 게시된 댓글에는 유튜브가 `moderationStatus` 를 실어 주지 않는다. 값이 붙는 것은
-     * 게시가 아닐 때뿐이다. 그래서 「없음」을 「모름」으로 두면 아무것도 모르는 것이
-     * 된다.
-     *
-     * 소유자로 읽을 때는 모르는 것이 아니다. 기본 목록은 게시된 것만 주고, 보류된
-     * 것은 방금 따로 불러 왔다. 여기서 우리가 아는 것을 적어 둔다. 지어내는 것이
-     * 아니라 **어느 목록에서 왔는지**를 옮기는 것이다.
-     *
-     * 소유자가 아니면 적지 않는다. 공개 읽기로는 게시 여부 말고 알 수 있는 것이 없다.
-     */
-    const withKnownStatus = (comment: ProviderComment, fromHeld: boolean) => {
-      if (comment.moderationStatus || !asOwner) return comment;
-      return {
-        ...comment,
-        moderationStatus: fromHeld ? "heldForReview" : "published",
-      };
-    };
-
     const seen = new Set<string>();
     const items = [
       ...(held?.data.items ?? []).map((thread) => ({ thread, fromHeld: true })),
@@ -377,7 +380,9 @@ export class GoogleYouTubeProvider
           thread.snippet?.topLevelComment ?? {},
           thread.snippet?.topLevelComment ?? {},
         );
-        const topLevel = mapped ? withKnownStatus(mapped, fromHeld) : null;
+        const topLevel = mapped
+          ? withKnownModerationStatus(mapped, { asOwner, fromHeld })
+          : null;
 
         if (!topLevel || seen.has(topLevel.id)) {
           return [];
@@ -403,54 +408,100 @@ export class GoogleYouTubeProvider
     };
   }
 
+  /**
+   * 채널 전체의 댓글을 최신순으로 읽는다.
+   *
+   * 영상 단위 읽기와 같은 규칙이다 — 토큰이 있으면 소유자로 읽고, 보류 목록을
+   * 첫 장에서 한 번만 따로 부른다. 다만 결과는 **`heldItems` 로 나눠서** 돌려준다.
+   * 수집이 「경계보다 오래된 것을 만나면 멈춘다」로 도는데, 보류 댓글은 시간과
+   * 무관하게 딸려 오기 때문이다.
+   */
   async listChannelCommentThreads({
     maxResults,
     pageToken,
+    tokens,
     youtubeChannelId,
   }: {
     youtubeChannelId: string;
     maxResults: number;
     pageToken?: string;
+    tokens?: OwnerReadTokens;
   }): Promise<ChannelCommentPage> {
-    const youtube = this.createPublishedCommentReadClient();
-    const response = await youtube.commentThreads.list({
-      part: ["id", "snippet", "replies"],
-      allThreadsRelatedToChannelId: youtubeChannelId,
-      maxResults: Math.min(100, maxResults),
-      order: "time",
-      textFormat: "plainText",
-      pageToken,
-    });
-    const items: ChannelCommentThread[] = [];
+    const asOwner = Boolean(tokens?.accessToken);
+    const youtube = tokens?.accessToken
+      ? google.youtube({
+          version: "v3",
+          auth: this.createAuthorizedClient(tokens),
+        })
+      : this.createPublishedCommentReadClient();
+
+    const readPage = (moderationStatus?: "heldForReview") =>
+      youtube.commentThreads.list({
+        part: ["id", "snippet", "replies"],
+        allThreadsRelatedToChannelId: youtubeChannelId,
+        maxResults: Math.min(100, maxResults),
+        order: "time",
+        textFormat: "plainText",
+        pageToken: moderationStatus ? undefined : pageToken,
+        ...(moderationStatus ? { moderationStatus } : {}),
+      });
+
+    const [published, held] = await Promise.all([
+      readPage(),
+      // 권한이 없는데 이 값을 넘기면 403 이 난다. 첫 장에서만 부른다.
+      asOwner && !pageToken ? readPage("heldForReview") : null,
+    ]);
+
     let invalidItemCount = 0;
+    const toThreads = (
+      threads: typeof published.data.items,
+      fromHeld: boolean,
+    ) => {
+      const mappedThreads: ChannelCommentThread[] = [];
 
-    for (const thread of response.data.items ?? []) {
-      const youtubeVideoId = thread.snippet?.videoId;
-      const topLevel = mapGoogleComment(
-        thread.snippet?.topLevelComment ?? {},
-        thread.snippet?.topLevelComment ?? {},
-      );
+      for (const thread of threads ?? []) {
+        const youtubeVideoId = thread.snippet?.videoId;
+        const mapped = mapGoogleComment(
+          thread.snippet?.topLevelComment ?? {},
+          thread.snippet?.topLevelComment ?? {},
+        );
 
-      if (!youtubeVideoId || !topLevel) {
-        invalidItemCount += 1;
-        continue;
+        if (!youtubeVideoId || !mapped) {
+          invalidItemCount += 1;
+          continue;
+        }
+
+        mappedThreads.push({
+          youtubeVideoId,
+          topLevelComment: withKnownModerationStatus(mapped, {
+            asOwner,
+            fromHeld,
+          }),
+          inlineReplies: (thread.replies?.comments ?? []).flatMap((reply) => {
+            const mappedReply = mapGoogleComment(reply, reply);
+            return mappedReply ? [mappedReply] : [];
+          }),
+          totalReplyCount: thread.snippet?.totalReplyCount ?? 0,
+        });
       }
 
-      items.push({
-        youtubeVideoId,
-        topLevelComment: topLevel,
-        inlineReplies: (thread.replies?.comments ?? []).flatMap((reply) => {
-          const mapped = mapGoogleComment(reply, reply);
-          return mapped ? [mapped] : [];
-        }),
-        totalReplyCount: thread.snippet?.totalReplyCount ?? 0,
-      });
-    }
+      return mappedThreads;
+    };
+
+    const items = toThreads(published.data.items, false);
+    const publishedIds = new Set(
+      items.map((thread) => thread.topLevelComment.id),
+    );
 
     return {
       items,
-      nextPageToken: response.data.nextPageToken ?? null,
-      quotaUnitsUsed: 1,
+      // 같은 댓글이 양쪽에 설 수는 없지만, 서면 두 번 저장하려 든다.
+      heldItems: toThreads(held?.data.items, true).filter(
+        (thread) => !publishedIds.has(thread.topLevelComment.id),
+      ),
+      nextPageToken: published.data.nextPageToken ?? null,
+      // 보류 목록을 따로 부른 만큼 읽기가 한 번 더 나갔다.
+      quotaUnitsUsed: held ? 2 : 1,
       invalidItemCount,
     };
   }

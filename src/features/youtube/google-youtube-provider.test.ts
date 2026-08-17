@@ -339,11 +339,65 @@ describe("GoogleYouTubeProvider comment reads", () => {
           totalReplyCount: 1,
         }),
       ],
+      // 토큰 없이 부른 읽기다. 보류 목록은 묻지도 않았다.
+      heldItems: [],
       nextPageToken: "page-3",
       quotaUnitsUsed: 1,
       invalidItemCount: 2,
     });
     expect(JSON.stringify(result)).not.toContain("server-api-key");
+  });
+
+  it("brings a channel's held comments back in their own list", async () => {
+    // 게시 목록과 섞으면 수집이 오래된 보류 댓글에서 백필을 끊는다.
+    commentThreadsList.mockImplementation(
+      async (input: { moderationStatus?: string }) => ({
+        data: {
+          nextPageToken: null,
+          items: [
+            {
+              id: `thread-${input.moderationStatus ?? "published"}`,
+              snippet: {
+                videoId: "video-1",
+                totalReplyCount: 0,
+                topLevelComment: {
+                  id:
+                    input.moderationStatus === "heldForReview"
+                      ? "held-1"
+                      : "published-1",
+                  snippet: { textDisplay: "댓글" },
+                },
+              },
+            },
+          ],
+        },
+      }),
+    );
+    const provider = new GoogleYouTubeProvider({
+      clientId: "client-id",
+      clientSecret: "client-secret",
+      redirectUri: "http://localhost:3000/api/youtube/oauth/callback",
+      commentReadApiKey: "server-api-key",
+    });
+
+    const result = await provider.listChannelCommentThreads({
+      youtubeChannelId: "channel-1",
+      maxResults: 100,
+      tokens: oauthTokens,
+    });
+
+    expect(result.items.map((thread) => thread.topLevelComment.id)).toEqual([
+      "published-1",
+    ]);
+    expect(result.heldItems.map((thread) => thread.topLevelComment.id)).toEqual(
+      ["held-1"],
+    );
+    expect(result.items[0]?.topLevelComment.moderationStatus).toBe("published");
+    expect(result.heldItems[0]?.topLevelComment.moderationStatus).toBe(
+      "heldForReview",
+    );
+    // 목록을 두 번 불렀으니 유닛도 둘이다.
+    expect(result.quotaUnitsUsed).toBe(2);
   });
 
   it("caps channel-wide thread pages at 100 items", async () => {

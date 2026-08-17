@@ -406,6 +406,8 @@ export class FixtureYouTubeProvider implements ChannelCommentProvider {
     if (youtubeChannelId !== "fixture-channel-1") {
       return {
         items: [],
+        // fixture 는 외부를 부르지 않으므로 보류 댓글도 만들지 않는다.
+        heldItems: [],
         nextPageToken: null,
         quotaUnitsUsed: 0,
         invalidItemCount: 0,
@@ -422,6 +424,7 @@ export class FixtureYouTubeProvider implements ChannelCommentProvider {
 
     return {
       items: page.items,
+      heldItems: [],
       nextPageToken: page.nextPageToken,
       quotaUnitsUsed: 0,
       invalidItemCount: 0,
