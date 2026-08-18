@@ -68,6 +68,14 @@ const oauthTokens = {
   googleSubject: null,
 };
 
+const moderationOauthTokens = {
+  ...oauthTokens,
+  grantedScopes: [
+    ...oauthTokens.grantedScopes,
+    "https://www.googleapis.com/auth/youtube.force-ssl",
+  ],
+};
+
 describe("GoogleYouTubeProvider comment reads", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -136,11 +144,11 @@ describe("GoogleYouTubeProvider comment reads", () => {
     await provider.listCommentThreads({
       youtubeVideoId: "video-1",
       maxResults: 20,
-      tokens: oauthTokens,
+      tokens: moderationOauthTokens,
     });
     await provider.listReplies({
       parentYoutubeCommentId: "comment-1",
-      tokens: oauthTokens,
+      tokens: moderationOauthTokens,
     });
 
     expect(youtubeClient).not.toHaveBeenCalledWith({
@@ -212,7 +220,7 @@ describe("GoogleYouTubeProvider comment reads", () => {
       youtubeVideoId: "video-1",
       maxResults: 20,
       pageToken: "page-2",
-      tokens: oauthTokens,
+      tokens: moderationOauthTokens,
     });
 
     expect(commentThreadsList).toHaveBeenCalledTimes(1);
@@ -257,7 +265,7 @@ describe("GoogleYouTubeProvider comment reads", () => {
     const asOwner = await provider.listCommentThreads({
       youtubeVideoId: "video-1",
       maxResults: 20,
-      tokens: oauthTokens,
+      tokens: moderationOauthTokens,
     });
 
     expect(asOwner.items[0]?.topLevelComment.moderationStatus).toBe(
@@ -305,7 +313,7 @@ describe("GoogleYouTubeProvider comment reads", () => {
     const result = await provider.listCommentThreads({
       youtubeVideoId: "video-1",
       maxResults: 20,
-      tokens: oauthTokens,
+      tokens: moderationOauthTokens,
     });
 
     expect(result.items).toHaveLength(1);
@@ -407,6 +415,63 @@ describe("GoogleYouTubeProvider comment reads", () => {
     expect(JSON.stringify(result)).not.toContain("server-api-key");
   });
 
+  it("keeps reading published channel comments with readonly OAuth scope", async () => {
+    commentThreadsList.mockImplementation(
+      async (input: { moderationStatus?: string }) => {
+        if (input.moderationStatus === "heldForReview") {
+          throw Object.assign(new Error("insufficient permissions"), {
+            response: {
+              status: 403,
+              data: {
+                error: { errors: [{ reason: "insufficientPermissions" }] },
+              },
+            },
+          });
+        }
+
+        return {
+          data: {
+            nextPageToken: null,
+            items: [
+              {
+                id: "thread-published",
+                snippet: {
+                  videoId: "video-1",
+                  totalReplyCount: 0,
+                  topLevelComment: {
+                    id: "published-1",
+                    snippet: { textDisplay: "게시 댓글" },
+                  },
+                },
+              },
+            ],
+          },
+        };
+      },
+    );
+    const provider = new GoogleYouTubeProvider({
+      clientId: "client-id",
+      clientSecret: "client-secret",
+      redirectUri: "http://localhost:3000/api/youtube/oauth/callback",
+      commentReadApiKey: "server-api-key",
+    });
+
+    const result = await provider.listChannelCommentThreads({
+      youtubeChannelId: "channel-1",
+      maxResults: 100,
+      tokens: oauthTokens,
+    });
+
+    expect(result.items.map((thread) => thread.topLevelComment.id)).toEqual([
+      "published-1",
+    ]);
+    expect(result.heldItems).toEqual([]);
+    expect(result.quotaUnitsUsed).toBe(1);
+    expect(commentThreadsList).not.toHaveBeenCalledWith(
+      expect.objectContaining({ moderationStatus: "heldForReview" }),
+    );
+  });
+
   it("brings a channel's held comments back in their own list", async () => {
     // 게시 목록과 섞으면 수집이 오래된 보류 댓글에서 백필을 끊는다.
     commentThreadsList.mockImplementation(
@@ -442,7 +507,7 @@ describe("GoogleYouTubeProvider comment reads", () => {
     const result = await provider.listChannelCommentThreads({
       youtubeChannelId: "channel-1",
       maxResults: 100,
-      tokens: oauthTokens,
+      tokens: moderationOauthTokens,
     });
 
     expect(result.items.map((thread) => thread.topLevelComment.id)).toEqual([

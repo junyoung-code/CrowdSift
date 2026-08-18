@@ -51,6 +51,12 @@ const toRefreshPayload = (credentials: Credentials): RefreshedGoogleTokens => ({
   expiresAt: toExpiresAt(credentials.expiry_date),
 });
 
+const YOUTUBE_FORCE_SSL_SCOPE =
+  "https://www.googleapis.com/auth/youtube.force-ssl";
+
+const canReadHeldComments = (tokens?: OwnerReadTokens) =>
+  tokens?.grantedScopes?.includes(YOUTUBE_FORCE_SSL_SCOPE) ?? false;
+
 const getResponseStatus = (error: unknown) => {
   if (
     typeof error === "object" &&
@@ -376,8 +382,11 @@ export class GoogleYouTubeProvider
 
     const [published, held] = await Promise.all([
       readPage(),
-      // 소유자 권한이 아닐 때 이 값을 넘기면 403 이 난다. 첫 장에서만 부른다.
-      asOwner && !pageToken ? readPage("heldForReview") : null,
+      // readonly scope만으로 보류 목록을 요청하면 403이 난다. force-ssl 승인을
+      // 받은 연결에서만, 첫 장에서 한 번 부른다.
+      canReadHeldComments(tokens) && !pageToken
+        ? readPage("heldForReview")
+        : null,
     ]);
 
     const seen = new Set<string>();
@@ -461,8 +470,11 @@ export class GoogleYouTubeProvider
 
     const [published, held] = await Promise.all([
       readPage(),
-      // 권한이 없는데 이 값을 넘기면 403 이 난다. 첫 장에서만 부른다.
-      asOwner && !pageToken ? readPage("heldForReview") : null,
+      // 채널 전체 읽기도 동일하다. readonly 연결은 게시 댓글을 계속 수집하고,
+      // force-ssl 승인이 있는 연결만 보류 목록을 첫 장에서 함께 읽는다.
+      canReadHeldComments(tokens) && !pageToken
+        ? readPage("heldForReview")
+        : null,
     ]);
 
     let invalidItemCount = 0;

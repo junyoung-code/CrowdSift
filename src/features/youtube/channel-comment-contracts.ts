@@ -6,11 +6,18 @@ import type {
 import type { OAuthTokens } from "./contracts";
 import type { YouTubeVideo } from "./video-service";
 
-/** 읽기에 필요한 것만. 스코프 목록까지 끌고 다닐 이유가 없다. */
+/**
+ * 소유자 읽기에 필요한 토큰과 승인 범위.
+ *
+ * 게시 댓글은 readonly scope로 읽을 수 있지만 검토 보류 목록은 force-ssl scope가
+ * 있어야 한다. 승인 범위가 없는 오래된 호출자는 게시 댓글만 읽도록 선택 사항으로
+ * 둔다.
+ */
 export type OwnerReadTokens = Pick<
   OAuthTokens,
   "accessToken" | "refreshToken" | "expiresAt"
->;
+> &
+  Partial<Pick<OAuthTokens, "grantedScopes">>;
 
 export type ChannelCommentThread = ProviderCommentThread & {
   youtubeVideoId: string;
