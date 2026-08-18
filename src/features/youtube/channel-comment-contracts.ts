@@ -9,9 +9,9 @@ import type { YouTubeVideo } from "./video-service";
 /**
  * 소유자 읽기에 필요한 토큰과 승인 범위.
  *
- * 게시 댓글은 readonly scope로 읽을 수 있지만 검토 보류 목록은 force-ssl scope가
- * 있어야 한다. 승인 범위가 없는 오래된 호출자는 게시 댓글만 읽도록 선택 사항으로
- * 둔다.
+ * Google의 댓글 목록을 OAuth로 읽으려면 force-ssl scope가 필요하다. readonly만
+ * 승인된 연결은 소유 채널 확인에는 쓸 수 있지만 댓글 읽기에는 부족하므로 서버 API
+ * 키로 게시 댓글만 읽는다. 승인 범위가 없는 오래된 호출자도 같은 공개 읽기로 둔다.
  */
 export type OwnerReadTokens = Pick<
   OAuthTokens,
@@ -45,7 +45,7 @@ export interface ChannelCommentProvider {
     youtubeChannelId: string;
     maxResults: number;
     pageToken?: string;
-    /** 있으면 소유자로 읽는다. 없으면 게시된 댓글만 돌아온다. */
+    /** force-ssl이 있으면 소유자로, 아니면 API 키로 게시 댓글만 읽는다. */
     tokens?: OwnerReadTokens;
   }): Promise<ChannelCommentPage>;
   listReplies(input: {

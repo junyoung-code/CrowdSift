@@ -415,7 +415,7 @@ describe("GoogleYouTubeProvider comment reads", () => {
     expect(JSON.stringify(result)).not.toContain("server-api-key");
   });
 
-  it("keeps reading published channel comments with readonly OAuth scope", async () => {
+  it("uses the server API key for channel comments when OAuth only has readonly scope", async () => {
     commentThreadsList.mockImplementation(
       async (input: { moderationStatus?: string }) => {
         if (input.moderationStatus === "heldForReview") {
@@ -467,9 +467,35 @@ describe("GoogleYouTubeProvider comment reads", () => {
     ]);
     expect(result.heldItems).toEqual([]);
     expect(result.quotaUnitsUsed).toBe(1);
+    expect(youtubeClient).toHaveBeenCalledWith({
+      version: "v3",
+      auth: "server-api-key",
+    });
+    expect(oauthGetAccessToken).not.toHaveBeenCalled();
     expect(commentThreadsList).not.toHaveBeenCalledWith(
       expect.objectContaining({ moderationStatus: "heldForReview" }),
     );
+  });
+
+  it("uses the server API key for replies when OAuth only has readonly scope", async () => {
+    const provider = new GoogleYouTubeProvider({
+      clientId: "client-id",
+      clientSecret: "client-secret",
+      redirectUri: "http://localhost:3000/api/youtube/oauth/callback",
+      commentReadApiKey: "server-api-key",
+    });
+
+    await provider.listReplies({
+      parentYoutubeCommentId: "comment-1",
+      maxResults: 100,
+      tokens: oauthTokens,
+    });
+
+    expect(youtubeClient).toHaveBeenCalledWith({
+      version: "v3",
+      auth: "server-api-key",
+    });
+    expect(oauthGetAccessToken).not.toHaveBeenCalled();
   });
 
   it("brings a channel's held comments back in their own list", async () => {

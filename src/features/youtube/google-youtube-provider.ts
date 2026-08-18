@@ -449,11 +449,14 @@ export class GoogleYouTubeProvider
     pageToken?: string;
     tokens?: OwnerReadTokens;
   }): Promise<ChannelCommentPage> {
-    const asOwner = Boolean(tokens?.accessToken);
-    const youtube = tokens?.accessToken
+    // Google accepts commentThreads.list with an API key for published data,
+    // but OAuth calls require youtube.force-ssl. A readonly access token is
+    // valid for channel ownership yet is insufficient for comment reads.
+    const asOwner = canReadHeldComments(tokens);
+    const youtube = asOwner
       ? google.youtube({
           version: "v3",
-          auth: await this.prepareAuthorizedClient(tokens),
+          auth: await this.prepareAuthorizedClient(tokens!),
         })
       : this.createPublishedCommentReadClient();
 
@@ -472,7 +475,7 @@ export class GoogleYouTubeProvider
       readPage(),
       // 채널 전체 읽기도 동일하다. readonly 연결은 게시 댓글을 계속 수집하고,
       // force-ssl 승인이 있는 연결만 보류 목록을 첫 장에서 함께 읽는다.
-      canReadHeldComments(tokens) && !pageToken
+      asOwner && !pageToken
         ? readPage("heldForReview")
         : null,
     ]);
@@ -541,16 +544,16 @@ export class GoogleYouTubeProvider
     parentYoutubeCommentId: string;
     maxResults?: number;
     pageToken?: string;
-    tokens?: Pick<OAuthTokens, "accessToken" | "refreshToken" | "expiresAt">;
+    tokens?: OwnerReadTokens;
   }): Promise<{
     items: ProviderComment[];
     nextPageToken: string | null;
     quotaUnitsUsed: number;
   }> {
-    const youtube = tokens?.accessToken
+    const youtube = canReadHeldComments(tokens)
       ? google.youtube({
           version: "v3",
-          auth: await this.prepareAuthorizedClient(tokens),
+          auth: await this.prepareAuthorizedClient(tokens!),
         })
       : this.createPublishedCommentReadClient();
     const response = await youtube.comments.list({
