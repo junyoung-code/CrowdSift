@@ -25,6 +25,8 @@ const importFailureMessages = {
     "이 영상은 YouTube에서 댓글 사용이 중지되어 있어 가져올 수 없습니다.",
   quota_exceeded:
     "오늘 사용할 수 있는 YouTube API 할당량을 모두 사용했습니다. 할당량이 갱신된 뒤 다시 시도해 주세요.",
+  youtube_rate_limited:
+    "YouTube 요청 속도 제한에 도달했습니다. 잠시 후 다시 시도해 주세요.",
   permission_revoked:
     "YouTube 읽기 권한이 만료되었거나 해제되었습니다. 채널을 다시 연결해 주세요.",
   provider_mode_mismatch:

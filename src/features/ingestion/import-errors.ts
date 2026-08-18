@@ -1,6 +1,9 @@
+import { isYouTubeOAuthReconnectRequiredError } from "@/features/youtube/oauth-errors";
+
 export type ImportFailureCode =
   | "comments_disabled"
   | "quota_exceeded"
+  | "youtube_rate_limited"
   | "permission_revoked"
   | "provider_mode_mismatch"
   | "provider_error";
@@ -72,19 +75,28 @@ export const toChannelSyncProcessingError = (
     return new ChannelSyncProcessingError(error.code, { cause: error });
   }
 
+  if (isYouTubeOAuthReconnectRequiredError(error)) {
+    return new ChannelSyncProcessingError("permission_revoked", {
+      cause: error,
+    });
+  }
+
   const { reason, status } = getProviderFailure(error);
   const code: ChannelSyncErrorCode =
     reason === "quotaExceeded" ||
-    reason === "dailyLimitExceeded" ||
-    status === 429
+    reason === "dailyLimitExceeded"
       ? "quota_exceeded"
-      : reason === "authError" ||
-          reason === "forbidden" ||
-          reason === "insufficientPermissions" ||
-          status === 401 ||
-          status === 403
-        ? "permission_revoked"
-        : "provider_error";
+      : reason === "rateLimitExceeded" ||
+          reason === "userRateLimitExceeded" ||
+          status === 429
+        ? "youtube_rate_limited"
+        : reason === "authError" ||
+            reason === "forbidden" ||
+            reason === "insufficientPermissions" ||
+            status === 401 ||
+            status === 403
+          ? "permission_revoked"
+          : "provider_error";
 
   return new ChannelSyncProcessingError(code, { cause: error });
 };

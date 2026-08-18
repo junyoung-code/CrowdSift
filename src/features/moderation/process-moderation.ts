@@ -5,6 +5,8 @@ import { getServerEnv } from "@/lib/env";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { createYouTubeProvider } from "@/features/youtube/provider-factory";
 import { decryptToken, encryptToken } from "@/features/youtube/token-crypto";
+import { isYouTubeOAuthReconnectRequiredError } from "@/features/youtube/oauth-errors";
+import { markOwnerConnectionRevoked } from "@/features/youtube/owner-connection";
 
 import type {
   ActionResult,
@@ -388,7 +390,7 @@ const createModerationDependencies = (workspaceId: string) => {
     },
   };
 
-  const provider = createYouTubeProvider({
+  const googleProvider = createYouTubeProvider({
     async onTokenRefresh(refreshed, refreshContext) {
       if (!refreshContext) {
         return;
@@ -435,8 +437,42 @@ const createModerationDependencies = (workspaceId: string) => {
     },
   });
 
+  const withRevocationHandling = async <T>(
+    tokens: {
+      connectionId: string;
+      connectionUpdatedAt: string;
+    },
+    operation: () => Promise<T>,
+  ) => {
+    try {
+      return await operation();
+    } catch (error) {
+      if (isYouTubeOAuthReconnectRequiredError(error)) {
+        await markOwnerConnectionRevoked({
+          admin,
+          connectionId: tokens.connectionId,
+          connectionUpdatedAt: tokens.connectionUpdatedAt,
+          workspaceId,
+        });
+      }
+      throw error;
+    }
+  };
+  const moderationProvider = googleProvider as unknown as YouTubeModerationProvider;
+
+  const provider: YouTubeModerationProvider = {
+    setModerationStatus: (input) =>
+      withRevocationHandling(input.tokens, () =>
+        moderationProvider.setModerationStatus(input),
+      ),
+    deleteComment: (input) =>
+      withRevocationHandling(input.tokens, () =>
+        moderationProvider.deleteComment(input),
+      ),
+  };
+
   return {
-    provider: provider as YouTubeModerationProvider,
+    provider,
     repository,
   };
 };

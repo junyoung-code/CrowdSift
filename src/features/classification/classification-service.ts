@@ -22,6 +22,7 @@ import type {
   Rewrite,
   TerraVerdict,
 } from "./schemas";
+import { toClassificationFailureCode } from "./classification-errors";
 
 export type ClassificationWorkItem = {
   id: string;
@@ -302,8 +303,8 @@ export const createClassificationService = ({
         await repository.saveVerdict(item, finalResult);
         await ensureRewrite(item, finalResult, null);
         await repository.completeItem(item.id);
-      } catch {
-        await repository.failItem(item.id, "classification_failed");
+      } catch (error) {
+        await repository.failItem(item.id, toClassificationFailureCode(error));
       }
     }
 

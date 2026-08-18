@@ -335,6 +335,7 @@ describe("reply reconciliation service", () => {
 
   it.each([
     ["quotaExceeded", "quota_exceeded"],
+    ["rateLimitExceeded", "youtube_rate_limited"],
     ["insufficientPermissions", "permission_revoked"],
     ["backendError", "provider_error"],
   ] as const)(
@@ -480,7 +481,9 @@ describe("reply reconciliation Supabase adapter", () => {
     vi.doMock("@/features/youtube/owner-connection", () => ({
       OWNER_CONNECTION_COLUMNS: "id, status",
       isUsableOwnerConnection: () => true,
+      markOwnerConnectionRevoked: vi.fn(),
       openOwnerConnection: () => ({
+        connectionVersion: { currentUpdatedAt: "2026-08-17T00:00:00.000Z" },
         provider,
         tokens: { accessToken: "owner-access", refreshToken: null, expiresAt: null },
       }),

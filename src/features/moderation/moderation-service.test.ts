@@ -357,6 +357,25 @@ describe("moderation service", () => {
     });
   });
 
+  it("records an expired refresh grant as requiring YouTube reconnection", async () => {
+    const dependencies = createDependencies();
+    vi.mocked(dependencies.provider.setModerationStatus).mockRejectedValue({
+      response: { status: 400, data: { error: "invalid_grant" } },
+    });
+    const service = createModerationService(dependencies);
+
+    await expect(
+      service.confirmModeration(confirmedInput),
+    ).resolves.toMatchObject({
+      state: "failed",
+      providerStatus: 400,
+      errorCode: "youtube_oauth_reconnect_required",
+    });
+    expect(dependencies.repository.completeRequest).toHaveBeenCalledWith(
+      expect.objectContaining({ quotaUnitsUsed: 0 }),
+    );
+  });
+
   it.each([
     "hold_for_review",
     "publish",

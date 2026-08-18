@@ -27,6 +27,7 @@ export async function POST(
     .from("analysis_job_items")
     .update({
       status: "pending",
+      attempt_count: 0,
       error_code: null,
       started_at: null,
       finished_at: null,

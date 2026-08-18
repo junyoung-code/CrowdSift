@@ -8,6 +8,7 @@ import {
 import type { ClassificationJobProgress } from "@/features/classification/classification-service";
 import {
   isUsableOwnerConnection,
+  markOwnerConnectionRevoked,
   openOwnerConnection,
   OWNER_CONNECTION_COLUMNS,
   type OwnerConnectionRow,
@@ -547,7 +548,7 @@ export async function processOneChannelSyncWork(input: {
     const [connectionResult, policyResult] = await Promise.all([
       admin
         .from("youtube_connections")
-        .select(`id, ${OWNER_CONNECTION_COLUMNS}`)
+        .select(OWNER_CONNECTION_COLUMNS)
         .eq("id", claim.connectionId)
         .eq("workspace_id", claim.workspaceId)
         .maybeSingle(),
@@ -579,7 +580,7 @@ export async function processOneChannelSyncWork(input: {
    * 유튜브가 먼저 잡아 둔 악플이 인박스에 들어오지 못한다는 뜻이라, 유해한 것부터
    * 보여 주겠다는 자동 수집에서 그것이 빠지면 앞뒤가 맞지 않는다.
    */
-  const { provider, tokens } = openOwnerConnection({
+  const { connectionVersion, provider, tokens } = openOwnerConnection({
     admin,
     connection: connectionRow as OwnerConnectionRow & {
       encrypted_access_token: string;
@@ -599,32 +600,45 @@ export async function processOneChannelSyncWork(input: {
     terraModel: environment.OPENAI_TERRA_MODEL,
   });
 
-  if (claim.runKind === "reply_reconciliation") {
-    return createReplyReconciliationService({
-      repository: createReplyReconciliationRepository(admin),
+  try {
+    if (claim.runKind === "reply_reconciliation") {
+      return await createReplyReconciliationService({
+        repository: createReplyReconciliationRepository(admin),
+        providerMode: environment.EXTERNAL_PROVIDER_MODE,
+        analysisConfigurationKey,
+        source: {
+          listReplies: (replyInput) =>
+            provider.listReplies({ ...replyInput, tokens }),
+        },
+      }).process(claim);
+    }
+
+    return await createChannelCommentSyncService({
+      repository,
       providerMode: environment.EXTERNAL_PROVIDER_MODE,
       analysisConfigurationKey,
       source: {
-        listReplies: (replyInput) =>
-          provider.listReplies({ ...replyInput, tokens }),
+        collectPage: (collectionInput) =>
+          collectChannelCommentPage({
+            ...collectionInput,
+            provider,
+            tokens,
+          }),
+        listVideosByIds: (videoIds) => provider.listVideosByIds(videoIds),
       },
     }).process(claim);
+  } catch (error) {
+    const processingError = toChannelSyncProcessingError(error);
+    if (processingError.code === "permission_revoked") {
+      await markOwnerConnectionRevoked({
+        admin,
+        connectionId: connectionRow.id,
+        connectionUpdatedAt: connectionVersion.currentUpdatedAt,
+        workspaceId: claim.workspaceId,
+      });
+    }
+    throw processingError;
   }
-
-  return createChannelCommentSyncService({
-    repository,
-    providerMode: environment.EXTERNAL_PROVIDER_MODE,
-    analysisConfigurationKey,
-    source: {
-      collectPage: (collectionInput) =>
-        collectChannelCommentPage({
-          ...collectionInput,
-          provider,
-          tokens,
-        }),
-      listVideosByIds: (videoIds) => provider.listVideosByIds(videoIds),
-    },
-  }).process(claim);
 }
 
 export async function processPendingChannelClassification(input: {

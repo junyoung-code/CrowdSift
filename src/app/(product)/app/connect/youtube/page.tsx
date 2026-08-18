@@ -118,6 +118,7 @@ export default async function YouTubeConnectionPage({
     !connection ||
     connection.status === "disconnected" ||
     connection.status === "revoked";
+  const reconnectRequired = connection?.status === "revoked";
 
   return (
     <div className="youtube-connection-page">
@@ -152,18 +153,23 @@ export default async function YouTubeConnectionPage({
             <YoutubeLogo weight="fill" />
           </span>
           <div>
-            <p>읽기 권한부터 시작합니다</p>
-            <h2>내 YouTube 채널을 연결하세요</h2>
+            <p>{reconnectRequired ? "재연결 필요" : "읽기 권한부터 시작합니다"}</p>
+            <h2>
+              {reconnectRequired
+                ? "YouTube 권한이 만료되었거나 해제되었습니다"
+                : "내 YouTube 채널을 연결하세요"}
+            </h2>
             <span>
-              채널과 영상 목록, 선택한 영상의 공개 댓글을 가져오기 위한 최소
-              권한만 요청합니다. 실제 댓글 숨김 권한은 지금 요청하지 않습니다.
+              {reconnectRequired
+                ? "자동 동기화를 다시 시작하려면 Google에서 채널 권한을 갱신해 주세요. 이미 수집한 댓글과 분석 기록은 그대로 보존됩니다."
+                : "채널과 영상 목록, 선택한 영상의 공개 댓글을 가져오기 위한 최소 권한만 요청합니다. 실제 댓글 숨김 권한은 지금 요청하지 않습니다."}
             </span>
           </div>
           <Link
             className="button button-primary"
             href="/api/youtube/oauth/start"
           >
-            Google에서 연결하기
+            {reconnectRequired ? "Google에서 다시 연결하기" : "Google에서 연결하기"}
             <ArrowRight aria-hidden="true" weight="bold" />
           </Link>
           <div className="permission-note">

@@ -21,6 +21,7 @@ import { createOpenAIEmbedding } from "./openai-embedding";
 import { createFirstPass, createRewrite, createSecondPass } from "./openai-clients";
 import { createPersonalizationLookup } from "./personalization-lookup";
 import { toClassificationProfile } from "./profile";
+import { isRetryableClassificationFailure } from "./classification-errors";
 import {
   LunaFirstPassSchema,
   ModerationResultSchema,
@@ -629,12 +630,17 @@ export const processClassificationChunk = async (
     async refreshJobProgress(targetJobId) {
       const { data: items, error } = await admin
         .from("analysis_job_items")
-        .select("status")
+        .select("status, attempt_count, error_code")
         .eq("analysis_job_id", targetJobId);
       if (error || !items) throw error ?? new Error("items_missing");
       const total = items.length;
       const completed = items.filter((row) => row.status === "succeeded").length;
-      const failed = items.filter((row) => row.status === "failed").length;
+      const failed = items.filter(
+        (row) =>
+          row.status === "failed" &&
+          (row.attempt_count >= 3 ||
+            !isRetryableClassificationFailure(row.error_code)),
+      ).length;
       const remaining = Math.max(total - completed - failed, 0);
       const status =
         remaining > 0

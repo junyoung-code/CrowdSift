@@ -62,6 +62,7 @@ describe("channel sync progress DTO", () => {
       latestRunLabel: null,
       statusMessage: "채널 댓글 동기화를 아직 설정하지 않았습니다.",
       errorMessage: null,
+      reconnectRequired: false,
     });
     expect(progress).not.toHaveProperty("claimToken");
     expect(progress).not.toHaveProperty("workspaceId");
@@ -86,6 +87,7 @@ describe("channel sync progress DTO", () => {
       latestRunLabel: "지난 댓글을 가져온",
       statusMessage: "선택한 날짜까지 댓글을 가져오고 있습니다.",
       errorMessage: null,
+      reconnectRequired: false,
     });
   });
 
@@ -165,7 +167,25 @@ describe("channel sync progress DTO", () => {
       backfillLabel: "초기 댓글 수집 실패",
       errorMessage:
         "YouTube 읽기 권한을 확인할 수 없습니다. 채널을 다시 연결해 주세요.",
+      reconnectRequired: true,
     });
+  });
+
+  it("distinguishes a short YouTube rate limit from the daily quota", () => {
+    const progress = toChannelSyncProgress({
+      setting: setting({
+        backfill_status: "failed",
+        last_error_code: "youtube_rate_limited",
+      }),
+      latestRun: latestRun({
+        status: "failed",
+        error_code: "youtube_rate_limited",
+      }),
+    });
+
+    expect(progress.errorMessage).toContain("요청 속도 제한");
+    expect(progress.errorMessage).toContain("잠시 후 자동으로 다시 시도");
+    expect(progress.reconnectRequired).toBe(false);
   });
 });
 

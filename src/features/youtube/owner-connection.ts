@@ -19,15 +19,17 @@ import { decryptToken, encryptToken } from "./token-crypto";
  */
 
 export const OWNER_CONNECTION_COLUMNS =
-  "encrypted_access_token, encrypted_refresh_token, token_expires_at, granted_scopes, google_subject, status";
+  "id, encrypted_access_token, encrypted_refresh_token, token_expires_at, granted_scopes, google_subject, status, updated_at";
 
 export type OwnerConnectionRow = {
+  id: string;
   encrypted_access_token: string | null;
   encrypted_refresh_token: string | null;
   token_expires_at: string | null;
   granted_scopes: string[];
   google_subject: string | null;
   status: string;
+  updated_at: string;
 };
 
 /** 연결이 실제로 쓸 수 있는 상태인지. 아니면 `permission_revoked` 로 다뤄야 한다. */
@@ -48,6 +50,7 @@ export const openOwnerConnection = ({
   encryptionKey: Buffer;
   workspaceId: string;
 }) => {
+  const connectionVersion = { currentUpdatedAt: connection.updated_at };
   const tokens: OAuthTokens = {
     accessToken: decryptToken(connection.encrypted_access_token, encryptionKey),
     refreshToken: connection.encrypted_refresh_token
@@ -60,12 +63,13 @@ export const openOwnerConnection = ({
 
   const provider = createYouTubeProvider({
     async onTokenRefresh(refreshed) {
+      const refreshedAt = new Date().toISOString();
       const update: {
         encrypted_access_token?: string;
         encrypted_refresh_token?: string;
         token_expires_at?: string | null;
         updated_at: string;
-      } = { updated_at: new Date().toISOString() };
+      } = { updated_at: refreshedAt };
 
       if (refreshed.accessToken) {
         update.encrypted_access_token = encryptToken(
@@ -83,12 +87,56 @@ export const openOwnerConnection = ({
         update.token_expires_at = refreshed.expiresAt;
       }
 
-      await admin
+      const { data, error } = await admin
         .from("youtube_connections")
         .update(update)
-        .eq("workspace_id", workspaceId);
+        .eq("id", connection.id)
+        .eq("workspace_id", workspaceId)
+        .eq("status", "connected")
+        .eq("updated_at", connectionVersion.currentUpdatedAt)
+        .select("updated_at")
+        .maybeSingle();
+      if (error || !data) {
+        throw error ?? new Error("Refreshed YouTube token binding is stale");
+      }
+      connectionVersion.currentUpdatedAt = data.updated_at;
     },
   });
 
-  return { provider, tokens };
+  return { connectionVersion, provider, tokens };
+};
+
+/**
+ * refresh token이 취소·만료됐을 때만 호출한다. `updated_at` 비교는 사용자가 그 사이
+ * 재연결한 새 token을 오래된 worker가 지우지 못하게 막는다.
+ */
+export const markOwnerConnectionRevoked = async ({
+  admin,
+  connectionId,
+  connectionUpdatedAt,
+  workspaceId,
+}: {
+  admin: SupabaseClient<Database>;
+  connectionId: string;
+  connectionUpdatedAt: string;
+  workspaceId: string;
+}) => {
+  const { data, error } = await admin
+    .from("youtube_connections")
+    .update({
+      encrypted_access_token: null,
+      encrypted_refresh_token: null,
+      token_expires_at: null,
+      status: "revoked",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", connectionId)
+    .eq("workspace_id", workspaceId)
+    .eq("status", "connected")
+    .eq("updated_at", connectionUpdatedAt)
+    .select("id")
+    .maybeSingle();
+
+  if (error) throw error;
+  return data !== null;
 };

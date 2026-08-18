@@ -74,10 +74,11 @@ await fetch("/api/channel-comment-sync/process", { method: "POST" }).then((respo
 ```
 
 production에서는 충분히 긴 임의 값의 `CRON_SECRET`을 서버 환경 변수로 설정해야
-합니다. Vercel cron은 `/api/internal/channel-comment-sync/process`를 5분마다 깨워
-밀린 backfill과 분류 작업을 bounded batch로 진행합니다. 이 5분은 worker의
-wake-up 간격이며, 정상 상태에서 YouTube의 새 댓글을 가져오는 DB 계약은 60분
-간격입니다. 내부 endpoint는 `Authorization: Bearer <CRON_SECRET>` 요청만 받습니다.
+합니다. 현재 Hobby 배포는 Vercel cron의 하루 1회 제한을 피하기 위해 Supabase
+Cron이 `/api/internal/channel-comment-sync/process`를 5분마다 깨웁니다. 앱 URL과
+secret은 Supabase Vault에 암호화해 저장합니다. 이 5분은 worker의 wake-up
+간격이며, 정상 상태에서 YouTube의 새 댓글을 가져오는 DB 계약은 60분 간격입니다.
+내부 endpoint는 `Authorization: Bearer <CRON_SECRET>` 요청만 받습니다.
 
 로컬에서 cron 경로를 직접 확인할 때는 `.env.local`에 설정한 값과 같은 secret을
 보냅니다.
@@ -94,6 +95,7 @@ fixture를 활성화하지 않습니다.
 ## 프로젝트 문서
 
 - [개발 로드맵](docs/development-roadmap.md)
+- [운영 자동화 검증](docs/operation-automation-verification.md)
 - [간략한 제품 컨텍스트](docs/product-context.md)
 - [원본 프로젝트 컨텍스트 PDF](docs/CrowdSift_Project_Context_v1.0.pdf)
 - [초기 설계 기록](docs/superpowers/specs/2026-07-22-crowdsift-bootstrap-design.md)

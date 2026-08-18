@@ -7,20 +7,18 @@ import {
 export async function POST() {
   const { workspaceId } = await requireViewer();
 
-  try {
-    const sync = await processOneChannelSyncWork({ workspaceId });
-    const analysis = await processPendingChannelClassification({
-      workspaceId,
-      maxItems: 5,
-    });
+  const [sync, analysis] = await Promise.allSettled([
+    processOneChannelSyncWork({ workspaceId }),
+    processPendingChannelClassification({ workspaceId, maxItems: 5 }),
+  ]);
+  const failed = sync.status === "rejected" || analysis.status === "rejected";
+  const data = {
+    syncProcessed: sync.status === "fulfilled" && sync.value !== null,
+    analysisProcessed:
+      analysis.status === "fulfilled" && analysis.value !== null,
+  };
 
-    return Response.json({
-      data: {
-        syncProcessed: sync !== null,
-        analysisProcessed: analysis !== null,
-      },
-    });
-  } catch {
-    return Response.json({ error: "processing_failed" }, { status: 500 });
-  }
+  return failed
+    ? Response.json({ error: "processing_failed", data }, { status: 500 })
+    : Response.json({ data });
 }

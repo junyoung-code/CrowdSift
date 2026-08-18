@@ -32,7 +32,7 @@ vi.mock("@/lib/supabase/admin", () => ({
 import { POST as processForViewer } from "@/app/api/channel-comment-sync/process/route";
 import { GET as getStatus } from "@/app/api/channel-comment-sync/status/route";
 
-import { GET as processForCron } from "./route";
+import { GET as processForCron, maxDuration } from "./route";
 
 type QueryCall = [method: string, ...arguments_: unknown[]];
 
@@ -53,6 +53,10 @@ const query = (result: unknown, calls: QueryCall[]) => {
 };
 
 describe("channel comment sync routes", () => {
+  it("allows the bounded production worker to use the Hobby maximum duration", () => {
+    expect(maxDuration).toBe(60);
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     mockGetServerEnv.mockReturnValue({ CRON_SECRET: "c".repeat(32) });
@@ -142,6 +146,26 @@ describe("channel comment sync routes", () => {
     });
   });
 
+  it("still processes OpenAI classification when the YouTube sync batch fails", async () => {
+    mockProcessOneChannelSyncWork.mockRejectedValueOnce(
+      new Error("youtube quota"),
+    );
+
+    const response = await processForCron(
+      new Request(
+        "http://localhost/api/internal/channel-comment-sync/process",
+        { headers: { authorization: `Bearer ${"c".repeat(32)}` } },
+      ),
+    );
+
+    expect(response.status).toBe(500);
+    await expect(response.json()).resolves.toEqual({
+      error: "processing_failed",
+      data: { syncProcessed: false, analysisProcessed: true },
+    });
+    expect(mockProcessPendingChannelClassification).toHaveBeenCalledTimes(1);
+  });
+
   it("returns only the safe workspace progress DTO and keeps pending analysis active", async () => {
     const settingCalls: QueryCall[] = [];
     const runCalls: QueryCall[] = [];
@@ -184,7 +208,17 @@ describe("channel comment sync routes", () => {
         jobsCalls,
       ),
       analysis_job_items: query(
-        { data: null, count: 2, error: null },
+        {
+          data: [
+            { status: "pending", attempt_count: 0, error_code: null },
+            {
+              status: "failed",
+              attempt_count: 1,
+              error_code: "openai_rate_limited",
+            },
+          ],
+          error: null,
+        },
         itemsCalls,
       ),
     };

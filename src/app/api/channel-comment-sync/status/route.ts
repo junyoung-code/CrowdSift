@@ -1,5 +1,6 @@
 import { requireViewer } from "@/features/auth/require-viewer";
 import { toChannelSyncProgress } from "@/features/ingestion/channel-sync-progress";
+import { isRetryableClassificationFailure } from "@/features/classification/classification-errors";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 
 const SETTING_SELECT =
@@ -58,11 +59,10 @@ export async function GET() {
   const pendingResult = analysisJobIds.length
     ? await admin
         .from("analysis_job_items")
-        .select("id", { count: "exact", head: true })
+        .select("status, attempt_count, error_code")
         .eq("workspace_id", workspaceId)
         .in("analysis_job_id", analysisJobIds)
-        .eq("status", "pending")
-    : { count: 0, error: null };
+    : { data: [], error: null };
 
   if (pendingResult.error) {
     return Response.json(
@@ -75,7 +75,14 @@ export async function GET() {
     toChannelSyncProgress({
       setting,
       latestRun: latestRunResult.data,
-      pendingAnalysisCount: pendingResult.count ?? 0,
+      pendingAnalysisCount: (pendingResult.data ?? []).filter(
+        (item) =>
+          item.status === "pending" ||
+          item.status === "running" ||
+          (item.status === "failed" &&
+            item.attempt_count < 3 &&
+            isRetryableClassificationFailure(item.error_code)),
+      ).length,
     }),
   );
 }

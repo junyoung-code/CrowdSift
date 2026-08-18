@@ -57,6 +57,7 @@ export type ChannelSyncProgress = {
   latestRunLabel: string | null;
   statusMessage: string;
   errorMessage: string | null;
+  reconnectRequired: boolean;
 };
 
 /**
@@ -118,7 +119,9 @@ const errorMessage = (code: string | null): string | null => {
     case "permission_revoked":
       return "YouTube 읽기 권한을 확인할 수 없습니다. 채널을 다시 연결해 주세요.";
     case "quota_exceeded":
-      return "YouTube API 사용 한도에 도달했습니다. 잠시 후 자동으로 다시 시도합니다.";
+      return "YouTube 일일 API 할당량에 도달했습니다. 다음 할당량 갱신 뒤 자동으로 다시 시도합니다.";
+    case "youtube_rate_limited":
+      return "YouTube 요청 속도 제한에 도달했습니다. 잠시 후 자동으로 다시 시도합니다.";
     case "video_metadata_unavailable":
       return "영상 정보를 확인하지 못했습니다. 잠시 후 다시 시도합니다.";
     case "invalid_reply_cursor":
@@ -180,6 +183,7 @@ export const toChannelSyncProgress = ({
       latestRunLabel: null,
       statusMessage: "채널 댓글 동기화를 아직 설정하지 않았습니다.",
       errorMessage: null,
+      reconnectRequired: false,
     };
   }
 
@@ -217,5 +221,6 @@ export const toChannelSyncProgress = ({
       latestRun,
     }),
     errorMessage: errorMessage(failureCode),
+    reconnectRequired: failureCode === "permission_revoked",
   };
 };

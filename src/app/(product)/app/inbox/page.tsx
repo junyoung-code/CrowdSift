@@ -1,4 +1,5 @@
 import { ChatCircleDots, CheckCircle, WarningCircle } from "@phosphor-icons/react/dist/ssr";
+import Link from "next/link";
 
 import { requireViewer } from "@/features/auth/require-viewer";
 import { CommentInbox } from "@/features/inbox/comment-inbox";
@@ -166,7 +167,12 @@ export default async function InboxPage({ searchParams }: InboxPageProps) {
               ? "선택한 댓글 조치를 확인해 주세요."
               : parameters.moderationError === "provider_result_unknown"
                 ? "YouTube에는 조치가 반영되었을 수 있습니다. 같은 조치를 다시 실행하지 말고 YouTube Studio에서 해당 댓글 상태를 확인해 주세요."
+              : parameters.moderationError === "youtube_oauth_reconnect_required"
+                ? "YouTube 권한이 만료되었거나 해제되었습니다. 채널을 다시 연결한 뒤 조치를 다시 요청해 주세요."
               : "YouTube 댓글 조치를 완료하지 못했습니다. 연결 상태와 권한을 확인해 주세요."}
+          {parameters.moderationError === "youtube_oauth_reconnect_required" ? (
+            <Link href="/app/connect/youtube">채널 다시 연결</Link>
+          ) : null}
         </p>
       ) : null}
 

@@ -2,7 +2,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
-const { commentThreadsList, commentsList, videosList, youtubeClient } =
+const {
+  commentThreadsList,
+  commentsList,
+  oauthGetAccessToken,
+  videosList,
+  youtubeClient,
+} =
   vi.hoisted(() => {
     const commentThreadsList = vi.fn<
       (input: { moderationStatus?: string }) => Promise<unknown>
@@ -15,6 +21,9 @@ const { commentThreadsList, commentsList, videosList, youtubeClient } =
     const videosList = vi.fn<() => Promise<unknown>>(async () => ({
       data: { items: [] },
     }));
+    const oauthGetAccessToken = vi.fn<
+      (client: { credentials: Record<string, unknown> }) => Promise<unknown>
+    >(async (client) => ({ token: client.credentials.access_token }));
     const youtubeClient = vi.fn(() => ({
       channels: { list: vi.fn() },
       playlistItems: { list: vi.fn() },
@@ -23,15 +32,26 @@ const { commentThreadsList, commentsList, videosList, youtubeClient } =
       videos: { list: videosList },
     }));
 
-    return { commentThreadsList, commentsList, videosList, youtubeClient };
+    return {
+      commentThreadsList,
+      commentsList,
+      oauthGetAccessToken,
+      videosList,
+      youtubeClient,
+    };
   });
 
 vi.mock("googleapis", () => ({
   google: {
     auth: {
       OAuth2: class {
-        on() {}
-        setCredentials() {}
+        credentials: Record<string, unknown> = {};
+        setCredentials(credentials: Record<string, unknown>) {
+          this.credentials = credentials;
+        }
+        getAccessToken() {
+          return oauthGetAccessToken(this);
+        }
       },
     },
     youtube: youtubeClient,
@@ -58,6 +78,45 @@ describe("GoogleYouTubeProvider comment reads", () => {
       data: { items: [], nextPageToken: null },
     });
     videosList.mockResolvedValue({ data: { items: [] } });
+    oauthGetAccessToken.mockImplementation(async (client) => ({
+      token: client.credentials.access_token,
+    }));
+  });
+
+  it("awaits an access-token refresh and persists it before reading YouTube", async () => {
+    const onTokenRefresh = vi.fn(async () => undefined);
+    oauthGetAccessToken.mockImplementationOnce(async (client) => {
+      client.credentials = {
+        access_token: "refreshed-access-token",
+        refresh_token: "owner-refresh-token",
+        expiry_date: Date.parse("2026-08-17T02:00:00.000Z"),
+      };
+      return { token: "refreshed-access-token" };
+    });
+    const provider = new GoogleYouTubeProvider({
+      clientId: "client-id",
+      clientSecret: "client-secret",
+      redirectUri: "http://localhost:3000/api/youtube/oauth/callback",
+      commentReadApiKey: "server-api-key",
+      onTokenRefresh,
+    });
+    const tokens = { ...oauthTokens };
+
+    await provider.listCommentThreads({
+      youtubeVideoId: "video-1",
+      maxResults: 20,
+      tokens,
+    });
+
+    expect(onTokenRefresh).toHaveBeenCalledWith(
+      {
+        accessToken: "refreshed-access-token",
+        refreshToken: "owner-refresh-token",
+        expiresAt: "2026-08-17T02:00:00.000Z",
+      },
+      null,
+    );
+    expect(tokens.accessToken).toBe("refreshed-access-token");
   });
 
   /**

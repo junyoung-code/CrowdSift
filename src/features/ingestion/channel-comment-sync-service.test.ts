@@ -617,6 +617,7 @@ describe("channel comment sync service", () => {
 
   it.each([
     ["quotaExceeded", "quota_exceeded"],
+    ["rateLimitExceeded", "youtube_rate_limited"],
     ["insufficientPermissions", "permission_revoked"],
     ["backendError", "provider_error"],
   ] as const)(

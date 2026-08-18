@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { requireViewer } from "@/features/auth/require-viewer";
 import { completeModerationOAuth } from "@/features/moderation/moderation-oauth";
+import { planChannelCandidateReconciliation } from "@/features/youtube/channel-candidate-reconciliation";
 import { consumeOAuthState } from "@/features/youtube/oauth-state-cookie";
 import { createYouTubeProvider } from "@/features/youtube/provider-factory";
 import { encryptToken } from "@/features/youtube/token-crypto";
@@ -308,28 +309,53 @@ export const GET = async (request: Request) => {
     }
 
     const channels = await provider.listOwnedChannels(tokens);
-    const { error: deleteCandidatesError } = await admin
-      .from("youtube_channel_candidates")
-      .delete()
-      .eq("workspace_id", workspaceId);
+    const [existingCandidatesResult, syncSettingResult] = await Promise.all([
+      admin
+        .from("youtube_channel_candidates")
+        .select("youtube_channel_id, selected")
+        .eq("workspace_id", workspaceId)
+        .eq("connection_id", connection.id),
+      admin
+        .from("channel_comment_sync_settings")
+        .select("youtube_channel_id")
+        .eq("workspace_id", workspaceId)
+        .maybeSingle(),
+    ]);
 
-    if (deleteCandidatesError) {
-      throw new Error("Old YouTube channel candidates could not be cleared");
+    if (existingCandidatesResult.error || syncSettingResult.error) {
+      throw new Error("Existing YouTube channel binding could not be loaded");
     }
 
-    if (channels.length > 0) {
+    const candidatePlan = planChannelCandidateReconciliation({
+      channels,
+      configuredChannelId:
+        syncSettingResult.data?.youtube_channel_id ?? null,
+      existingCandidates: existingCandidatesResult.data ?? [],
+    });
+
+    if (candidatePlan.staleChannelIds.length > 0) {
+      const { error: deleteCandidatesError } = await admin
+        .from("youtube_channel_candidates")
+        .delete()
+        .eq("workspace_id", workspaceId)
+        .eq("connection_id", connection.id)
+        .in("youtube_channel_id", candidatePlan.staleChannelIds);
+
+      if (deleteCandidatesError) {
+        throw new Error("Stale YouTube channel candidates could not be cleared");
+      }
+    }
+
+    if (candidatePlan.candidates.length > 0) {
       const { error: candidateError } = await admin
         .from("youtube_channel_candidates")
-        .insert(
-          channels.map((channel) => ({
+        .upsert(
+          candidatePlan.candidates.map((candidate) => ({
             connection_id: connection.id,
             workspace_id: workspaceId,
-            youtube_channel_id: channel.id,
-            title: channel.title,
-            handle: channel.handle,
-            thumbnail_url: channel.thumbnailUrl,
-            selected: channels.length === 1,
+            ...candidate,
           })),
+          { onConflict: "connection_id,youtube_channel_id" },
         );
 
       if (candidateError) {
@@ -337,16 +363,10 @@ export const GET = async (request: Request) => {
       }
     }
 
-    const status =
-      channels.length === 0
-        ? "error"
-        : channels.length === 1
-          ? "connected"
-          : "pending_channel_selection";
     const { error: statusError } = await admin
       .from("youtube_connections")
       .update({
-        status,
+        status: candidatePlan.status,
         updated_at: new Date().toISOString(),
       })
       .eq("id", connection.id);

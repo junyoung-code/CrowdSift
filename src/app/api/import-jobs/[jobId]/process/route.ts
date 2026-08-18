@@ -10,6 +10,7 @@ import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 const failureStatus = {
   comments_disabled: 409,
   quota_exceeded: 429,
+  youtube_rate_limited: 429,
   permission_revoked: 403,
   provider_mode_mismatch: 409,
   provider_error: 502,

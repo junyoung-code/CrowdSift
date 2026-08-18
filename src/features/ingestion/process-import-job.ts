@@ -5,9 +5,11 @@ import { getServerEnv } from "@/lib/env";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import {
   isUsableOwnerConnection,
+  markOwnerConnectionRevoked,
   openOwnerConnection,
   OWNER_CONNECTION_COLUMNS,
 } from "@/features/youtube/owner-connection";
+import { isYouTubeOAuthReconnectRequiredError } from "@/features/youtube/oauth-errors";
 import {
   ProviderModeMismatchError,
   assertProviderModeMatchesJob,
@@ -46,6 +48,9 @@ const getProviderReason = (error: unknown) => {
 };
 
 const classifyProviderError = (error: unknown): ImportFailureCode => {
+  if (isYouTubeOAuthReconnectRequiredError(error)) {
+    return "permission_revoked";
+  }
   const reason = getProviderReason(error);
 
   if (reason === "commentsDisabled") {
@@ -53,6 +58,9 @@ const classifyProviderError = (error: unknown): ImportFailureCode => {
   }
   if (reason === "quotaExceeded" || reason === "dailyLimitExceeded") {
     return "quota_exceeded";
+  }
+  if (reason === "rateLimitExceeded" || reason === "userRateLimitExceeded") {
+    return "youtube_rate_limited";
   }
   if (
     reason === "authError" ||
@@ -154,7 +162,7 @@ export const processImportJob = async (jobId: string) => {
     environment.YOUTUBE_TOKEN_ENCRYPTION_KEY,
     "base64",
   );
-  const { provider, tokens } = openOwnerConnection({
+  const { connectionVersion, provider, tokens } = openOwnerConnection({
     admin,
     connection,
     encryptionKey,
@@ -346,6 +354,14 @@ export const processImportJob = async (jobId: string) => {
       error instanceof ImportProcessingError
         ? error.code
         : classifyProviderError(error);
+    if (code === "permission_revoked") {
+      await markOwnerConnectionRevoked({
+        admin,
+        connectionId: connection.id,
+        connectionUpdatedAt: connectionVersion.currentUpdatedAt,
+        workspaceId: job.workspace_id,
+      });
+    }
     await admin
       .from("comment_import_jobs")
       .update({

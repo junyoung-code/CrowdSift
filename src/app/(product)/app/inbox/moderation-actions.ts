@@ -72,6 +72,11 @@ export const confirmYouTubeModerationAction = async (formData: FormData) => {
       `/app/inbox?moderationError=provider_result_unknown&requestId=${encodeURIComponent(result.requestId)}`,
     );
   }
+  if (result.errorCode === "youtube_oauth_reconnect_required") {
+    redirect(
+      `/app/inbox?moderationError=youtube_oauth_reconnect_required&requestId=${encodeURIComponent(result.requestId)}`,
+    );
+  }
   redirect(
     `/app/inbox?moderationResult=${encodeURIComponent(result.state)}&requestId=${encodeURIComponent(result.requestId)}`,
   );

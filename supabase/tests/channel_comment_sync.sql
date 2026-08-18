@@ -774,7 +774,9 @@ select results_eq(
       incremental_scan_started_at,
       incremental_page_token,
       lease_until,
-      next_sync_at > now()
+      next_sync_at > now(),
+      next_sync_at between now() + interval '59 minutes'
+        and now() + interval '61 minutes'
     from public.channel_comment_sync_settings
     where workspace_id = '55555555-5555-5555-5555-555555555555'
   $$,
@@ -784,6 +786,7 @@ select results_eq(
       null::timestamptz,
       null::text,
       null::timestamptz,
+      true,
       true
     )
   $$,
@@ -940,13 +943,13 @@ select results_eq(
       from public.fail_channel_comment_sync_run(
         %L::uuid,
         %L::uuid,
-        'youtube_quota_exceeded'
+        'quota_exceeded'
       )
     $$,
     (select run_id from failed_incremental_claim),
     (select claim_token from failed_incremental_claim)
   ),
-  $$ values ('failed'::text, 'youtube_quota_exceeded'::text) $$,
+  $$ values ('failed'::text, 'quota_exceeded'::text) $$,
   'failing a run stores its stable error code'
 );
 
@@ -963,7 +966,7 @@ select results_eq(
     (select run_id from failed_incremental_claim),
     (select claim_token from failed_incremental_claim)
   ),
-  $$ values ('failed'::text, 'youtube_quota_exceeded'::text) $$,
+  $$ values ('failed'::text, 'quota_exceeded'::text) $$,
   'repeating failure with the same token is idempotent'
 );
 
@@ -973,17 +976,17 @@ select results_eq(
     from public.comment_import_jobs
     where id = '20202020-2020-2020-2020-202020202020'
   $$,
-  $$ values ('failed'::public.job_status, 'youtube_quota_exceeded'::text, true) $$,
+  $$ values ('failed'::public.job_status, 'quota_exceeded'::text, true) $$,
   'failing a run atomically fails its still-running video imports'
 );
 
 select results_eq(
   $$
-    select last_error_code, lease_until, next_sync_at > now()
+    select last_error_code, lease_until, next_sync_at > now() + interval '5 minutes'
     from public.channel_comment_sync_settings
     where workspace_id = '55555555-5555-5555-5555-555555555555'
   $$,
-  $$ values ('youtube_quota_exceeded'::text, null::timestamptz, true) $$,
+  $$ values ('quota_exceeded'::text, null::timestamptz, true) $$,
   'a failed incremental run releases its lease and schedules a retry'
 );
 

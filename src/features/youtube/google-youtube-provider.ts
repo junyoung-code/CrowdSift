@@ -20,6 +20,11 @@ import type {
   OwnerReadTokens,
 } from "./channel-comment-contracts";
 import type { YouTubeVideo } from "./video-service";
+import {
+  assertRefreshTokenAvailable,
+  isYouTubeOAuthReconnectRequiredError,
+  YouTubeOAuthReconnectRequiredError,
+} from "./oauth-errors";
 
 export type RefreshedGoogleTokens = {
   accessToken: string | null;
@@ -146,45 +151,25 @@ export class GoogleYouTubeProvider
     });
   }
 
-  private createOAuthClient({
-    listenForRefresh = false,
-    refreshContext = null,
-  }: {
-    listenForRefresh?: boolean;
-    refreshContext?: TokenRefreshContext | null;
-  } = {}) {
-    const client = new google.auth.OAuth2({
+  private createOAuthClient() {
+    return new google.auth.OAuth2({
       clientId: this.configuration.clientId,
       clientSecret: this.configuration.clientSecret,
       redirectUri: this.configuration.redirectUri,
     });
-
-    if (listenForRefresh && this.configuration.onTokenRefresh) {
-      client.on("tokens", (tokens) => {
-        void this.configuration.onTokenRefresh?.(
-          toRefreshPayload(tokens),
-          refreshContext,
-        );
-      });
-    }
-
-    return client;
   }
 
-  private createAuthorizedClient(
+  private async prepareAuthorizedClient(
     tokens: Pick<OAuthTokens, "accessToken" | "refreshToken" | "expiresAt">,
     {
-      listenForRefresh = true,
       refreshContext = null,
     }: {
-      listenForRefresh?: boolean;
       refreshContext?: TokenRefreshContext | null;
     } = {},
   ) {
-    const client = this.createOAuthClient({
-      listenForRefresh,
-      refreshContext,
-    });
+    assertRefreshTokenAvailable(tokens);
+
+    const client = this.createOAuthClient();
     client.setCredentials({
       access_token: tokens.accessToken,
       refresh_token: tokens.refreshToken,
@@ -192,6 +177,34 @@ export class GoogleYouTubeProvider
         ? new Date(tokens.expiresAt).getTime()
         : undefined,
     });
+
+    const previous = { ...tokens };
+    try {
+      // Google auth가 API 요청 안에서 몰래 갱신하도록 두지 않는다. 여기서 먼저
+      // 갱신을 끝내야 새 token 저장 실패까지 요청 결과에 포함할 수 있다.
+      await client.getAccessToken();
+    } catch (error) {
+      if (isYouTubeOAuthReconnectRequiredError(error)) {
+        throw new YouTubeOAuthReconnectRequiredError(undefined, {
+          cause: error,
+        });
+      }
+      throw error;
+    }
+
+    const refreshed = toRefreshPayload(client.credentials);
+    const changed =
+      refreshed.accessToken !== previous.accessToken ||
+      refreshed.refreshToken !== previous.refreshToken ||
+      refreshed.expiresAt !== previous.expiresAt;
+
+    if (changed) {
+      await this.configuration.onTokenRefresh?.(refreshed, refreshContext);
+      if (refreshed.accessToken) tokens.accessToken = refreshed.accessToken;
+      tokens.refreshToken = refreshed.refreshToken;
+      tokens.expiresAt = refreshed.expiresAt;
+    }
+
     return client;
   }
 
@@ -229,7 +242,7 @@ export class GoogleYouTubeProvider
   }
 
   async listOwnedChannels(tokens: OAuthTokens): Promise<YouTubeChannel[]> {
-    const client = this.createAuthorizedClient(tokens);
+    const client = await this.prepareAuthorizedClient(tokens);
 
     const youtube = google.youtube({
       version: "v3",
@@ -267,7 +280,7 @@ export class GoogleYouTubeProvider
     channelId: string,
     tokens: OAuthTokens,
   ): Promise<YouTubeVideo[]> {
-    const client = this.createAuthorizedClient(tokens);
+    const client = await this.prepareAuthorizedClient(tokens);
     const youtube = google.youtube({ version: "v3", auth: client });
     const channelResponse = await youtube.channels.list({
       part: ["contentDetails"],
@@ -345,7 +358,7 @@ export class GoogleYouTubeProvider
     const youtube = tokens?.accessToken
       ? google.youtube({
           version: "v3",
-          auth: this.createAuthorizedClient(tokens),
+          auth: await this.prepareAuthorizedClient(tokens),
         })
       : this.createPublishedCommentReadClient();
 
@@ -431,7 +444,7 @@ export class GoogleYouTubeProvider
     const youtube = tokens?.accessToken
       ? google.youtube({
           version: "v3",
-          auth: this.createAuthorizedClient(tokens),
+          auth: await this.prepareAuthorizedClient(tokens),
         })
       : this.createPublishedCommentReadClient();
 
@@ -525,7 +538,7 @@ export class GoogleYouTubeProvider
     const youtube = tokens?.accessToken
       ? google.youtube({
           version: "v3",
-          auth: this.createAuthorizedClient(tokens),
+          auth: await this.prepareAuthorizedClient(tokens),
         })
       : this.createPublishedCommentReadClient();
     const response = await youtube.comments.list({
@@ -593,7 +606,7 @@ export class GoogleYouTubeProvider
     tokens: Pick<OAuthTokens, "accessToken" | "refreshToken" | "expiresAt"> &
       TokenRefreshContext;
   }) {
-    const client = this.createAuthorizedClient(tokens, {
+    const client = await this.prepareAuthorizedClient(tokens, {
       refreshContext: {
         connectionId: tokens.connectionId,
         connectionUpdatedAt: tokens.connectionUpdatedAt,
@@ -619,7 +632,7 @@ export class GoogleYouTubeProvider
     tokens: Pick<OAuthTokens, "accessToken" | "refreshToken" | "expiresAt"> &
       TokenRefreshContext;
   }) {
-    const client = this.createAuthorizedClient(tokens, {
+    const client = await this.prepareAuthorizedClient(tokens, {
       refreshContext: {
         connectionId: tokens.connectionId,
         connectionUpdatedAt: tokens.connectionUpdatedAt,

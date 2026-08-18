@@ -6,6 +6,7 @@ import type {
   ModerationRequestState,
 } from "./contracts";
 import { YOUTUBE_QUOTA_UNITS } from "@/features/youtube/quota";
+import { isYouTubeOAuthReconnectRequiredError } from "@/features/youtube/oauth-errors";
 
 export const FORCE_SSL_SCOPE =
   "https://www.googleapis.com/auth/youtube.force-ssl";
@@ -352,13 +353,16 @@ export const createModerationService = ({
             });
     } catch (error) {
       const providerStatus = getProviderErrorStatus(error);
+      const reconnectRequired = isYouTubeOAuthReconnectRequiredError(error);
       const hasDefiniteClientResponse =
         providerStatus !== null &&
         providerStatus >= 400 &&
         providerStatus < 500;
-      const errorCode = hasDefiniteClientResponse
-        ? "youtube_moderation_failed"
-        : "provider_result_unknown";
+      const errorCode = reconnectRequired
+        ? "youtube_oauth_reconnect_required"
+        : hasDefiniteClientResponse
+          ? "youtube_moderation_failed"
+          : "provider_result_unknown";
 
       return completeWithRetry(repository, {
         workspaceId: input.workspaceId,
@@ -369,7 +373,7 @@ export const createModerationService = ({
         executedAt,
         errorCode,
         // 실패해도 요청이 구글에 닿았으면 유닛은 나갔다. 예산은 넉넉히 잡는 쪽이 안전하다.
-        quotaUnitsUsed: unitsForAction(request.action),
+        quotaUnitsUsed: reconnectRequired ? 0 : unitsForAction(request.action),
       });
     }
 

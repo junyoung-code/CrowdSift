@@ -23,6 +23,7 @@ const progress = (
   latestRunLabel: "지난 댓글을 가져온",
   statusMessage: "선택한 날짜까지 댓글을 가져오고 있습니다.",
   errorMessage: null,
+  reconnectRequired: false,
   ...overrides,
 });
 
@@ -127,6 +128,7 @@ describe("channel sync progress panel", () => {
           active: false,
           statusMessage: "자동 동기화를 일시중지했습니다.",
           errorMessage: "YouTube 읽기 권한을 확인할 수 없습니다.",
+          reconnectRequired: true,
         })}
         requestNowAction={action}
         setEnabledAction={action}
@@ -140,6 +142,9 @@ describe("channel sync progress panel", () => {
       screen.getByRole("button", { name: "자동 동기화 다시 시작" }),
     ).toBeEnabled();
     expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "YouTube 채널 다시 연결" }),
+    ).toHaveAttribute("href", "/app/connect/youtube");
   });
 
   it("gets status, posts one bounded process request, polls again, and stops after unmount", async () => {
