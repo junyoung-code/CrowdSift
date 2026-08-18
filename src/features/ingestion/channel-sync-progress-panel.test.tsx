@@ -144,7 +144,7 @@ describe("channel sync progress panel", () => {
     expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
     expect(
       screen.getByRole("link", { name: "YouTube 채널 다시 연결" }),
-    ).toHaveAttribute("href", "/app/connect/youtube");
+    ).toHaveAttribute("href", "/api/youtube/oauth/start");
   });
 
   it("gets status, posts one bounded process request, polls again, and stops after unmount", async () => {

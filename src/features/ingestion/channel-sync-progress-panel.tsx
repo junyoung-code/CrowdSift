@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 
 import type { ChannelSyncProgress } from "./channel-sync-progress";
 
@@ -158,9 +157,9 @@ export function ChannelSyncProgressPanel({
         </p>
       ) : null}
       {progress.reconnectRequired ? (
-        <Link className="button button-primary" href="/app/connect/youtube">
+        <a className="button button-primary" href="/api/youtube/oauth/start">
           YouTube 채널 다시 연결
-        </Link>
+        </a>
       ) : null}
 
       <dl className="channel-sync-details">

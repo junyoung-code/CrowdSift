@@ -61,6 +61,27 @@ export type ChannelSyncProgress = {
 };
 
 /**
+ * OAuth 재연결 뒤에도 마지막 실패 실행은 감사 기록으로 남는다. 현재 연결이 이미
+ * 복구된 경우 그 과거 기록을 다시 OAuth 하라는 신호로 보여 주지 않고, 같은 설정을
+ * 즉시 재시도하도록 안내한다.
+ */
+export const reconcileChannelSyncConnection = (
+  progress: ChannelSyncProgress,
+  connectionStatus: string | null | undefined,
+): ChannelSyncProgress => {
+  if (connectionStatus !== "connected" || !progress.reconnectRequired) {
+    return progress;
+  }
+
+  return {
+    ...progress,
+    errorMessage:
+      "YouTube 연결이 복구되었습니다. 지금 동기화를 눌러 다시 시도해 주세요.",
+    reconnectRequired: false,
+  };
+};
+
+/**
  * 마지막 실행이 무엇을 했는지. 화면에서 「아래 숫자는 마지막으로 ○○ 결과입니다」로
  * 이어 붙으므로 **문장에 들어가는 꼴**로 적는다.
  *

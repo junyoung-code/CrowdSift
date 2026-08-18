@@ -1,6 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { toChannelSyncProgress } from "./channel-sync-progress";
+import {
+  reconcileChannelSyncConnection,
+  toChannelSyncProgress,
+} from "./channel-sync-progress";
 
 const setting = (
   overrides: Partial<{
@@ -169,6 +172,26 @@ describe("channel sync progress DTO", () => {
         "YouTube 읽기 권한을 확인할 수 없습니다. 채널을 다시 연결해 주세요.",
       reconnectRequired: true,
     });
+  });
+
+  it("turns a stale permission failure into a retry prompt after reconnection", () => {
+    const failed = toChannelSyncProgress({
+      setting: setting({
+        backfill_status: "failed",
+        last_error_code: "permission_revoked",
+      }),
+      latestRun: latestRun({
+        status: "failed",
+        error_code: "permission_revoked",
+      }),
+    });
+
+    expect(reconcileChannelSyncConnection(failed, "connected")).toMatchObject({
+      reconnectRequired: false,
+      errorMessage:
+        "YouTube 연결이 복구되었습니다. 지금 동기화를 눌러 다시 시도해 주세요.",
+    });
+    expect(reconcileChannelSyncConnection(failed, "revoked")).toBe(failed);
   });
 
   it("distinguishes a short YouTube rate limit from the daily quota", () => {

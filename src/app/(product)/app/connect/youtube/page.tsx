@@ -13,7 +13,10 @@ import {
   ChannelSyncProgressPanel,
   ChannelSyncSetup,
 } from "@/features/ingestion/channel-sync-progress-panel";
-import { toChannelSyncProgress } from "@/features/ingestion/channel-sync-progress";
+import {
+  reconcileChannelSyncConnection,
+  toChannelSyncProgress,
+} from "@/features/ingestion/channel-sync-progress";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 import {
@@ -109,10 +112,13 @@ export default async function YouTubeConnectionPage({
   }
 
   const selectedChannel = candidates?.find((candidate) => candidate.selected);
-  const syncProgress = toChannelSyncProgress({
-    setting: syncSetting,
-    latestRun: latestSyncRun,
-  });
+  const syncProgress = reconcileChannelSyncConnection(
+    toChannelSyncProgress({
+      setting: syncSetting,
+      latestRun: latestSyncRun,
+    }),
+    connection?.status,
+  );
   const errorMessage = getErrorMessage(parameters);
   const isDisconnected =
     !connection ||
