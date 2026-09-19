@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  distDir: process.env.CROWDSIFT_DIST_DIR || ".next",
   images: {
     remotePatterns: [
       {

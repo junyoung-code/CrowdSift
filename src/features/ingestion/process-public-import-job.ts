@@ -19,10 +19,11 @@ import {
   parseProviderMode,
 } from "@/features/providers/provider-mode";
 
-import { collectPublicComments } from "./public-comment-collector";
+import { randomUUID } from "node:crypto";
+import { fetchPublicImportBatch, publicImportCursorSchema } from "./public-import-batch";
+import { describeClassificationError } from "@/features/classification/failure-details";
 import {
   createPublicImportJob,
-  processPublicImportJob,
   type PublicImportJobRecord,
   type PublicImportRepository,
 } from "./public-import-service";
@@ -43,9 +44,6 @@ const createAnalysisConfigurationKey = ({
   return createClassificationConfigurationKey({
     policyVersion,
     providerMode: environment.EXTERNAL_PROVIDER_MODE,
-    moderationModel: environment.OPENAI_MODERATION_MODEL,
-    lunaModel: environment.OPENAI_LUNA_MODEL,
-    terraModel: environment.OPENAI_TERRA_MODEL,
   });
 };
 
@@ -232,27 +230,23 @@ const createPublicImportRepository = (
     rawCommentIds,
     workspaceId,
   }) {
-    const { data: analysisJob, error: analysisJobError } = await admin
-      .from("analysis_jobs")
-      .upsert(
-        {
-          workspace_id: workspaceId,
-          import_job_id: importJobId,
-          configuration_key: configurationKey,
-          status: "pending",
-          total_count: rawCommentIds.length,
-        },
-        { onConflict: "import_job_id,configuration_key" },
-      )
-      .select("id")
-      .single();
+    const { data: existing, error: lookupError } = await admin.from("analysis_jobs")
+      .select("id").eq("import_job_id", importJobId).order("created_at", { ascending: false }).limit(1).maybeSingle();
+    if (lookupError) throw lookupError;
+    const { data: analysisJob, error: analysisJobError } = existing
+      ? { data: existing, error: null }
+      : await admin.from("analysis_jobs").upsert({
+          workspace_id: workspaceId, import_job_id: importJobId,
+          configuration_key: configurationKey, status: "pending", total_count: rawCommentIds.length,
+        }, { onConflict: "import_job_id,configuration_key", ignoreDuplicates: true }).select("id").single();
 
     if (analysisJobError || !analysisJob) {
       throw analysisJobError ?? new Error("Analysis job was not created");
     }
 
+    for (let offset = 0; offset < rawCommentIds.length; offset += 500) {
     const { error: itemError } = await admin.from("analysis_job_items").upsert(
-      rawCommentIds.map((rawCommentId) => ({
+      rawCommentIds.slice(offset, offset + 500).map((rawCommentId) => ({
         analysis_job_id: analysisJob.id,
         workspace_id: workspaceId,
         raw_comment_id: rawCommentId,
@@ -264,7 +258,12 @@ const createPublicImportRepository = (
     if (itemError) {
       throw itemError;
     }
+    }
 
+    const { error: countError } = await admin.from("analysis_jobs").update({
+      total_count: rawCommentIds.length, status: "running", finished_at: null,
+    }).eq("id", analysisJob.id).lt("total_count", rawCommentIds.length);
+    if (countError) throw countError;
     return analysisJob.id;
   },
 });
@@ -375,51 +374,61 @@ export async function processPublicImportJobWithSupabase(jobId: string) {
   const publicJob = toPublicJobRecord(job);
   const repository = createPublicImportRepository(admin);
 
+  assertProviderModeMatchesJob(publicJob.providerMode, environment.EXTERNAL_PROVIDER_MODE);
+  const token = randomUUID();
+  const { data: claim, error: claimError } = await admin.rpc("claim_public_import_job", {
+    target_job_id: jobId, target_token: token,
+  });
+  if (claimError) throw claimError;
+  if (claim === null) return { status: "running", busy: true };
+  let stage = "fetch_page";
   try {
-    assertProviderModeMatchesJob(
-      publicJob.providerMode,
-      environment.EXTERNAL_PROVIDER_MODE,
-    );
-    const provider = createPublicYouTubeReadProvider();
-
-    return await processPublicImportJob(
-      {
-        job: publicJob,
-        analysisConfigurationKey: createAnalysisConfigurationKey({
-          policyVersion: currentPolicy?.version ?? 1,
-        }),
-      },
-      {
-        repository,
-        collectComments: ({ requestedTotalCount, videoId }) =>
-          withRetry(
-            () =>
-              collectPublicComments({
-                provider,
-                requestedTotalCount,
-                videoId,
-              }),
-            {
-              maxAttempts: 3,
-              baseDelayMs: 250,
-              isTransient: (error) =>
-                error instanceof PublicYouTubeProviderError &&
-                error.code === "TRANSIENT_PROVIDER_ERROR",
-            },
-          ),
-      },
-    );
+    const cursor = publicImportCursorSchema.parse(claim);
+    if (!cursor.done) {
+      const provider = createPublicYouTubeReadProvider();
+      const batch = await withRetry(() => fetchPublicImportBatch(provider, publicJob.youtubeVideoId, cursor), {
+        maxAttempts: 3, baseDelayMs: 250,
+        isTransient: error => error instanceof PublicYouTubeProviderError && error.code === "TRANSIENT_PROVIDER_ERROR",
+      });
+      stage = "save_page";
+      const { error } = await admin.rpc("commit_public_import_batch", {
+        target_job_id: jobId, target_token: token,
+        target_comments: batch.comments as unknown as Json,
+        target_cursor: batch.cursor as unknown as Json, target_quota: batch.quota,
+      });
+      if (error) throw error;
+    }
+    stage = "queue_analysis";
+    // Paging avoids Supabase's default 1,000-row response limit. Existing successes stay intact.
+    const rawCommentIds: string[] = [];
+    for (let offset = 0; ; offset += 500) {
+      const { data, error } = await admin.from("comment_import_items").select("raw_comment_id")
+        .eq("import_job_id", jobId).eq("status", "succeeded").order("youtube_comment_id").range(offset, offset + 499);
+      if (error) throw error;
+      rawCommentIds.push(...(data ?? []).flatMap(row => row.raw_comment_id ? [row.raw_comment_id] : []));
+      if (!data || data.length < 500) break;
+    }
+    const analysisJobId = rawCommentIds.length ? await repository.ensureAnalysisJob({
+      importJobId: jobId, workspaceId: publicJob.workspaceId, rawCommentIds,
+      configurationKey: createAnalysisConfigurationKey({ policyVersion: currentPolicy?.version ?? 1 }),
+    }) : null;
+    const { data: current, error } = await admin.from("comment_import_jobs").select("status, fetched_count") .eq("id", jobId).single();
+    if (error) throw error;
+    await admin.from("comment_import_jobs").update({ last_error_code: null }).eq("id", jobId);
+    return { status: current.status, observed: current.fetched_count, analysisJobId };
   } catch (error) {
     const code = mapPublicProviderError(error);
-    await admin
-      .from("comment_import_jobs")
-      .update({
-        status: "failed",
-        last_error_code: code,
-        finished_at: new Date().toISOString(),
-      })
-      .eq("id", jobId)
-      .eq("source_kind", "public_url");
+    const { error: logError } = await admin.from("audit_logs").insert({
+      workspace_id: publicJob.workspaceId, event_type: "public_import.interrupted",
+      target_type: "comment_import_job", target_id: jobId,
+      metadata: { stage, error: describeClassificationError(error), errorCode: code } as unknown as Json,
+    });
+    if (logError) throw logError;
+    // The committed cursor and all stored sources remain available for the next invocation.
+    await admin.from("comment_import_jobs").update({ last_error_code: code }).eq("id", jobId);
     throw new ImportProcessingError(code, { cause: error });
+  } finally {
+    await admin.from("public_import_checkpoints").update({ claim_token: null, lease_until: null })
+      .eq("import_job_id", jobId).eq("claim_token", token);
   }
 }

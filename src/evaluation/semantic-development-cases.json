@@ -1,0 +1,307 @@
+{
+  "schemaVersion": "semantic-evaluation-v1",
+  "cases": [
+    {
+      "id": "positive",
+      "group": "positive",
+      "split": "development",
+      "sourceText": "오늘도 잘 봤어요",
+      "videoTitle": "테스트 영상",
+      "parentText": null,
+      "expected": "safe",
+      "review": null,
+      "tags": [
+        "clear_normal"
+      ],
+      "goldAnalysis": null
+    },
+    {
+      "id": "negative",
+      "group": "negative",
+      "split": "development",
+      "sourceText": "이번 영상은 전보다 재미없어요",
+      "videoTitle": "테스트 영상",
+      "parentText": null,
+      "expected": "safe",
+      "review": null,
+      "tags": [
+        "clear_normal",
+        "negative_opinion"
+      ],
+      "goldAnalysis": null
+    },
+    {
+      "id": "improvement",
+      "group": "improvement",
+      "split": "development",
+      "sourceText": "자막이 작아요",
+      "videoTitle": "테스트 영상",
+      "parentText": null,
+      "expected": "safe",
+      "review": null,
+      "tags": [
+        "clear_normal"
+      ],
+      "goldAnalysis": null
+    },
+    {
+      "id": "mockery_feedback",
+      "group": "mockery_feedback",
+      "split": "development",
+      "sourceText": "자막이 작다. 이걸 편집이라고 했냐 멍청하다",
+      "videoTitle": "테스트 영상",
+      "parentText": null,
+      "expected": "caution",
+      "review": null,
+      "tags": [],
+      "goldAnalysis": null
+    },
+    {
+      "id": "insult_feedback",
+      "group": "insult_feedback",
+      "split": "development",
+      "sourceText": "자막이 작다. 멍청한 놈",
+      "videoTitle": "테스트 영상",
+      "parentText": null,
+      "expected": "caution",
+      "review": null,
+      "tags": [],
+      "goldAnalysis": null
+    },
+    {
+      "id": "motive",
+      "group": "prior-preference",
+      "split": "development",
+      "sourceText": "옛날 모습이 그립네요. 돈을 벌면 사람들은 변하나봐요",
+      "videoTitle": "테스트 영상",
+      "parentText": null,
+      "expected": "caution",
+      "review": null,
+      "tags": [],
+      "goldAnalysis": null
+    },
+    {
+      "id": "personality_feedback",
+      "group": "personality_feedback",
+      "split": "development",
+      "sourceText": "자막이 작다. 너는 멍청하다",
+      "videoTitle": "테스트 영상",
+      "parentText": null,
+      "expected": "caution",
+      "review": null,
+      "tags": [],
+      "goldAnalysis": null
+    },
+    {
+      "id": "pure_mockery",
+      "group": "pure_mockery",
+      "split": "development",
+      "sourceText": "너는 멍청하다 ㅋㅋ",
+      "videoTitle": "테스트 영상",
+      "parentText": null,
+      "expected": "risk",
+      "review": null,
+      "tags": [
+        "pure_creator_attack"
+      ],
+      "goldAnalysis": null
+    },
+    {
+      "id": "sexual",
+      "group": "sexual",
+      "split": "development",
+      "sourceText": "크림 아니고 굴정액",
+      "videoTitle": "테스트 영상",
+      "parentText": null,
+      "expected": "risk",
+      "review": null,
+      "tags": [
+        "pure_creator_attack"
+      ],
+      "goldAnalysis": null
+    },
+    {
+      "id": "personal_attack",
+      "group": "personal_attack",
+      "split": "development",
+      "sourceText": "멍청한 인간",
+      "videoTitle": "테스트 영상",
+      "parentText": null,
+      "expected": "risk",
+      "review": null,
+      "tags": [
+        "pure_creator_attack"
+      ],
+      "goldAnalysis": null
+    },
+    {
+      "id": "threat",
+      "group": "threat",
+      "split": "development",
+      "sourceText": "찾아가서 때리겠다",
+      "videoTitle": "테스트 영상",
+      "parentText": null,
+      "expected": "risk",
+      "review": null,
+      "tags": [
+        "pure_creator_attack"
+      ],
+      "goldAnalysis": null
+    },
+    {
+      "id": "defender",
+      "group": "defender",
+      "split": "development",
+      "sourceText": "악플러 너는 멍청하다",
+      "videoTitle": "테스트 영상",
+      "parentText": null,
+      "expected": "safe",
+      "review": null,
+      "tags": [
+        "third_party_harm"
+      ],
+      "goldAnalysis": null
+    },
+    {
+      "id": "typo",
+      "group": "typo",
+      "split": "development",
+      "sourceText": "자막 작음 잘안보임",
+      "videoTitle": "테스트 영상",
+      "parentText": null,
+      "expected": "safe",
+      "review": null,
+      "tags": [
+        "clear_normal",
+        "typo"
+      ],
+      "goldAnalysis": null
+    },
+    {
+      "id": "broken",
+      "group": "broken",
+      "split": "development",
+      "sourceText": "숨소리씹는랑비슷",
+      "videoTitle": "테스트 영상",
+      "parentText": null,
+      "expected": "hold",
+      "review": null,
+      "tags": [],
+      "goldAnalysis": null
+    },
+    {
+      "id": "rewrite_core",
+      "group": "prior-preference",
+      "split": "development",
+      "sourceText": "옛날 모습이 그립네요. 돈을 벌면 사람들은 변하나봐요.",
+      "videoTitle": "테스트 영상",
+      "parentText": null,
+      "expected": "caution",
+      "review": null,
+      "tags": [
+        "rewrite_core"
+      ],
+      "goldAnalysis": null
+    },
+    {
+      "id": "rewrite_no_praise",
+      "group": "rewrite_no_praise",
+      "split": "development",
+      "sourceText": "자막이 작다. 멍청하다",
+      "videoTitle": "테스트 영상",
+      "parentText": null,
+      "expected": "caution",
+      "review": null,
+      "tags": [
+        "rewrite_no_praise"
+      ],
+      "goldAnalysis": null
+    },
+    {
+      "id": "rewrite_intensity",
+      "group": "rewrite_intensity",
+      "split": "development",
+      "sourceText": "자막이 불편해서 매번 나갑니다. 멍청하다",
+      "videoTitle": "테스트 영상",
+      "parentText": null,
+      "expected": "caution",
+      "review": null,
+      "tags": [
+        "rewrite_intensity"
+      ],
+      "goldAnalysis": null
+    },
+    {
+      "id": "threat_mixed",
+      "group": "threat_mixed",
+      "split": "development",
+      "sourceText": "자막이 작다. 찾아가서 때리겠다",
+      "videoTitle": "테스트 영상",
+      "parentText": null,
+      "expected": "caution",
+      "review": null,
+      "tags": [
+        "critical_mixed"
+      ],
+      "goldAnalysis": null
+    },
+    {
+      "id": "spam",
+      "group": "spam",
+      "split": "development",
+      "sourceText": "무료 이벤트 bit.ly/example",
+      "videoTitle": "테스트 영상",
+      "parentText": null,
+      "expected": "safe",
+      "review": null,
+      "tags": [
+        "spam"
+      ],
+      "goldAnalysis": null
+    },
+    {
+      "id": "quoted",
+      "group": "quoted",
+      "split": "development",
+      "sourceText": "죽어 라는 댓글은 무시하세요",
+      "videoTitle": "테스트 영상",
+      "parentText": null,
+      "expected": "safe",
+      "review": null,
+      "tags": [
+        "quoted_attack"
+      ],
+      "goldAnalysis": null
+    },
+    {
+      "id": "coarse",
+      "group": "coarse",
+      "split": "development",
+      "sourceText": "미친ㅋㅋ 진짜 개웃기네",
+      "videoTitle": "테스트 영상",
+      "parentText": null,
+      "expected": "safe",
+      "review": null,
+      "tags": [
+        "clear_normal",
+        "coarse_praise"
+      ],
+      "goldAnalysis": null
+    },
+    {
+      "id": "dislike",
+      "group": "dislike",
+      "split": "development",
+      "sourceText": "자막이 너무 오글거려요. 요즘 자막 때문에 안 보게 됨.",
+      "videoTitle": "테스트 영상",
+      "parentText": null,
+      "expected": "safe",
+      "review": null,
+      "tags": [
+        "clear_normal",
+        "negative_opinion"
+      ],
+      "goldAnalysis": null
+    }
+  ]
+}

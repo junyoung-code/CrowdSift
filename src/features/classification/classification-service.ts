@@ -22,6 +22,8 @@ import type {
   Rewrite,
   TerraVerdict,
 } from "./schemas";
+import { reviewForAnalysisError } from "./analysis-review";
+import { describeClassificationError } from "./failure-details";
 import { toClassificationFailureCode } from "./classification-errors";
 
 export type ClassificationWorkItem = {
@@ -111,7 +113,8 @@ export interface ClassificationJobRepository {
     result: StoredRewrite,
   ): Promise<void>;
   completeItem(itemId: string): Promise<void>;
-  failItem(itemId: string, errorCode: string): Promise<void>;
+  recordReview(item: ClassificationWorkItem, detail: { stage: string; error: Record<string, unknown> }): Promise<void>;
+  failItem(itemId: string, errorCode: string, detail?: { stage: string; error: Record<string, unknown> }): Promise<void>;
   refreshJobProgress(jobId: string): Promise<ClassificationJobProgress>;
 }
 
@@ -251,12 +254,14 @@ export const createClassificationService = ({
 
     for (const claimed of items) {
       let item = claimed;
+      let stage = "load_state";
       try {
         const stored = await repository.loadState(item);
 
         if (stored.verdict) {
           // 판정을 저장한 뒤 끊겼다면 순화문만 비어 있을 수 있다.
           await ensureRewrite(item, stored.verdict, stored.rewrite);
+          stage = "complete_item";
           await repository.completeItem(item.id);
           continue;
         }
@@ -266,12 +271,15 @@ export const createClassificationService = ({
           item = await withSimilarExamples(item);
         }
 
+        stage = "luna";
         const first =
           stored.firstPass ?? (await firstPass.run(toFirstPassInput(item)));
         if (!stored.firstPass) {
+          stage = "save_first_pass";
           await repository.saveFirstPass(item, first);
         }
 
+        stage = "branch";
         const branch = stored.branch ?? routeFirstPass(first);
         if (!stored.branch) {
           await repository.saveBranch(item, branch);
@@ -279,14 +287,17 @@ export const createClassificationService = ({
 
         let terra = stored.terra;
         if (branch.kind === "verify" && !terra) {
+          stage = "terra";
           const verified = await secondPass.verify(toSecondPassInput(item, first));
           terra = {
             ...verified,
             promptVersion: secondPass.promptVersion ?? "terra-v1",
           };
+          stage = "save_terra";
           await repository.saveTerra(item, terra);
         }
 
+        stage = "finalize";
         const verdict = finalizeClassification({
           firstPass: first,
           branch,
@@ -300,11 +311,28 @@ export const createClassificationService = ({
           feedbackType: terra?.result.feedbackType ?? "none",
           feedbackCore: terra?.result.feedbackCore ?? null,
         };
+        stage = "save_verdict";
         await repository.saveVerdict(item, finalResult);
         await ensureRewrite(item, finalResult, null);
-        await repository.completeItem(item.id);
+        stage = "complete_item";
+          await repository.completeItem(item.id);
       } catch (error) {
-        await repository.failItem(item.id, toClassificationFailureCode(error));
+        const detail = { stage, error: describeClassificationError(error) };
+        const review = reviewForAnalysisError(error, stage);
+        if (review) {
+          try {
+            await repository.saveVerdict(item, review);
+            await repository.recordReview(item, detail);
+            await repository.completeItem(item.id);
+          } catch (storageError) {
+            // Never report a review as complete if its durable save failed.
+            await repository.failItem(item.id, toClassificationFailureCode(storageError), {
+              stage: "save_review_queue", error: describeClassificationError(storageError),
+            });
+          }
+        } else {
+          await repository.failItem(item.id, toClassificationFailureCode(error), detail);
+        }
       }
     }
 

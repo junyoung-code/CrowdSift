@@ -12,7 +12,7 @@ export async function POST(
   const admin = createAdminSupabaseClient();
   const { data: job, error: jobError } = await admin
     .from("analysis_jobs")
-    .select("id, workspace_id")
+    .select("id, workspace_id, replacement_job_id")
     .eq("id", jobId)
     .maybeSingle();
 
@@ -23,34 +23,10 @@ export async function POST(
     return Response.json({ error: "forbidden" }, { status: 403 });
   }
 
-  const { data: retried, error: retryError } = await admin
-    .from("analysis_job_items")
-    .update({
-      status: "pending",
-      attempt_count: 0,
-      error_code: null,
-      started_at: null,
-      finished_at: null,
-    })
-    .eq("analysis_job_id", job.id)
-    .eq("status", "failed")
-    .select("id");
-
-  if (retryError) {
-    return Response.json({ error: "retry_failed" }, { status: 500 });
-  }
-
-  if ((retried ?? []).length > 0) {
-    const { error: updateError } = await admin
-      .from("analysis_jobs")
-      .update({ status: "running", finished_at: null, failed_count: 0 })
-      .eq("id", job.id);
-    if (updateError) {
-      return Response.json({ error: "retry_failed" }, { status: 500 });
-    }
-  }
+  const { data: retried, error: retryError } = await admin.rpc("retry_failed_classification_items", { target_job_id: job.replacement_job_id ?? job.id });
+  if (retryError) return Response.json({ error: "retry_failed" }, { status: 500 });
 
   revalidatePath("/app/developer-tools");
   revalidatePath("/app/inbox");
-  return Response.json({ data: { retriedCount: retried?.length ?? 0 } });
+  return Response.json({ data: { retriedCount: retried ?? 0, analysisJobId: job.replacement_job_id ?? job.id } });
 }

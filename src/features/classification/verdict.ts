@@ -80,25 +80,7 @@ const higher = (left: RiskLevel, right: RiskLevel): RiskLevel =>
 const confirmedNonNegotiableRisk = (terra: TerraVerdict): boolean =>
   terra.hardRiskFlags.some((flag) => NON_NEGOTIABLE_RISK_FLAGS.has(flag));
 
-/**
- * 두 판단이 갈렸을 때. 위험이 걸렸는지로 나눈다.
- *
- * 무조건 높은 쪽으로 올리면 등급이 영원히 내려가지 않아, 2차 검증의 목적 중 하나인
- * "채널 밈을 악성으로 오해했는지 확인" 이 할 수 있는 일이 없어진다. 그렇다고 위험까지
- * 내리게 두면 협박을 놓친다. 두 실수의 무게가 다르므로 나눠서 다룬다.
- *
- * 한때 **Luna 만 위험이라 했을 때** Terra 가 주의까지 낮추도록 열어 본 적이 있다.
- * 완화 불가 신호가 없고 Terra 가 clear 일 때만 걸리게 좁혔는데도, 실측 69건에서 세 번
- * 걸렸고 셋 다 오지랖이었다 — 「이제 결혼할 나이 아니에요?」 「부모님이 걱정하시겠어요」
- * 「그건 님 눈이 나쁜 거」. 기준은 사생활 참견을 공격으로 본다. 그 셋을 위험으로 읽은
- * 쪽은 Luna 였고 Terra 는 조언으로 읽었다.
- *
- * 즉 여기서 갈리는 것은 「1차가 채널 밈을 악플로 오해했다」가 아니라 「2차가 기준 하나를
- * 적용하지 않는다」였다. 그 상태에서 2차에 거부권을 주면 2차의 맹점이 그대로 최종
- * 등급이 된다. 아래 규칙은 낭비가 아니라 그 구멍을 메우고 있었다.
- *
- * 2차가 오지랖을 읽게 만드는 것은 프롬프트가 할 일이지 이 함수가 할 일이 아니다.
- */
+/** Legacy recordings without V14 evidence retain their original resolution rules. */
 const resolveDisagreement = (
   candidate: CandidateJudgement,
   terra: TerraVerdict,
@@ -202,6 +184,47 @@ export const decideVerdict = ({
       allowRewrite: false,
       hideSource: true,
       raisedByModeration: false,
+    };
+  }
+
+  if (terra.assessment?.contextResolution === "missing") {
+    return {
+      ...shared,
+      status: "review_queue",
+      level: null,
+      basis: "missing_context",
+      allowRewrite: false,
+      hideSource: true,
+      raisedByModeration: false,
+    };
+  }
+
+  // V14: a completed independent review can settle a personal-attack false
+  // positive or stale first-pass ambiguity. Missing evidence keeps legacy behavior.
+  // An explicit threat disputed by the verifier still needs a person.
+  const disputedStrongRisk = candidate.level !== terra.verdictLevel &&
+    candidate.hardRiskFlags.some((flag) => NON_NEGOTIABLE_RISK_FLAGS.has(flag));
+  if (
+    terra.assessment?.contextResolution === "resolved" &&
+    terra.assessment.missingContext === null &&
+    terra.ambiguityReasons.length === 0 &&
+    terra.certainty !== "unclear" &&
+    !disputedStrongRisk &&
+    (terra.verdictLevel === "safe"
+      ? terra.hardRiskFlags.length === 0 && terra.softRiskFlags.length === 0
+      : Boolean(terra.assessment.excerpt))
+  ) {
+    const level = moderationMinimumLevel
+      ? higher(terra.verdictLevel, moderationMinimumLevel)
+      : terra.verdictLevel;
+    return {
+      ...shared,
+      status: "decided",
+      level,
+      basis: agreedWithFirstPass ? "both_agreed" : "verifier_decided_boundary",
+      allowRewrite: level === "caution" && terra.feedbackActionable,
+      hideSource: level !== "safe",
+      raisedByModeration: level !== terra.verdictLevel,
     };
   }
 

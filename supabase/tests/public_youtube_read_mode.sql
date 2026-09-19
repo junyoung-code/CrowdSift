@@ -56,7 +56,7 @@ values (
   'Public test video'
 );
 
-select plan(23);
+select plan(27);
 
 insert into public.comment_import_jobs (
   id,
@@ -652,6 +652,44 @@ select is(
   ),
   '28282828-2828-4282-8282-282828282828'::uuid,
   'Inbox preserves the exact public import observation id'
+);
+
+-- Imports are written by the server, never by the authenticated browser role.
+reset role;
+
+select lives_ok(
+  $$insert into public.comment_import_jobs (
+    id, workspace_id, youtube_video_id, requested_total_count, source_kind, source_video_url
+  ) values (
+    '45454545-4545-4545-8545-454545454545',
+    '25252525-2525-4252-8252-252525252525', 'dQw4w9WgXcQ', 0,
+    'public_url', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
+  )$$,
+  'zero records an explicit all-comments request'
+);
+select lives_ok(
+  $$insert into public.comment_import_items (
+    import_job_id, workspace_id, youtube_comment_id, status
+  ) select
+    '45454545-4545-4545-8545-454545454545',
+    '25252525-2525-4252-8252-252525252525', 'all-comment-' || value, 'pending'
+  from generate_series(1, 1001) as value$$,
+  'all-comments imports can store more than 1000 items'
+);
+select is(
+  (select count(*)::integer from public.comment_import_items where import_job_id = '45454545-4545-4545-8545-454545454545'),
+  1001,
+  'all source items are retained without silent truncation'
+);
+select throws_ok(
+  $$insert into public.comment_import_items (
+    import_job_id, workspace_id, youtube_comment_id, status
+  ) values (
+    '45454545-4545-4545-8545-454545454545',
+    '00000000-0000-4000-8000-000000000001', 'wrong-workspace-all', 'pending'
+  )$$,
+  '42501', 'import job workspace mismatch',
+  'all-comments mode still enforces workspace isolation'
 );
 
 select * from finish();

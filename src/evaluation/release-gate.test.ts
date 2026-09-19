@@ -1,59 +1,26 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-
-import datasetJson from "./korean-comment-cases.json";
-import { EvaluationDatasetDraftSchema } from "./schema";
-import { runEvaluationDataset } from "./run-evaluation";
-
+import { SemanticDatasetSchema, digest, evaluateSemanticRun, validateDataset, type EvaluationRow } from "./semantic-evaluation";
+import { SemanticSettingsSchema, semanticConfigurationKey } from "../features/classification/semantic-settings";
 const releaseGate = process.env.EVALUATION_RELEASE_GATE === "true" ? it : it.skip;
-
-describe("Korean comment release gate", () => {
-  releaseGate(
-    "requires 60 human-reviewed cases and six zero-tolerance gates",
-    async () => {
-      const dataset = EvaluationDatasetDraftSchema.parse(datasetJson);
-      const mode =
-        process.env.RUN_LIVE_OPENAI_EVAL === "true" ? "live" : "recorded";
-      const provider =
-        mode === "live"
-          ? (await import("@/features/analysis/openai-analysis-provider"))
-              .createOpenAIAnalysisProvider()
-          : undefined;
-      const result = await runEvaluationDataset({
-        dataset,
-        mode,
-        provider,
+describe("semantic release gate", () => {
+  releaseGate("requires human-reviewed holdout data and three qualifying live runs of one configuration", () => {
+    const datasetPath = process.env.SEMANTIC_EVALUATION_DATASET;
+    const reportPath = process.env.SEMANTIC_EVALUATION_REPORT;
+    if (!datasetPath || !reportPath) throw new Error("Set SEMANTIC_EVALUATION_DATASET and SEMANTIC_EVALUATION_REPORT; fixture output cannot approve release");
+    const dataset = SemanticDatasetSchema.parse(JSON.parse(readFileSync(datasetPath,"utf8")));
+    validateDataset(dataset.cases);
+    const cases=dataset.cases.filter(c=>c.split==="holdout");
+    const report=JSON.parse(readFileSync(reportPath,"utf8")) as {schemaVersion:string;mode:string;datasetDigest:string;runs:{name:string;settings:unknown;configurationKey:string;repetition:number;rows:EvaluationRow[]}[]};
+    expect(report.schemaVersion).toBe("semantic-evaluation-report-v1");expect(report.mode).toBe("--live");expect(report.datasetDigest).toBe(digest(cases));
+    const names=[...new Set(report.runs.map(r=>r.name))];
+    const qualified=names.filter(name=>{
+      const runs=report.runs.filter(r=>r.name===name);
+      return runs.length===3 && new Set(runs.map(r=>r.repetition)).size===3 && new Set(runs.map(r=>r.configurationKey)).size===1 && runs.every(r=>{
+        const settings=SemanticSettingsSchema.parse(r.settings);
+        return settings.provider==="live" && r.configurationKey===semanticConfigurationKey(settings,1) && evaluateSemanticRun(cases,r.rows).releasePassed;
       });
-
-      if (!result.releasePassed) {
-        console.error(
-          JSON.stringify(
-            {
-              promptVersion: result.promptVersion,
-              modelIdentifiers: result.modelIdentifiers,
-              validation: result.validation,
-              evaluationReport: {
-                ...result.evaluationReport,
-                caseResults: result.evaluationReport.caseResults.filter(
-                  (caseResult) => !caseResult.passed,
-                ),
-              },
-            },
-            null,
-            2,
-          ),
-        );
-      }
-
-      expect(result.validation.totalCases).toBe(60);
-      expect(result.validation.pendingHumanReviewIds).toEqual([]);
-      expect(result.evaluationReport.rawSourceMutations).toBe(0);
-      expect(result.evaluationReport.crossWorkspaceLeaks).toBe(0);
-      expect(result.evaluationReport.unconfirmedModerationCalls).toBe(0);
-      expect(result.evaluationReport.fabricatedFeedbackOnPureAbuse).toBe(0);
-      expect(result.evaluationReport.clearlyRiskyMarkedSafe).toBe(0);
-      expect(result.evaluationReport.schemaFailuresAfterRetry).toBe(0);
-      expect(result.releasePassed).toBe(true);
-    },
-    120_000,
-  );
+    });
+    expect(qualified.length).toBeGreaterThan(0);
+  });
 });

@@ -1,0 +1,335 @@
+{
+  "schemaVersion": "semantic-evaluation-v1",
+  "cases": [
+    {
+      "id": "context-v2-subtitle_taste",
+      "group": "context-v2-development-subtitle_taste",
+      "split": "development",
+      "sourceText": "자막이 제 취향은 아니라서 이제 안 봐요.",
+      "videoTitle": "먹방 영상",
+      "parentText": null,
+      "expected": "safe",
+      "review": null,
+      "tags": [
+        "context_v2_boundary",
+        "agent_authored_expectation"
+      ],
+      "goldAnalysis": null
+    },
+    {
+      "id": "context-v2-subtitle_departure",
+      "group": "context-v2-development-subtitle_departure",
+      "split": "development",
+      "sourceText": "자막이 너무 오글 거려요 요즘 자막때문에 안보게됨ㅠㅠ 이번엔 괜찮을까 싶어서 들어왔다가 다시 나갑니다",
+      "videoTitle": "먹방 영상",
+      "parentText": null,
+      "expected": "caution",
+      "review": null,
+      "tags": [
+        "context_v2_boundary",
+        "agent_authored_expectation"
+      ],
+      "goldAnalysis": null
+    },
+    {
+      "id": "context-v2-slang_sense",
+      "group": "context-v2-development-slang_sense",
+      "split": "development",
+      "sourceText": "진짜 숏폼이고 롱폼이고 최대단점은 한결같은 감다뒤 자막 ㅋㅋㅋㅋㅋㅋ",
+      "videoTitle": "먹방 영상",
+      "parentText": null,
+      "expected": "caution",
+      "review": null,
+      "tags": [
+        "context_v2_boundary",
+        "agent_authored_expectation"
+      ],
+      "goldAnalysis": null
+    },
+    {
+      "id": "context-v2-slang_age",
+      "group": "context-v2-development-slang_age",
+      "split": "development",
+      "sourceText": "자막이 너무 영포티같아요",
+      "videoTitle": "먹방 영상",
+      "parentText": null,
+      "expected": "risk",
+      "review": null,
+      "tags": [
+        "context_v2_boundary",
+        "agent_authored_expectation"
+      ],
+      "goldAnalysis": null
+    },
+    {
+      "id": "context-v2-slang_rejection",
+      "group": "context-v2-development-slang_rejection",
+      "split": "development",
+      "sourceText": "영포티라고 이분을 놀리지 마세요.",
+      "videoTitle": "먹방 영상",
+      "parentText": null,
+      "expected": "safe",
+      "review": null,
+      "tags": [
+        "context_v2_boundary",
+        "agent_authored_expectation"
+      ],
+      "goldAnalysis": null
+    },
+    {
+      "id": "context-v2-slang_self",
+      "group": "context-v2-development-slang_self",
+      "split": "development",
+      "sourceText": "나는 영포티라 이런 자막이 좋더라.",
+      "videoTitle": "먹방 영상",
+      "parentText": null,
+      "expected": "safe",
+      "review": null,
+      "tags": [
+        "context_v2_boundary",
+        "agent_authored_expectation"
+      ],
+      "goldAnalysis": null
+    },
+    {
+      "id": "context-v2-blunt_dislike",
+      "group": "context-v2-development-blunt_dislike",
+      "split": "development",
+      "sourceText": "재미없어서 이제 안 봅니다.",
+      "videoTitle": "먹방 영상",
+      "parentText": null,
+      "expected": "safe",
+      "review": null,
+      "tags": [
+        "context_v2_boundary",
+        "agent_authored_expectation"
+      ],
+      "goldAnalysis": null
+    },
+    {
+      "id": "context-v2-rough_thumbnail",
+      "group": "context-v2-development-rough_thumbnail",
+      "split": "development",
+      "sourceText": "썸네일 왜 이렇게 구림 ㅋㅋ 영상은 괜찮은데 썸네일 때문에 누르기 싫었음",
+      "videoTitle": "먹방 영상",
+      "parentText": null,
+      "expected": "caution",
+      "review": null,
+      "tags": [
+        "context_v2_boundary",
+        "agent_authored_expectation"
+      ],
+      "goldAnalysis": null
+    },
+    {
+      "id": "context-v2-rough_intro",
+      "group": "context-v2-development-rough_intro",
+      "split": "development",
+      "sourceText": "쓸데없는 말 좀 그만하고 본론이나 빨리 들어가면 안 됨?",
+      "videoTitle": "먹방 영상",
+      "parentText": null,
+      "expected": "caution",
+      "review": null,
+      "tags": [
+        "context_v2_boundary",
+        "agent_authored_expectation"
+      ],
+      "goldAnalysis": null
+    },
+    {
+      "id": "context-v2-food_preference",
+      "group": "context-v2-development-food_preference",
+      "split": "development",
+      "sourceText": "생각보다 저 굴 별로임 유튭보고 시켜먹어봤는데 그닥",
+      "videoTitle": "먹방 영상",
+      "parentText": null,
+      "expected": "safe",
+      "review": null,
+      "tags": [
+        "context_v2_boundary",
+        "agent_authored_expectation"
+      ],
+      "goldAnalysis": null
+    },
+    {
+      "id": "context-v2-appearance_observation",
+      "group": "context-v2-development-appearance_observation",
+      "split": "development",
+      "sourceText": "오늘은 달라 보여서 처음에 못 알아봤어요.",
+      "videoTitle": "먹방 영상",
+      "parentText": null,
+      "expected": "safe",
+      "review": null,
+      "tags": [
+        "context_v2_boundary",
+        "agent_authored_expectation"
+      ],
+      "goldAnalysis": null
+    },
+    {
+      "id": "context-v2-appearance_attack",
+      "group": "context-v2-development-appearance_attack",
+      "split": "development",
+      "sourceText": "얼굴이 너무 보기 싫다.",
+      "videoTitle": "먹방 영상",
+      "parentText": null,
+      "expected": "risk",
+      "review": null,
+      "tags": [
+        "context_v2_boundary",
+        "agent_authored_expectation"
+      ],
+      "goldAnalysis": null
+    },
+    {
+      "id": "context-v2-framing_feedback",
+      "group": "context-v2-development-framing_feedback",
+      "split": "development",
+      "sourceText": "얼굴 클로즈업 때문에 음식이 안 보여요.",
+      "videoTitle": "먹방 영상",
+      "parentText": null,
+      "expected": "safe",
+      "review": null,
+      "tags": [
+        "context_v2_boundary",
+        "agent_authored_expectation"
+      ],
+      "goldAnalysis": null
+    },
+    {
+      "id": "context-v2-mixed_framing",
+      "group": "context-v2-development-mixed_framing",
+      "split": "development",
+      "sourceText": "얼굴이 역겹다. 얼굴 클로즈업 때문에 음식이 안 보여요.",
+      "videoTitle": "먹방 영상",
+      "parentText": null,
+      "expected": "caution",
+      "review": null,
+      "tags": [
+        "context_v2_boundary",
+        "agent_authored_expectation"
+      ],
+      "goldAnalysis": null
+    },
+    {
+      "id": "context-v2-cultural_comparison",
+      "group": "context-v2-development-cultural_comparison",
+      "split": "development",
+      "sourceText": "중국 먹방 스타일이랑 비슷하네요.",
+      "videoTitle": "먹방 영상",
+      "parentText": null,
+      "expected": "safe",
+      "review": null,
+      "tags": [
+        "context_v2_boundary",
+        "agent_authored_expectation"
+      ],
+      "goldAnalysis": null
+    },
+    {
+      "id": "context-v2-cultural_mockery",
+      "group": "context-v2-development-cultural_mockery",
+      "split": "development",
+      "sourceText": "중국 먹방처럼 야만적으로 먹네.",
+      "videoTitle": "먹방 영상",
+      "parentText": null,
+      "expected": "risk",
+      "review": null,
+      "tags": [
+        "context_v2_boundary",
+        "agent_authored_expectation"
+      ],
+      "goldAnalysis": null
+    },
+    {
+      "id": "context-v2-reply_neutral_agreement",
+      "group": "context-v2-development-reply_neutral_agreement",
+      "split": "development",
+      "sourceText": "나도 그렇게 느꼈어요.",
+      "videoTitle": "먹방 영상",
+      "parentText": "중국 먹방 스타일이랑 비슷하네요.",
+      "expected": "safe",
+      "review": null,
+      "tags": [
+        "context_v2_boundary",
+        "agent_authored_expectation"
+      ],
+      "goldAnalysis": null
+    },
+    {
+      "id": "context-v2-reply_attack_endorsement",
+      "group": "context-v2-development-reply_attack_endorsement",
+      "split": "development",
+      "sourceText": "나도 동의한다.",
+      "videoTitle": "먹방 영상",
+      "parentText": "너 얼굴 진짜 역겹다.",
+      "expected": "risk",
+      "review": null,
+      "tags": [
+        "context_v2_boundary",
+        "agent_authored_expectation"
+      ],
+      "goldAnalysis": null
+    },
+    {
+      "id": "context-v2-reply_defense",
+      "group": "context-v2-development-reply_defense",
+      "split": "development",
+      "sourceText": "그런 말 하지 마세요.",
+      "videoTitle": "먹방 영상",
+      "parentText": "너 얼굴 진짜 역겹다.",
+      "expected": "safe",
+      "review": null,
+      "tags": [
+        "context_v2_boundary",
+        "agent_authored_expectation"
+      ],
+      "goldAnalysis": null
+    },
+    {
+      "id": "context-v2-other_commenter",
+      "group": "context-v2-development-other_commenter",
+      "split": "development",
+      "sourceText": "님 뱃살이더 뷰담스러워요 ㅠ😅",
+      "videoTitle": "먹방 영상",
+      "parentText": "으악 부담스러워요 얼굴보려고 보는게 아닌데",
+      "expected": "safe",
+      "review": null,
+      "tags": [
+        "context_v2_boundary",
+        "agent_authored_expectation"
+      ],
+      "goldAnalysis": null
+    },
+    {
+      "id": "context-v2-pure_rejection",
+      "group": "context-v2-development-pure_rejection",
+      "split": "development",
+      "sourceText": "진짜 볼 때마다 역겹다. 그냥 유튜브 접었으면 좋겠음",
+      "videoTitle": "먹방 영상",
+      "parentText": null,
+      "expected": "risk",
+      "review": null,
+      "tags": [
+        "context_v2_boundary",
+        "agent_authored_expectation"
+      ],
+      "goldAnalysis": null
+    },
+    {
+      "id": "context-v2-mixed_threat",
+      "group": "context-v2-development-mixed_threat",
+      "split": "development",
+      "sourceText": "자막 글씨가 작아요. 찾아가서 때리겠다.",
+      "videoTitle": "먹방 영상",
+      "parentText": null,
+      "expected": "caution",
+      "review": null,
+      "tags": [
+        "context_v2_boundary",
+        "agent_authored_expectation"
+      ],
+      "goldAnalysis": null
+    }
+  ]
+}

@@ -16,7 +16,7 @@ const connectFixtureYouTube = async (page: Page) => {
   await requestAndOpenMagicLink(page, email);
   await page.goto("/app/connect/youtube");
   await expect(page.getByRole("status").getByText(FIXTURE_LABEL)).toBeVisible();
-  await page.getByRole("link", { name: "Google에서 연결하기" }).click();
+  await page.getByRole("link", { name: "Google에서 연결", exact: true }).click();
   await expect(page).toHaveURL(/\/app\/connect\/youtube\?connected=1$/);
   await page
     .getByRole("radio", { name: new RegExp(FIXTURE_CHANNEL_NAME) })
@@ -51,23 +51,21 @@ test("backfills fixture channel comments to a date and re-runs without duplicate
   });
 
   await connectFixtureYouTube(page);
-  await page.getByLabel("언제의 댓글부터 가져올까요?").fill(START_DATE);
-  await page.getByRole("button", { name: "댓글 가져오기 시작" }).click();
+  await page.getByLabel("댓글 수집 시작일").fill(START_DATE);
+  await page.getByRole("button", { name: "수집 시작", exact: true }).click();
 
-  await expect(
-    page.getByText("초기 댓글 수집 완료", { exact: true }),
-  ).toBeVisible({ timeout: 60_000 });
-  await expect(page.locator(".channel-sync-live-status")).toHaveText(
-    "채널의 새 댓글을 자동으로 확인합니다.",
-    { timeout: 60_000 },
-  );
-  await expect(page.getByText("2026-08-01")).toBeVisible();
+  await expect.poll(async () => {
+    const response = await page.request.get("/api/channel-comment-sync/status");
+    const progress = await response.json();
+    return { backfill: progress.backfillStatus, active: progress.active, error: progress.errorMessage };
+  }, { timeout: 60_000 }).toEqual({ backfill: "completed", active: false, error: null });
+  await expect(page.getByLabel("댓글 수집 시작일")).toHaveValue(START_DATE);
 
   await page.goto(
     "/app/inbox?levels=safe&levels=caution&levels=risk&analysis=analyzed",
   );
   await expect(page.getByRole("heading", { name: "Comment Inbox" })).toBeVisible();
-  const inboxCards = page.locator(".inbox-queue-item");
+  const inboxCards = page.locator("article[id^=comment-]");
   await expect(
     inboxCards.filter({ hasText: "2026-08-08 최신 채널 댓글" }),
   ).toHaveCount(1);
@@ -87,10 +85,11 @@ test("backfills fixture channel comments to a date and re-runs without duplicate
   );
   expect(repeatResponse.ok()).toBe(true);
   await page.reload();
-  const storedMetric = page.locator(".channel-sync-metrics > div").filter({
-    hasText: "신규 저장",
-  });
-  await expect(storedMetric.locator("dd")).toHaveText("0");
+  await expect.poll(async () => {
+    const response = await page.request.get("/api/channel-comment-sync/status");
+    const progress = await response.json();
+    return { stored: progress.counts.stored, active: progress.active, error: progress.errorMessage };
+  }, { timeout: 60_000 }).toEqual({ stored: 0, active: false, error: null });
 
   await page.goto(
     "/app/inbox?levels=safe&levels=caution&levels=risk&analysis=analyzed",

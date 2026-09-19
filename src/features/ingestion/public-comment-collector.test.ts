@@ -212,7 +212,53 @@ describe("collectPublicComments", () => {
     expect(listReplies).toHaveBeenCalledTimes(2);
   });
 
-  it.each([0, 19, 21, 1001])(
+  it("collects every thread and reply page beyond 1000 without trusting metadata", async () => {
+    const listCommentThreads = vi.fn(async ({ pageToken }: { pageToken: string | null }) => {
+      const page = Number(pageToken ?? 0);
+      return {
+        items: Array.from({ length: page === 10 ? 5 : 100 }, (_, index) => {
+          const id = `all-parent-${page * 100 + index}`;
+          return {
+            topLevelComment: comment(id),
+            inlineReplies: id === "all-parent-0" ? [comment("reply-0", { parentId: id })] : [],
+            totalReplyCount: id === "all-parent-0" ? 101 : 0,
+          };
+        }),
+        nextPageToken: page < 10 ? String(page + 1) : null,
+        quotaUnitsUsed: 1,
+      };
+    });
+    const listReplies = vi.fn(async ({ pageToken }: { pageToken: string | null }) => ({
+      items: pageToken ? [comment("reply-100", { parentId: "all-parent-0" })]
+        : Array.from({ length: 100 }, (_, i) => comment(`reply-${i}`, { parentId: "all-parent-0" })),
+      nextPageToken: pageToken ? null : "last-reply-page",
+      quotaUnitsUsed: 1,
+    }));
+    const source = provider({ listCommentThreads, listReplies });
+    const result = await collectPublicComments({ provider: source, videoId: "dQw4w9WgXcQ", requestedTotalCount: 0 });
+    expect(result.comments).toHaveLength(1106);
+    expect(new Set(result.comments.map(c => c.youtubeCommentId)).size).toBe(1106);
+    expect(result.topLevelCount).toBe(1005);
+    expect(result.replyCount).toBe(101);
+    expect(result.nextPageToken).toBeNull();
+    expect(listCommentThreads).toHaveBeenCalledTimes(11);
+    expect(listReplies).toHaveBeenCalledTimes(2);
+    expect(source.getPublicVideo).not.toHaveBeenCalled();
+    expect(listCommentThreads).toHaveBeenLastCalledWith(expect.objectContaining({ maxResults: 100, pageToken: "10" }));
+    const ids = result.comments.map(c => c.youtubeCommentId);
+    expect(ids.indexOf("all-parent-0")).toBeLessThan(ids.indexOf("reply-100"));
+  });
+
+  it("finishes an empty all-comments video without inventing data", async () => {
+    const result = await collectPublicComments({
+      provider: provider({ listCommentThreads: vi.fn().mockResolvedValue({ items: [], nextPageToken: null, quotaUnitsUsed: 1 }) }),
+      videoId: "dQw4w9WgXcQ", requestedTotalCount: 0,
+    });
+    expect(result.comments).toEqual([]);
+    expect(result.nextPageToken).toBeNull();
+  });
+
+  it.each([-1, 19, 21, 1001])(
     "rejects an unsupported requested total: %s",
     async (requestedTotalCount) => {
       await expect(

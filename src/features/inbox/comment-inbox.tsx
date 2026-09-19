@@ -99,6 +99,10 @@ export type ActiveFilters = {
 };
 
 const getPrimarySummary = (item: InboxItem) => {
+  const semantic = item.classificationTrace?.semantic;
+  if (semantic?.rewriteStatus === "failed") return "피드백 정리 실패 · 재시도할 수 있습니다.";
+  if (semantic?.rewriteStatus === "pending") return "피드백의 의미 보존을 검증하고 있습니다.";
+  if (semantic?.otherTargetHarm && item.reviewLevel === "safe") return "크리에이터 대상 공격은 없지만 공격 표현이 있어 원문을 보호합니다.";
   if (item.neutralText) return item.neutralText;
   if (item.normalizedQuestion) return item.normalizedQuestion;
   if (item.analysisState === "pending") {
@@ -176,7 +180,11 @@ const getInsightDescription = (item: InboxItem) =>
     : "분석이 완료되면 댓글 유형과 운영상 의미를 표시합니다.";
 
 const getCertainty = (item: InboxItem) => {
+  if (item.classificationStatus === "review_queue" && item.classificationTrace?.final?.basis.startsWith("classification_")) {
+    return "재검토 필요 · AI 응답 검증 오류";
+  }
   const trace = item.classificationTrace;
+  if (trace?.semantic) return `분석 확신도 ${Math.round(trace.semantic.confidence * 100)}% · 자기보고`;
   const stage = trace?.terra ?? trace?.luna;
   const certainty =
     stage?.status === "succeeded" &&
@@ -398,6 +406,8 @@ function CorrectionForm({
           />
         </label>
 
+        <label><span>수정 이유</span><textarea name="correctionReason" rows={2} maxLength={2000} placeholder="예: 체중 비하가 아니라 칭찬으로 읽히는 이유" /></label>
+        <label><span>적용 맥락</span><textarea name="applicationContext" rows={2} maxLength={2000} placeholder="이 판단이 적용되는 상황" /></label>
         {isPublicSource ? (
           <p className="public-feedback-policy">
             공개 URL에서 수집한 판단 수정은 감사 기록으로만 저장하며 개인화에
@@ -537,6 +547,7 @@ function ModerationActions({
 export function CommentInbox({
   allowExpressionAction,
   correctionAction,
+  rewriteRetryAction,
   data,
   filters,
   moderationAction,
@@ -548,6 +559,7 @@ export function CommentInbox({
   videos: Array<{ id: string; title: string }>;
   selectedCommentId?: string | null;
   correctionAction: (formData: FormData) => void | Promise<void>;
+  rewriteRetryAction?: (formData: FormData) => void | Promise<void>;
   moderationAction: (formData: FormData) => void | Promise<void>;
   allowExpressionAction: (formData: FormData) => void | Promise<void>;
 }) {
@@ -607,6 +619,9 @@ export function CommentInbox({
                       </span>
                     </div>
                   ) : null}
+                  {item.classificationTrace?.semantic?.criticalHarm ? <p className={styles.warning}>중대한 공격 신호 있음 · 등급과 별도</p> : null}
+                  {item.classificationTrace?.semantic?.spamSignals.length ? <p className={styles.warning}>스팸 의심 · 등급과 별도</p> : null}
+                  {item.classificationTrace?.semantic?.rewriteStatus === "failed" && rewriteRetryAction && item.analysisId ? <form action={rewriteRetryAction}><input type="hidden" name="verdictId" value={item.analysisId}/><button type="submit">피드백 정리 재시도</button></form> : null}
                   <SupersededRiskNotice item={item} />
                   <div className={`${styles.reactions} ${item.replyCount > 0 ? styles.hasReplies : ""}`}>
                     <span aria-label={`좋아요 ${item.likeCount}`}><ThumbsUp aria-hidden="true" />{item.likeCount}</span>

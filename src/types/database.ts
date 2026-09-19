@@ -214,10 +214,12 @@ export type Database = {
           completed_count: number
           configuration_key: string
           created_at: string
+          execution_config: Json | null
           failed_count: number
           finished_at: string | null
           id: string
           import_job_id: string | null
+          replacement_job_id: string | null
           started_at: string | null
           status: Database["public"]["Enums"]["job_status"]
           total_count: number
@@ -227,10 +229,12 @@ export type Database = {
           completed_count?: number
           configuration_key: string
           created_at?: string
+          execution_config?: Json | null
           failed_count?: number
           finished_at?: string | null
           id?: string
           import_job_id?: string | null
+          replacement_job_id?: string | null
           started_at?: string | null
           status?: Database["public"]["Enums"]["job_status"]
           total_count?: number
@@ -240,10 +244,12 @@ export type Database = {
           completed_count?: number
           configuration_key?: string
           created_at?: string
+          execution_config?: Json | null
           failed_count?: number
           finished_at?: string | null
           id?: string
           import_job_id?: string | null
+          replacement_job_id?: string | null
           started_at?: string | null
           status?: Database["public"]["Enums"]["job_status"]
           total_count?: number
@@ -255,6 +261,13 @@ export type Database = {
             columns: ["import_job_id"]
             isOneToOne: false
             referencedRelation: "comment_import_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "analysis_jobs_replacement_job_id_fkey"
+            columns: ["replacement_job_id"]
+            isOneToOne: false
+            referencedRelation: "analysis_jobs"
             referencedColumns: ["id"]
           },
           {
@@ -609,9 +622,85 @@ export type Database = {
           },
         ]
       }
+      classification_expression_feedback: {
+        Row: {
+          actor_user_id: string
+          classification_rewrite_id: string | null
+          classification_verdict_id: string
+          created_at: string
+          edited_text: string | null
+          id: string
+          raw_comment_id: string
+          reaction: string
+          source_import_job_id: string
+          workspace_id: string
+        }
+        Insert: {
+          actor_user_id: string
+          classification_rewrite_id?: string | null
+          classification_verdict_id: string
+          created_at?: string
+          edited_text?: string | null
+          id?: string
+          raw_comment_id: string
+          reaction: string
+          source_import_job_id: string
+          workspace_id: string
+        }
+        Update: {
+          actor_user_id?: string
+          classification_rewrite_id?: string | null
+          classification_verdict_id?: string
+          created_at?: string
+          edited_text?: string | null
+          id?: string
+          raw_comment_id?: string
+          reaction?: string
+          source_import_job_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "classification_expression_feedba_classification_rewrite_id_fkey"
+            columns: ["classification_rewrite_id"]
+            isOneToOne: false
+            referencedRelation: "classification_rewrites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "classification_expression_feedba_classification_verdict_id_fkey"
+            columns: ["classification_verdict_id"]
+            isOneToOne: false
+            referencedRelation: "classification_verdicts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "classification_expression_feedback_raw_comment_id_fkey"
+            columns: ["raw_comment_id"]
+            isOneToOne: false
+            referencedRelation: "raw_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "classification_expression_feedback_source_import_job_id_fkey"
+            columns: ["source_import_job_id"]
+            isOneToOne: false
+            referencedRelation: "comment_import_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "classification_expression_feedback_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       classification_feedback: {
         Row: {
           actor_user_id: string
+          application_context: string | null
           classification_verdict_id: string
           corrected_category:
             | Database["public"]["Enums"]["comment_category"]
@@ -620,17 +709,20 @@ export type Database = {
           corrected_recommended_action:
             | Database["public"]["Enums"]["recommended_action"]
             | null
+          correction_reason: string | null
           created_at: string
           decision: string
           edited_feedback_core: string | null
           id: string
           raw_comment_id: string
+          source_import_job_id: string
           use_for_personalization: boolean
           use_for_training: boolean
           workspace_id: string
         }
         Insert: {
           actor_user_id: string
+          application_context?: string | null
           classification_verdict_id: string
           corrected_category?:
             | Database["public"]["Enums"]["comment_category"]
@@ -639,17 +731,20 @@ export type Database = {
           corrected_recommended_action?:
             | Database["public"]["Enums"]["recommended_action"]
             | null
+          correction_reason?: string | null
           created_at?: string
           decision: string
           edited_feedback_core?: string | null
           id?: string
           raw_comment_id: string
+          source_import_job_id: string
           use_for_personalization?: boolean
           use_for_training?: boolean
           workspace_id: string
         }
         Update: {
           actor_user_id?: string
+          application_context?: string | null
           classification_verdict_id?: string
           corrected_category?:
             | Database["public"]["Enums"]["comment_category"]
@@ -658,11 +753,13 @@ export type Database = {
           corrected_recommended_action?:
             | Database["public"]["Enums"]["recommended_action"]
             | null
+          correction_reason?: string | null
           created_at?: string
           decision?: string
           edited_feedback_core?: string | null
           id?: string
           raw_comment_id?: string
+          source_import_job_id?: string
           use_for_personalization?: boolean
           use_for_training?: boolean
           workspace_id?: string
@@ -680,6 +777,13 @@ export type Database = {
             columns: ["raw_comment_id"]
             isOneToOne: false
             referencedRelation: "raw_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "classification_feedback_source_import_job_id_fkey"
+            columns: ["source_import_job_id"]
+            isOneToOne: false
+            referencedRelation: "comment_import_jobs"
             referencedColumns: ["id"]
           },
           {
@@ -749,6 +853,7 @@ export type Database = {
           rejections: Json
           rewritten: string
           tone_variant: string
+          used_meaning_elements: string[]
           workspace_id: string
         }
         Insert: {
@@ -761,6 +866,7 @@ export type Database = {
           rejections?: Json
           rewritten: string
           tone_variant: string
+          used_meaning_elements?: string[]
           workspace_id: string
         }
         Update: {
@@ -773,6 +879,7 @@ export type Database = {
           rejections?: Json
           rewritten?: string
           tone_variant?: string
+          used_meaning_elements?: string[]
           workspace_id?: string
         }
         Relationships: [
@@ -898,17 +1005,25 @@ export type Database = {
           analysis_job_item_id: string
           basis: string
           created_at: string
+          delivery_mode: string | null
           feedback_core: string | null
+          feedback_observation: string | null
+          feedback_request: string | null
           feedback_type: string
+          feedback_viewer_experience: string | null
           hide_source: boolean
           id: string
           level: Database["public"]["Enums"]["review_level"] | null
+          meaning_contract_version: string | null
+          pipeline_version: string
           raised_by_moderation: boolean
           raised_by_spam: boolean
           raw_comment_id: string
           reason_codes: Json
           recommended_actions: Json
+          rewrite_status: string
           safety_case: boolean
+          semantic_trace: Json | null
           spam_signals: Json
           status: string
           workspace_id: string
@@ -919,17 +1034,25 @@ export type Database = {
           analysis_job_item_id: string
           basis: string
           created_at?: string
+          delivery_mode?: string | null
           feedback_core?: string | null
+          feedback_observation?: string | null
+          feedback_request?: string | null
           feedback_type: string
+          feedback_viewer_experience?: string | null
           hide_source?: boolean
           id?: string
           level?: Database["public"]["Enums"]["review_level"] | null
+          meaning_contract_version?: string | null
+          pipeline_version?: string
           raised_by_moderation?: boolean
           raised_by_spam?: boolean
           raw_comment_id: string
           reason_codes?: Json
           recommended_actions?: Json
+          rewrite_status?: string
           safety_case?: boolean
+          semantic_trace?: Json | null
           spam_signals?: Json
           status: string
           workspace_id: string
@@ -940,17 +1063,25 @@ export type Database = {
           analysis_job_item_id?: string
           basis?: string
           created_at?: string
+          delivery_mode?: string | null
           feedback_core?: string | null
+          feedback_observation?: string | null
+          feedback_request?: string | null
           feedback_type?: string
+          feedback_viewer_experience?: string | null
           hide_source?: boolean
           id?: string
           level?: Database["public"]["Enums"]["review_level"] | null
+          meaning_contract_version?: string | null
+          pipeline_version?: string
           raised_by_moderation?: boolean
           raised_by_spam?: boolean
           raw_comment_id?: string
           reason_codes?: Json
           recommended_actions?: Json
+          rewrite_status?: string
           safety_case?: boolean
+          semantic_trace?: Json | null
           spam_signals?: Json
           status?: string
           workspace_id?: string
@@ -1623,6 +1754,271 @@ export type Database = {
           },
         ]
       }
+      gentle_feedback_policy_candidates: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          pattern_key: string
+          proposed_change: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          safety_impact: string
+          status: string
+          supporting_feedback_count: number
+          target: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          pattern_key: string
+          proposed_change: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          safety_impact: string
+          status?: string
+          supporting_feedback_count: number
+          target: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          pattern_key?: string
+          proposed_change?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          safety_impact?: string
+          status?: string
+          supporting_feedback_count?: number
+          target?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gentle_feedback_policy_candidates_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gentle_feedback_policy_evidence: {
+        Row: {
+          classification_feedback_id: string
+          policy_candidate_id: string
+          workspace_id: string
+        }
+        Insert: {
+          classification_feedback_id: string
+          policy_candidate_id: string
+          workspace_id: string
+        }
+        Update: {
+          classification_feedback_id?: string
+          policy_candidate_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gentle_feedback_policy_evidence_classification_feedback_id_fkey"
+            columns: ["classification_feedback_id"]
+            isOneToOne: false
+            referencedRelation: "classification_feedback"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gentle_feedback_policy_evidence_policy_candidate_id_fkey"
+            columns: ["policy_candidate_id"]
+            isOneToOne: false
+            referencedRelation: "gentle_feedback_policy_candidates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gentle_feedback_policy_evidence_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gentle_feedback_responses: {
+        Row: {
+          actionable_score: number
+          human_sounding_score: number
+          id: string
+          less_hurtful_score: number
+          meaning_preserved_score: number
+          participant_key: string
+          preferred_variant: string
+          qualitative_note: string | null
+          recorded_at: string
+          stimulus_id: string | null
+          study_id: string
+          workspace_id: string
+        }
+        Insert: {
+          actionable_score: number
+          human_sounding_score: number
+          id?: string
+          less_hurtful_score: number
+          meaning_preserved_score: number
+          participant_key: string
+          preferred_variant: string
+          qualitative_note?: string | null
+          recorded_at?: string
+          stimulus_id?: string | null
+          study_id: string
+          workspace_id: string
+        }
+        Update: {
+          actionable_score?: number
+          human_sounding_score?: number
+          id?: string
+          less_hurtful_score?: number
+          meaning_preserved_score?: number
+          participant_key?: string
+          preferred_variant?: string
+          qualitative_note?: string | null
+          recorded_at?: string
+          stimulus_id?: string | null
+          study_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gentle_feedback_responses_stimulus_id_fkey"
+            columns: ["stimulus_id"]
+            isOneToOne: false
+            referencedRelation: "gentle_feedback_stimuli"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gentle_feedback_responses_study_id_fkey"
+            columns: ["study_id"]
+            isOneToOne: false
+            referencedRelation: "gentle_feedback_studies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gentle_feedback_responses_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gentle_feedback_stimuli: {
+        Row: {
+          baseline_prompt_version: string
+          baseline_text: string
+          candidate_prompt_version: string
+          candidate_text: string
+          classification_verdict_id: string | null
+          created_at: string
+          id: string
+          presentation_order: string
+          study_id: string
+          workspace_id: string
+        }
+        Insert: {
+          baseline_prompt_version: string
+          baseline_text: string
+          candidate_prompt_version: string
+          candidate_text: string
+          classification_verdict_id?: string | null
+          created_at?: string
+          id?: string
+          presentation_order: string
+          study_id: string
+          workspace_id: string
+        }
+        Update: {
+          baseline_prompt_version?: string
+          baseline_text?: string
+          candidate_prompt_version?: string
+          candidate_text?: string
+          classification_verdict_id?: string | null
+          created_at?: string
+          id?: string
+          presentation_order?: string
+          study_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gentle_feedback_stimuli_classification_verdict_id_fkey"
+            columns: ["classification_verdict_id"]
+            isOneToOne: false
+            referencedRelation: "classification_verdicts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gentle_feedback_stimuli_study_id_fkey"
+            columns: ["study_id"]
+            isOneToOne: false
+            referencedRelation: "gentle_feedback_studies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gentle_feedback_stimuli_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gentle_feedback_studies: {
+        Row: {
+          created_at: string
+          created_by: string
+          expression_policy_version: string | null
+          id: string
+          prompt_version: string | null
+          status: string
+          study_type: string
+          title: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          expression_policy_version?: string | null
+          id?: string
+          prompt_version?: string | null
+          status?: string
+          study_type: string
+          title: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          expression_policy_version?: string | null
+          id?: string
+          prompt_version?: string | null
+          status?: string
+          study_type?: string
+          title?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gentle_feedback_studies_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       model_runs: {
         Row: {
           analysis_job_item_id: string | null
@@ -1855,6 +2251,48 @@ export type Database = {
           },
         ]
       }
+      public_import_checkpoints: {
+        Row: {
+          claim_token: string | null
+          cursor: Json
+          import_job_id: string
+          lease_until: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          claim_token?: string | null
+          cursor?: Json
+          import_job_id: string
+          lease_until?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          claim_token?: string | null
+          cursor?: Json
+          import_job_id?: string
+          lease_until?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "public_import_checkpoints_import_job_id_fkey"
+            columns: ["import_job_id"]
+            isOneToOne: true
+            referencedRelation: "comment_import_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "public_import_checkpoints_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       raw_comment_payloads: {
         Row: {
           captured_at: string
@@ -2062,6 +2500,332 @@ export type Database = {
           },
           {
             foreignKeyName: "sanitized_feedback_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sanitized_feedback_preferences: {
+        Row: {
+          actor_user_id: string
+          classification_rewrite_id: string
+          classification_verdict_id: string
+          created_at: string
+          id: string
+          preference: string
+          raw_comment_id: string
+          workspace_id: string
+        }
+        Insert: {
+          actor_user_id: string
+          classification_rewrite_id: string
+          classification_verdict_id: string
+          created_at?: string
+          id?: string
+          preference: string
+          raw_comment_id: string
+          workspace_id: string
+        }
+        Update: {
+          actor_user_id?: string
+          classification_rewrite_id?: string
+          classification_verdict_id?: string
+          created_at?: string
+          id?: string
+          preference?: string
+          raw_comment_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sanitized_feedback_preferences_classification_rewrite_id_fkey"
+            columns: ["classification_rewrite_id"]
+            isOneToOne: false
+            referencedRelation: "classification_rewrites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sanitized_feedback_preferences_classification_verdict_id_fkey"
+            columns: ["classification_verdict_id"]
+            isOneToOne: false
+            referencedRelation: "classification_verdicts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sanitized_feedback_preferences_raw_comment_id_fkey"
+            columns: ["raw_comment_id"]
+            isOneToOne: false
+            referencedRelation: "raw_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sanitized_feedback_preferences_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      semantic_attempts: {
+        Row: {
+          analysis_job_item_id: string
+          attempt: number
+          created_at: string
+          error_code: string | null
+          id: string
+          model_run: Json | null
+          output: Json | null
+          stage: string
+          status: string
+          workspace_id: string
+        }
+        Insert: {
+          analysis_job_item_id: string
+          attempt: number
+          created_at?: string
+          error_code?: string | null
+          id?: string
+          model_run?: Json | null
+          output?: Json | null
+          stage: string
+          status: string
+          workspace_id: string
+        }
+        Update: {
+          analysis_job_item_id?: string
+          attempt?: number
+          created_at?: string
+          error_code?: string | null
+          id?: string
+          model_run?: Json | null
+          output?: Json | null
+          stage?: string
+          status?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "semantic_attempts_analysis_job_item_id_workspace_id_fkey"
+            columns: ["analysis_job_item_id", "workspace_id"]
+            isOneToOne: false
+            referencedRelation: "semantic_snapshots"
+            referencedColumns: ["analysis_job_item_id", "workspace_id"]
+          },
+        ]
+      }
+      semantic_snapshots: {
+        Row: {
+          analysis_job_item_id: string
+          configuration_key: string
+          context: Json
+          created_at: string
+          raw_comment_id: string
+          settings: Json
+          workspace_id: string
+        }
+        Insert: {
+          analysis_job_item_id: string
+          configuration_key: string
+          context: Json
+          created_at?: string
+          raw_comment_id: string
+          settings: Json
+          workspace_id: string
+        }
+        Update: {
+          analysis_job_item_id?: string
+          configuration_key?: string
+          context?: Json
+          created_at?: string
+          raw_comment_id?: string
+          settings?: Json
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "semantic_snapshots_analysis_job_item_id_workspace_id_raw_c_fkey"
+            columns: ["analysis_job_item_id", "workspace_id", "raw_comment_id"]
+            isOneToOne: false
+            referencedRelation: "analysis_job_items"
+            referencedColumns: ["id", "workspace_id", "raw_comment_id"]
+          },
+        ]
+      }
+      signal_digest_evidence: {
+        Row: {
+          classification_verdict_id: string
+          created_at: string
+          digest_topic_id: string
+          id: string
+          raw_comment_id: string
+          source_import_job_id: string
+          source_kind: Database["public"]["Enums"]["comment_source_kind"]
+          voice_fingerprint: string
+          workspace_id: string
+        }
+        Insert: {
+          classification_verdict_id: string
+          created_at?: string
+          digest_topic_id: string
+          id?: string
+          raw_comment_id: string
+          source_import_job_id: string
+          source_kind: Database["public"]["Enums"]["comment_source_kind"]
+          voice_fingerprint: string
+          workspace_id: string
+        }
+        Update: {
+          classification_verdict_id?: string
+          created_at?: string
+          digest_topic_id?: string
+          id?: string
+          raw_comment_id?: string
+          source_import_job_id?: string
+          source_kind?: Database["public"]["Enums"]["comment_source_kind"]
+          voice_fingerprint?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "signal_digest_evidence_classification_verdict_id_fkey"
+            columns: ["classification_verdict_id"]
+            isOneToOne: false
+            referencedRelation: "classification_verdicts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "signal_digest_evidence_digest_topic_id_fkey"
+            columns: ["digest_topic_id"]
+            isOneToOne: false
+            referencedRelation: "signal_digest_topics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "signal_digest_evidence_raw_comment_id_fkey"
+            columns: ["raw_comment_id"]
+            isOneToOne: false
+            referencedRelation: "raw_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "signal_digest_evidence_source_import_job_id_fkey"
+            columns: ["source_import_job_id"]
+            isOneToOne: false
+            referencedRelation: "comment_import_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "signal_digest_evidence_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      signal_digest_runs: {
+        Row: {
+          actionable_comment_count: number
+          clustering_version: string
+          created_at: string
+          distinct_voice_count: number
+          id: string
+          model_identifier: string | null
+          period_end: string
+          period_start: string
+          prompt_version: string | null
+          status: string
+          workspace_id: string
+        }
+        Insert: {
+          actionable_comment_count: number
+          clustering_version: string
+          created_at?: string
+          distinct_voice_count: number
+          id?: string
+          model_identifier?: string | null
+          period_end: string
+          period_start: string
+          prompt_version?: string | null
+          status: string
+          workspace_id: string
+        }
+        Update: {
+          actionable_comment_count?: number
+          clustering_version?: string
+          created_at?: string
+          distinct_voice_count?: number
+          id?: string
+          model_identifier?: string | null
+          period_end?: string
+          period_start?: string
+          prompt_version?: string | null
+          status?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "signal_digest_runs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      signal_digest_topics: {
+        Row: {
+          created_at: string
+          digest_run_id: string
+          distinct_voice_count: number
+          evidence_comment_count: number
+          id: string
+          prevalence: string
+          share_of_actionable_voices: number
+          summary: string
+          theme_key: string
+          theme_label: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          digest_run_id: string
+          distinct_voice_count: number
+          evidence_comment_count: number
+          id?: string
+          prevalence: string
+          share_of_actionable_voices: number
+          summary: string
+          theme_key: string
+          theme_label: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          digest_run_id?: string
+          distinct_voice_count?: number
+          evidence_comment_count?: number
+          id?: string
+          prevalence?: string
+          share_of_actionable_voices?: number
+          summary?: string
+          theme_key?: string
+          theme_label?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "signal_digest_topics_digest_run_id_fkey"
+            columns: ["digest_run_id"]
+            isOneToOne: false
+            referencedRelation: "signal_digest_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "signal_digest_topics_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -2664,6 +3428,20 @@ export type Database = {
         }
         Returns: boolean
       }
+      claim_public_import_job: {
+        Args: { target_job_id: string; target_token: string }
+        Returns: Json
+      }
+      commit_public_import_batch: {
+        Args: {
+          target_comments: Json
+          target_cursor: Json
+          target_job_id: string
+          target_quota: number
+          target_token: string
+        }
+        Returns: Json
+      }
       complete_channel_comment_sync_cycle_run: {
         Args: {
           target_analyzed_count: number
@@ -2759,7 +3537,7 @@ export type Database = {
       complete_moderation_request: {
         Args: {
           target_actor_user_id: string
-          target_error_code: string
+          target_error_code: string | null
           target_executed_at: string
           target_provider_status: number
           target_quota_units: number
@@ -2912,7 +3690,7 @@ export type Database = {
       fail_channel_comment_sync_cycle_run: {
         Args: {
           target_claim_token: string
-          target_error_code: string
+          target_error_code: string | null
           target_run_id: string
         }
         Returns: {
@@ -2947,7 +3725,7 @@ export type Database = {
       fail_channel_comment_sync_run: {
         Args: {
           target_claim_token: string
-          target_error_code: string
+          target_error_code: string | null
           target_run_id: string
         }
         Returns: {
@@ -2983,7 +3761,7 @@ export type Database = {
         Args: {
           target_claim_token: string
           target_duplicate_count: number
-          target_error_code: string
+          target_error_code: string | null
           target_failed_count: number
           target_import_job_id: string
           target_observed_count: number
@@ -3123,14 +3901,6 @@ export type Database = {
           workspace_id: string
         }[]
       }
-      get_youtube_connection_collection_stats: {
-        Args: { target_workspace_id: string }
-        Returns: {
-          bucket_date: string
-          cumulative_count: number
-          total_count: number
-        }[]
-      }
       get_inbox_conversation_page: {
         Args: {
           action_state_filter?: Database["public"]["Enums"]["action_state"]
@@ -3180,18 +3950,18 @@ export type Database = {
       }
       get_inbox_feed_page: {
         Args: {
-          classification_status_filter?: string
-          period_filter?: string
-          sort_order?: string
           action_state_filter?: Database["public"]["Enums"]["action_state"]
           analysis_state_filter?: string
           category_filter?: Database["public"]["Enums"]["comment_category"]
+          classification_status_filter?: string
           max_confidence?: number
           min_confidence?: number
           page_offset?: number
           page_size?: number
+          period_filter?: string
           review_levels?: Database["public"]["Enums"]["review_level"][]
           search_query?: string
+          sort_order?: string
           target_workspace_id: string
           video_ids?: string[]
         }
@@ -3270,6 +4040,27 @@ export type Database = {
         Args: { target_max_jobs: number }
         Returns: {
           analysis_job_id: string
+        }[]
+      }
+      get_signal_digest_candidates: {
+        Args: { target_workspace_id: string }
+        Returns: {
+          classification_verdict_id: string
+          classified_at: string
+          feedback_text: string
+          raw_comment_id: string
+          source_import_job_id: string
+          source_kind: Database["public"]["Enums"]["comment_source_kind"]
+          voice_fingerprint: string
+          youtube_video_id: string
+        }[]
+      }
+      get_youtube_connection_collection_stats: {
+        Args: { target_workspace_id: string }
+        Returns: {
+          bucket_date: string
+          cumulative_count: number
+          total_count: number
         }[]
       }
       is_workspace_member: { Args: { target: string }; Returns: boolean }
@@ -3364,7 +4155,7 @@ export type Database = {
       record_channel_sync_import_item_failure: {
         Args: {
           target_claim_token: string
-          target_error_code: string
+          target_error_code: string | null
           target_import_job_id: string
           target_run_id: string
           target_workspace_id: string
@@ -3437,6 +4228,14 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      retry_failed_classification_items: {
+        Args: { target_job_id: string }
+        Returns: number
+      }
+      retry_semantic_rewrite: {
+        Args: { target_verdict_id: string; target_workspace_id: string }
+        Returns: undefined
       }
       select_youtube_channel: {
         Args: { target_channel_id: string; target_workspace_id: string }
@@ -3545,6 +4344,14 @@ export type Database = {
           disposition: string
           raw_comment_id: string
         }[]
+      }
+      supersede_legacy_classification_job: {
+        Args: {
+          new_configuration_key: string
+          new_execution_config: Json
+          target_job_id: string
+        }
+        Returns: string
       }
     }
     Enums: {

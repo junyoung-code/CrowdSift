@@ -91,6 +91,14 @@ export const AmbiguityReasonSchema = z.enum([
   "missing_context",
 ]);
 
+/** Short, reviewable evidence; never a substitute for the preserved original. */
+export const ClassificationAssessmentSchema = z.object({
+  excerpt: z.string().min(1).max(500).nullable(),
+  explanation: z.string().min(1).max(300),
+  contextResolution: z.enum(["resolved", "missing"]),
+  missingContext: z.string().min(1).max(300).nullable(),
+}).strict();
+
 /**
  * 1-B. Luna 1차 분류 출력.
  *
@@ -100,6 +108,7 @@ export const AmbiguityReasonSchema = z.enum([
 export const LunaFirstPassSchema = z
   .object({
     candidateLevel: RiskLevelSchema,
+    assessment: ClassificationAssessmentSchema.optional(),
     certainty: CertaintySchema,
     intent: CommentIntentSchema,
     target: CommentTargetSchema,
@@ -198,6 +207,7 @@ export const TerraVerdictSchema = z
   .object({
     /** Terra 자신의 등급 판단. Luna 후보와 같을 수도, 다를 수도 있다. */
     verdictLevel: RiskLevelSchema,
+    assessment: ClassificationAssessmentSchema.optional(),
     certainty: CertaintySchema,
     intent: CommentIntentSchema,
     target: CommentTargetSchema,
@@ -224,6 +234,10 @@ export const TerraVerdictSchema = z
   .strict();
 
 /** 저장된 V1 Terra 출력은 기존 판정 의미를 유지하며 읽는다. */
+// New API calls require evidence. Stored outputs without it keep their legacy semantics.
+export const LunaFirstPassApiSchema = LunaFirstPassSchema.extend({ assessment: ClassificationAssessmentSchema });
+export const TerraVerdictApiSchema = TerraVerdictSchema.extend({ assessment: ClassificationAssessmentSchema });
+
 export const StoredTerraVerdictSchema = z.union([
   TerraVerdictSchema,
   TerraVerdictSchema.omit({

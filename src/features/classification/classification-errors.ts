@@ -8,7 +8,8 @@ export type ClassificationFailureCode =
   | "openai_quota_exceeded"
   | "openai_auth_failed"
   | "openai_unavailable"
-  | "classification_failed";
+  | "classification_failed"
+  | "semantic_output_invalid";
 
 const TRANSIENT_NETWORK_CODES = new Set([
   "ECONNRESET",
@@ -21,6 +22,7 @@ export const toClassificationFailureCode = (
   error: unknown,
 ): ClassificationFailureCode => {
   const record = asRecord(error);
+  if (record.name === "SemanticOutputError" || record.name === "ZodError") return "semantic_output_invalid";
   const nested = asRecord(record.error);
   const status = typeof record.status === "number" ? record.status : null;
   const code =
@@ -52,4 +54,4 @@ export const toClassificationFailureCode = (
 
 export const isRetryableClassificationFailure = (
   code: string | null,
-) => code === "openai_rate_limited" || code === "openai_unavailable";
+) => code === "openai_rate_limited" || code === "openai_unavailable" || code === "semantic_output_invalid" || code === "classification_worker_timeout";

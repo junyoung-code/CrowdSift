@@ -90,6 +90,7 @@ export function PolicyForm({ action, initial, previewAction }: {
     <input type="hidden" name="editor" value="minimal" />
     <input type="hidden" name="topics" value={JSON.stringify(topics)} />
     <input type="hidden" name="contexts" value={JSON.stringify(contexts.filter(row => row.phrase.trim() || row.context.trim()))} />
+    <p className={styles.muted}>새 분류에서는 민감도·주의 주제·순화 말투 설정이 등급을 변경하지 않습니다. 허용 맥락은 의미 해석에 반영합니다.</p>
     <input type="hidden" name="sensitivity" value={initial.sensitivity} />
     <input type="hidden" name="cautionAction" value={initial.cautionAction} />
     <input type="hidden" name="riskAction" value={initial.riskAction} />
@@ -99,7 +100,7 @@ export function PolicyForm({ action, initial, previewAction }: {
         <section className={styles.section} aria-labelledby="watch-heading">
           <h2 id="watch-heading">주의해서 볼 내용</h2>
           <p>주의해서 검토할 항목을 선택해 주세요.</p>
-          <p className={styles.muted}>기본 보호: 인신공격 · 차별·혐오 · 위협 · 스팸</p>
+          <p className={styles.muted}>의미 분석 기준: 의견과 공격을 분리 · 스팸은 별도 표시</p>
           <div className={styles.chips} aria-label="주의할 내용 선택">
             {[...POLICY_PRESETS, ...topics.filter(item => !POLICY_PRESETS.includes(item))].map(topic => <button key={topic} type="button" aria-pressed={topics.includes(topic)} className={styles.chip} onClick={() => toggle(topic)}>
               {topic}{topics.includes(topic) ? <X aria-hidden="true" /> : <Plus aria-hidden="true" />}

@@ -49,9 +49,9 @@ const nullableText = (value: string | null): string => value as string;
 type ChannelSyncConfigurationInput = {
   policyVersion: number;
   providerMode: "live" | "fixture";
-  moderationModel: string;
-  lunaModel: string;
-  terraModel: string;
+  moderationModel?: string;
+  lunaModel?: string;
+  terraModel?: string;
 };
 
 export const createChannelSyncAnalysisConfigurationKey = (
@@ -619,9 +619,6 @@ export async function processOneChannelSyncWork(input: {
   const analysisConfigurationKey = createChannelSyncAnalysisConfigurationKey({
     policyVersion,
     providerMode: environment.EXTERNAL_PROVIDER_MODE,
-    moderationModel: environment.OPENAI_MODERATION_MODEL,
-    lunaModel: environment.OPENAI_LUNA_MODEL,
-    terraModel: environment.OPENAI_TERRA_MODEL,
   });
 
   try {

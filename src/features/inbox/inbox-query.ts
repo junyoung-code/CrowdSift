@@ -19,6 +19,7 @@ export type InboxClassificationStageTrace = {
 };
 
 export type InboxClassificationTrace = {
+  semantic?: import("../classification/semantic-service").SemanticPublicTrace | null;
   moderation: InboxClassificationStageTrace | null;
   luna: InboxClassificationStageTrace | null;
   branch: {

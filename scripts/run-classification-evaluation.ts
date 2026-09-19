@@ -1,154 +1,70 @@
-/**
- * 사람이 검수한 실제 댓글 JSON을 현재 Classification 파이프라인에 다시 돌린다.
- * DB에는 아무것도 저장하지 않는다.
- *
- *   npm run eval:classification:run -- measurements/classification-real-50-reviewed.json
- */
-import { readFileSync } from "node:fs";
+/** No database writes. Live calls require --live and explicit settings. */
+import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
-
-import OpenAI from "openai";
+import { loadEnvConfig } from "@next/env";
 import { z } from "zod";
+import { AlignmentSchema, SemanticDatasetSchema, digest, evaluateSemanticRun, repetitionConsistency, validateDataset, type EvaluationRow } from "../src/evaluation/semantic-evaluation";
+import { SemanticSettingsSchema, semanticSettingsFromEnv, semanticConfigurationKey } from "../src/features/classification/semantic-settings";
+import { validateSemanticAnalysis } from "../src/features/classification/semantic-contracts";
+import { classifySemanticAnalysis } from "../src/features/classification/semantic-policy";
+import { atomicSave, evaluationRow, offlineProviders, providersFor, recordSemantic, type Recording } from "./semantic-recording";
 
-import { routeFirstPass } from "../src/features/classification/branch";
-import { finalizeClassification } from "../src/features/classification/finalize";
-import { createFirstPassRunner } from "../src/features/classification/first-pass";
-import { createLunaFirstPass } from "../src/features/classification/luna-first-pass";
-import { createModerationScreen } from "../src/features/classification/moderation";
-import { DEFAULT_CLASSIFICATION_PROFILE } from "../src/features/classification/schemas";
-import { detectSpam } from "../src/features/classification/spam-rules";
-import { createTerraVerification } from "../src/features/classification/terra-verification";
-import { loadEnvFile } from "./test-comments";
-
-const CaseSchema = z.object({
-  id: z.string(),
-  sourceText: z.string().min(1),
-  videoTitle: z.string(),
-  parentText: z.string().nullable(),
-  expectedStatus: z.enum(["decided", "review_queue"]),
-  expectedLevel: z.enum(["safe", "caution", "risk"]).nullable(),
-  tags: z.array(z.string()),
-});
-
-const DatasetSchema = z.object({
-  schemaVersion: z.literal("classification-real-v1"),
-  cases: z.array(CaseSchema).min(1).max(50),
-});
-
-const actualLevel = (level: "safe" | "caution" | "danger" | null) =>
-  level === "danger" ? "risk" : level;
-
-const main = async () => {
-  loadEnvFile();
-  const path = resolve(
-    process.cwd(),
-    process.argv[2] ?? "measurements/classification-real-50-reviewed.json",
-  );
-  const dataset = DatasetSchema.parse(JSON.parse(readFileSync(path, "utf8")));
-  const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
-  const firstPass = createFirstPassRunner({
-    luna: createLunaFirstPass({
-      client: client as never,
-      model: process.env.OPENAI_LUNA_MODEL ?? "gpt-5.6-luna",
-    }),
-    moderation: createModerationScreen({
-      client: client as never,
-      model: process.env.OPENAI_MODERATION_MODEL ?? "omni-moderation-latest",
-    }),
-  });
-  const terra = createTerraVerification({
-    client: client as never,
-    model: process.env.OPENAI_TERRA_MODEL ?? "gpt-5.6-terra",
-  });
-
-  let correct = 0;
-  let queued = 0;
-  let roughPraiseErrors = 0;
-  let hardRiskErrors = 0;
-  let ambiguousSarcasmErrors = 0;
-
-  for (const [index, evaluationCase] of dataset.cases.entries()) {
-    process.stdout.write(`\r${index + 1}/${dataset.cases.length} ${evaluationCase.id}   `);
-    const input = {
-      commentId: evaluationCase.id,
-      workspaceId: "local-real-evaluation",
-      sourceText: evaluationCase.sourceText,
-      videoTitle: evaluationCase.videoTitle,
-      channelId: "local-real-evaluation",
-      profile: DEFAULT_CLASSIFICATION_PROFILE,
-      similarExamples: [],
-      parent: evaluationCase.parentText
-        ? { id: `${evaluationCase.id}-parent`, text: evaluationCase.parentText }
-        : null,
-    };
-    const first = await firstPass.run(input);
-    const branch = routeFirstPass(first);
-    const verified =
-      branch.kind === "verify"
-        ? await terra.verify({
-            ...input,
-            moderation: first.moderation?.result ?? null,
-          })
-        : null;
-    const verdict = finalizeClassification({
-      firstPass: first,
-      branch,
-      terra: verified?.result ?? null,
-      spam: detectSpam(evaluationCase.sourceText),
-    });
-    const level = actualLevel(verdict.level);
-    const matched =
-      verdict.status === evaluationCase.expectedStatus &&
-      level === evaluationCase.expectedLevel;
-    correct += Number(matched);
-    queued += Number(verdict.status === "review_queue");
-
-    if (
-      evaluationCase.tags.includes("rough_praise") &&
-      !(verdict.status === "decided" && level === "safe")
-    ) {
-      roughPraiseErrors += 1;
-    }
-    if (
-      evaluationCase.tags.includes("hard_risk") &&
-      !(verdict.status === "decided" && level === "risk")
-    ) {
-      hardRiskErrors += 1;
-    }
-    if (
-      evaluationCase.tags.includes("ambiguous_sarcasm") &&
-      verdict.status !== "review_queue"
-    ) {
-      ambiguousSarcasmErrors += 1;
-    }
-
-    if (!matched) {
-      process.stdout.write(
-        `\n  불일치 ${evaluationCase.id}: 기대 ${evaluationCase.expectedStatus}/${evaluationCase.expectedLevel ?? "-"}, 실제 ${verdict.status}/${level ?? "-"} (${verdict.basis})\n`,
-      );
-    }
+async function main() {
+  const args=process.argv.slice(2);
+  const option=(name:string)=>args.includes(name)?args[args.indexOf(name)+1]:undefined;
+  const input=args[0], output=option("--output");
+  if(!input||!output) throw new Error("Usage: dataset.json --output report.json [--fixture | --live --matrix settings.json | --replay report.json | --policy-only] [--alignments reviews.json] [--prices prices.json]");
+  const modes=["--fixture","--live","--replay","--policy-only"].filter(m=>args.includes(m));
+  if(modes.length!==1) throw new Error("Select exactly one execution mode");
+  const path=resolve(output);
+  if(existsSync(path)) throw new Error("Output exists; choose a new path to preserve the previous run");
+  const dataset=SemanticDatasetSchema.parse(JSON.parse(readFileSync(resolve(input),"utf8"))); validateDataset(dataset.cases);
+  const cases=option("--split")?dataset.cases.filter(c=>c.split===option("--split")):dataset.cases;
+  if(!cases.length) throw new Error("No cases selected");
+  const read=(p:string)=>JSON.parse(readFileSync(resolve(p),"utf8"));
+  const alignments=option("--alignments")?z.array(AlignmentSchema).parse(read(option("--alignments")!)):[];
+  const prices=option("--prices")?z.record(z.string(),z.object({inputPerMillion:z.number().nonnegative(),outputPerMillion:z.number().nonnegative()})).parse(read(option("--prices")!)):undefined;
+  if(args.includes("--policy-only")) {
+    const recorded = option("--recording") ? read(option("--recording")!) as { datasetDigest: string; runs: { name: string; repetition: number; rows: EvaluationRow[] }[] } : null;
+    if (recorded && recorded.datasetDigest !== digest(cases)) throw new Error("Policy recording dataset mismatch");
+    const results = recorded ? recorded.runs.flatMap(run => cases.map(c => {
+      const row = run.rows.find(r => r.id === c.id);
+      return { id: c.id, name: run.name, repetition: run.repetition, expected: c.expected,
+        actual: row?.analysis ? classifySemanticAnalysis(validateSemanticAnalysis(row.analysis,{commentId:c.id,workspaceId:"evaluation",sourceText:c.sourceText,videoTitle:c.videoTitle,parent:c.parentText?{id:"parent",text:c.parentText}:null,allowedContexts:[],corrections:[]}),c.sourceText).level : null };
+    })) : cases.filter(c=>c.review&&c.goldAnalysis&&c.expected).map(c=>({id:c.id,expected:c.expected,actual:classifySemanticAnalysis(c.goldAnalysis!,c.sourceText).level}));
+    atomicSave(path,{schemaVersion:"semantic-policy-report-v1",results,releasePassed:false});
+    if(!results.length||results.some(r=>r.expected && r.actual!==r.expected)) process.exitCode=1;
+    return;
   }
-
-  const requiredCorrect = Math.ceil(dataset.cases.length * 0.9);
-  const maxQueue = Math.floor(dataset.cases.length * 0.1);
-  const passed =
-    correct >= requiredCorrect &&
-    queued <= maxQueue &&
-    roughPraiseErrors === 0 &&
-    hardRiskErrors === 0 &&
-    ambiguousSarcasmErrors === 0;
-
-  console.log("\n");
-  console.log(`정확 ${correct}/${dataset.cases.length} (필요 ${requiredCorrect})`);
-  console.log(`보류 ${queued}/${dataset.cases.length} (최대 ${maxQueue})`);
-  console.log(`거친 칭찬 오탐 ${roughPraiseErrors}`);
-  console.log(`강한 위험 미탐 ${hardRiskErrors}`);
-  console.log(`애매한 비꼼 자동 확정 ${ambiguousSarcasmErrors}`);
-  console.log(passed ? "통과" : "실패");
-  if (!passed) process.exitCode = 1;
-};
-
-main().catch((error) => {
-  console.error(error);
-  process.exit(1);
-});
+  type Run={name:string;settings:z.infer<typeof SemanticSettingsSchema>;configurationKey:string;repetition:number;records:Record<string,Recording>;rows:EvaluationRow[];metrics:ReturnType<typeof evaluateSemanticRun>|null};
+  type Report={schemaVersion:"semantic-evaluation-report-v1";datasetDigest:string;mode:string;runs:Run[];comparisons:{name:string;consistency:number|null;releasePassed:boolean}[];releasePassed:boolean};
+  const baseline:Report|undefined=option("--replay")?read(option("--replay")!):undefined;
+  const datasetDigest=digest(cases);
+  if(baseline&&(baseline.schemaVersion!=="semantic-evaluation-report-v1"||baseline.datasetDigest!==datasetDigest)) throw new Error("Replay dataset mismatch");
+  if(args.includes("--live")) loadEnvConfig(process.cwd(),true);
+  const matrix=baseline?Array.from(new Map(baseline.runs.map(r=>[r.name,{name:r.name,settings:SemanticSettingsSchema.parse(r.settings)}])).values()):option("--matrix")?z.array(z.object({name:z.string().min(1),settings:SemanticSettingsSchema})).min(1).parse(read(option("--matrix")!)):[{name:args.includes("--fixture")?"test-fixture":"configured-live",settings:semanticSettingsFromEnv(args.includes("--fixture")?{EXTERNAL_PROVIDER_MODE:"fixture"}:{...process.env,EXTERNAL_PROVIDER_MODE:"live"})}];
+  if(new Set(matrix.map(m=>m.name)).size!==matrix.length) throw new Error("Duplicate matrix name");
+  if(!baseline&&matrix.some(m=>m.settings.provider!==(args.includes("--live")?"live":"fixture"))) throw new Error("Provider must match explicit mode");
+  const report:Report={schemaVersion:"semantic-evaluation-report-v1",datasetDigest,mode:modes[0],runs:[],comparisons:[],releasePassed:false};
+  for(const entry of matrix) {
+    const providers=baseline?offlineProviders:providersFor(entry.settings);
+    for(let repetition=1;repetition<=3;repetition++) {
+      const run:Run={...entry,configurationKey:semanticConfigurationKey(entry.settings,1),repetition,records:{},rows:[],metrics:null}; report.runs.push(run);
+      for(const c of cases) {
+        const saved=baseline?.runs.find(r=>r.name===entry.name&&r.repetition===repetition)?.records[c.id];
+        if(baseline&&!saved) throw new Error("Missing replay record");
+        const record=await recordSemantic({commentId:c.id,workspaceId:"offline-evaluation",sourceText:c.sourceText,videoTitle:c.videoTitle,parent:c.parentText?{id:`${c.group}-parent`,text:c.parentText}:null,allowedContexts:[],corrections:[]},entry.settings,providers,saved,value=>{run.records[c.id]=value;atomicSave(path,report);});
+        run.rows.push(evaluationRow(c.id,record,prices));
+      }
+      run.metrics=evaluateSemanticRun(cases,run.rows,alignments); atomicSave(path,report);
+      console.log(`${entry.name} ${repetition}/3: accuracy=${run.metrics.threeLevelAccuracy}, eligible=${run.metrics.releaseEligible}, passed=${run.metrics.releasePassed}`);
+    }
+    const runs=report.runs.filter(r=>r.name===entry.name);
+    report.comparisons.push({name:entry.name,consistency:repetitionConsistency(runs.map(r=>r.rows)),releasePassed:(args.includes("--live")||baseline?.mode==="--live")&&entry.settings.provider==="live"&&runs.every(r=>r.metrics?.releasePassed===true)});
+  }
+  report.releasePassed=report.comparisons.some(c=>c.releasePassed); atomicSave(path,report);
+  // A development run is useful without being eligible for release.
+  if(args.includes("--release")&&!report.releasePassed) process.exitCode=1;
+  if(report.runs.some(r=>r.rows.some(row=>row.error))) process.exitCode=1;
+}
+main().catch(error=>{console.error(error instanceof Error?error.message:error);process.exitCode=1;});

@@ -32,6 +32,7 @@ export async function GET(
     )
     .eq("workspace_id", workspaceId)
     .eq("import_job_id", job.id)
+    .is("replacement_job_id", null)
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -51,30 +52,19 @@ export async function GET(
   };
 
   if (analysisJob) {
-    const { data: items, error: itemsError } = await admin
-      .from("analysis_job_items")
-      .select("id")
-      .eq("analysis_job_id", analysisJob.id);
-    if (itemsError) {
-      return Response.json(
-        { error: "job_progress_unavailable" },
-        { status: 500 },
-      );
-    }
-
-    const itemIds = (items ?? []).map((item) => item.id);
-    const { data: verdicts, error: verdictError } =
-      itemIds.length === 0
-        ? { data: [], error: null }
-        : await admin
-            .from("classification_verdicts")
-            .select("status, level")
-            .in("analysis_job_item_id", itemIds);
-    if (verdictError) {
-      return Response.json(
-        { error: "job_progress_unavailable" },
-        { status: 500 },
-      );
+    const verdicts: { status: string; level: "safe" | "caution" | "risk" | null }[] = [];
+    for (let offset = 0; ; offset += 500) {
+      const { data: items, error: itemsError } = await admin.from("analysis_job_items")
+        .select("id").eq("analysis_job_id", analysisJob.id).order("id").range(offset, offset + 499);
+      if (itemsError) return Response.json({ error: "job_progress_unavailable" }, { status: 500 });
+      const itemIds = (items ?? []).map(item => item.id);
+      if (itemIds.length) {
+        const { data, error } = await admin.from("classification_verdicts")
+          .select("status,level").in("analysis_job_item_id", itemIds);
+        if (error) return Response.json({ error: "job_progress_unavailable" }, { status: 500 });
+        verdicts.push(...(data ?? []));
+      }
+      if (itemIds.length < 500) break;
     }
 
     verdictCounts = (verdicts ?? []).reduce(

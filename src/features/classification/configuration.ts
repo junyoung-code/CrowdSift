@@ -1,31 +1,12 @@
-import { createHash } from "node:crypto";
+import { semanticConfigurationKey, semanticSettingsFromEnv, type SemanticSettings } from "./semantic-settings";
 
-import {
-  LUNA_FIRST_PASS_PROMPT_VERSION,
-  TERRA_VERIFICATION_PROMPT_VERSION,
-} from "./prompts";
-
-export const CLASSIFICATION_SCHEMA_VERSION = "classification-v2";
+export const CLASSIFICATION_SCHEMA_VERSION = "semantic-v1";
 
 export const createClassificationConfigurationKey = (input: {
   policyVersion: number;
   providerMode: "live" | "fixture";
-  moderationModel: string;
-  lunaModel: string;
-  terraModel: string;
-}) =>
-  createHash("sha256")
-    .update(
-      JSON.stringify({
-        pipeline: "classification-v2",
-        policyVersion: input.policyVersion,
-        providerMode: input.providerMode,
-        moderationModel: input.moderationModel,
-        lunaModel: input.lunaModel,
-        lunaPromptVersion: LUNA_FIRST_PASS_PROMPT_VERSION,
-        terraModel: input.terraModel,
-        terraPromptVersion: TERRA_VERIFICATION_PROMPT_VERSION,
-        schemaVersion: CLASSIFICATION_SCHEMA_VERSION,
-      }),
-    )
-    .digest("hex");
+  moderationModel?: string;
+  lunaModel?: string;
+  terraModel?: string;
+  semantic?: SemanticSettings;
+}) => semanticConfigurationKey(input.semantic ?? semanticSettingsFromEnv({ ...process.env, EXTERNAL_PROVIDER_MODE: input.providerMode }), input.policyVersion);

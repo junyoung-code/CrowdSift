@@ -1,3 +1,4 @@
+import { retrySemanticRewriteAction } from "./semantic-actions";
 import { CheckCircle, WarningCircle } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import Image from "next/image";
@@ -190,6 +191,7 @@ export default async function InboxPage({ searchParams }: InboxPageProps) {
       <CommentInbox
         allowExpressionAction={allowChannelExpressionAction}
         correctionAction={saveCreatorCorrectionAction}
+        rewriteRetryAction={retrySemanticRewriteAction}
         data={{ items: inbox.items, total: inbox.total }}
         filters={{
           reviewLevels: inbox.filters.reviewLevels,

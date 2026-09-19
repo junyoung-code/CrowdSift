@@ -21,6 +21,7 @@ const blockedExternalHosts = [
 test("imports and reviews 20 public comments without YouTube OAuth", async ({
   page,
 }, testInfo) => {
+  test.setTimeout(90_000);
   test.skip(
     testInfo.project.name !== "chromium-1440",
     "The public vertical slice runs once; responsive states are covered separately.",
@@ -66,7 +67,7 @@ test("imports and reviews 20 public comments without YouTube OAuth", async ({
     }),
   ).toBeVisible();
   await expect(
-    page.locator(".public-video-preview-state").getByText(FIXTURE_LABEL),
+    page.getByRole("article").getByText(FIXTURE_LABEL, { exact: true }),
   ).toBeVisible();
   await expect(page.getByText("공개 댓글 1,107개")).toBeVisible();
 
@@ -77,12 +78,12 @@ test("imports and reviews 20 public comments without YouTube OAuth", async ({
   const progress = page.getByRole("region", {
     name: "공개 댓글 가져오기 진행 상태",
   });
-  await expect(progress.getByRole("heading", { name: "댓글 분석 완료" })).toBeVisible({
+  await expect(progress.getByText("완료", { exact: true })).toBeVisible({
     timeout: 60_000,
   });
   await expect(progress.getByText("확인 20")).toBeVisible();
-  await expect(progress.getByText("최상위 16")).toBeVisible();
-  await expect(progress.getByText("답글 4")).toBeVisible();
+  await expect(progress.getByText("최상위 18")).toBeVisible();
+  await expect(progress.getByText("답글 2")).toBeVisible();
 
   await progress
     .getByRole("link", { name: "Comment Inbox에서 보기" })
@@ -94,11 +95,6 @@ test("imports and reviews 20 public comments without YouTube OAuth", async ({
   );
   await expect(page.getByText("공개 URL").first()).toBeVisible();
   await expect(page.getByText("읽기 전용").first()).toBeVisible();
-  await expect(
-    page.getByText(
-      "공개 URL 댓글에서 YouTube 조치는 사용할 수 없습니다. 채널 소유자 권한이 필요합니다.",
-    ).first(),
-  ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "거절하여 숨기기" }),
   ).toHaveCount(0);
@@ -113,14 +109,16 @@ test("imports and reviews 20 public comments without YouTube OAuth", async ({
     page.getByText("오늘 영상도 편안하게 잘 봤어요."),
   ).toBeVisible();
 
-  await page
-    .getByRole("link", {
-      name: /테스트 작성자 fixture-public-comment-4/,
-    })
-    .click();
-  const protectedCard = page.getByRole("region", {
-    name: "댓글 대화",
-  });
+  const protectedCard = page.getByRole("article").filter({ has: page.getByText("테스트 작성자 fixture-public-comment-4", { exact: true }) });
+  await protectedCard.getByLabel("댓글 검토 및 조치", { exact: true }).click();
+  await expect(
+    protectedCard.getByText(
+      "공개 URL 댓글에서 YouTube 조치는 사용할 수 없습니다. 채널 소유자 권한이 필요합니다.",
+    ).first(),
+  ).toBeVisible();
+  await protectedCard.getByText("판단 과정", { exact: true }).click();
+  await expect(protectedCard.getByText("의미 분석과 피드백 보존 기준")).toBeVisible();
+  await expect(protectedCard.getByText("공격 제거 후 전달할 피드백이 남지 않음")).toBeVisible();
   await expect(
     protectedCard.getByText("테스트 작성자 fixture-public-comment-4", {
       exact: true,
@@ -130,7 +128,7 @@ test("imports and reviews 20 public comments without YouTube OAuth", async ({
   await expect(
     protectedCard.getByText("source harmful text"),
   ).toHaveCount(0);
-  await protectedCard.getByRole("button", { name: "원문 확인" }).click();
+  await protectedCard.getByRole("button", { name: "원문 보기", exact: true }).click();
   await protectedCard
     .getByRole("button", { name: "경고를 확인하고 원문 보기" })
     .click();

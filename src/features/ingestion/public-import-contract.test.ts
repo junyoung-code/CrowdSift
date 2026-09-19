@@ -18,7 +18,7 @@ describe("parsePublicImportRequest", () => {
     });
   });
 
-  it.each([20, 50, 100, 1000])("accepts the approved count %s", (count) => {
+  it.each([20, 50, 100, 1000, 0])("accepts the approved count %s", (count) => {
     expect(
       parsePublicImportRequest({
         url: URL,
@@ -27,7 +27,7 @@ describe("parsePublicImportRequest", () => {
     ).toBe(count);
   });
 
-  it.each([0, 21, 999, 1001])("rejects unsupported count %s", (count) => {
+  it.each([-1, 21, 999, 1001])("rejects unsupported count %s", (count) => {
     expect(() =>
       parsePublicImportRequest({
         url: URL,

@@ -1,3 +1,5 @@
+import { verifierReasoningEffort } from "./verifier-settings";
+import { validateAssessment } from "./assessment";
 import { zodTextFormat } from "openai/helpers/zod";
 
 import { ClassificationSchemaError, type ResponsesClient } from "./luna-first-pass";
@@ -5,7 +7,7 @@ import {
   TERRA_VERIFICATION_PROMPT,
   TERRA_VERIFICATION_PROMPT_VERSION,
 } from "./prompts";
-import { TerraVerdictSchema, type TerraVerdict } from "./schemas";
+import { TerraVerdictApiSchema, type TerraVerdict } from "./schemas";
 import type { SecondPassInput } from "./contracts";
 import type { ModelRun } from "./contracts";
 
@@ -61,29 +63,34 @@ export const createTerraVerification = ({
     const startedAt = Date.now();
     const response = await client.responses.parse({
       model,
-      // 1차와 달리 판단 과정을 거치게 한다. 기획서가 요구하는 "1차와 하나 이상
-      // 다르게" 를 모델과 추론 설정 두 곳에서 만족한다.
-      reasoning: { effort: "low" },
+      // Luna is an explicit comparison option; the default remains Terra low.
+      reasoning: { effort: verifierReasoningEffort(model) },
       input: [
         { role: "system", content: TERRA_VERIFICATION_PROMPT },
         { role: "user", content: JSON.stringify(toModelInput(input)) },
       ],
       text: {
-        format: zodTextFormat(TerraVerdictSchema, "terra_verdict"),
+        format: zodTextFormat(TerraVerdictApiSchema, "terra_verdict"),
       },
     });
 
     if (response.output_parsed === null) {
-      throw new ClassificationSchemaError("Terra returned no parsed output");
+      throw new ClassificationSchemaError("Terra returned no parsed output", undefined, response.id);
     }
 
-    const parsed = TerraVerdictSchema.safeParse(response.output_parsed);
+    const parsed = TerraVerdictApiSchema.safeParse(response.output_parsed);
 
     if (!parsed.success) {
       throw new ClassificationSchemaError(
         "Terra output did not match the verdict schema",
-        { cause: parsed.error },
+        { cause: parsed.error }, response.id,
       );
+    }
+
+    try {
+      validateAssessment(parsed.data, input.sourceText);
+    } catch (cause) {
+      throw new ClassificationSchemaError("Invalid classification evidence", { cause }, response.id);
     }
 
     return {

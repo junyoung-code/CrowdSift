@@ -1,3 +1,4 @@
+import { validateAssessment } from "./assessment";
 import { zodTextFormat } from "openai/helpers/zod";
 
 import type { FirstPassInput, ModelRun } from "./contracts";
@@ -5,7 +6,7 @@ import {
   LUNA_FIRST_PASS_PROMPT,
   LUNA_FIRST_PASS_PROMPT_VERSION,
 } from "./prompts";
-import { LunaFirstPassSchema, type LunaFirstPass } from "./schemas";
+import { LunaFirstPassApiSchema, type LunaFirstPass } from "./schemas";
 
 type ParsedResponse = {
   id: string;
@@ -25,7 +26,7 @@ export type ResponsesClient = {
 };
 
 export class ClassificationSchemaError extends Error {
-  constructor(message: string, options?: { cause?: unknown }) {
+  constructor(message: string, options?: { cause?: unknown }, public responseId?: string) {
     super(message, options);
     this.name = "ClassificationSchemaError";
   }
@@ -73,21 +74,27 @@ export const createLunaFirstPass = ({
         { role: "user", content: JSON.stringify(toModelInput(input)) },
       ],
       text: {
-        format: zodTextFormat(LunaFirstPassSchema, "luna_first_pass"),
+        format: zodTextFormat(LunaFirstPassApiSchema, "luna_first_pass"),
       },
     });
 
     if (response.output_parsed === null) {
-      throw new ClassificationSchemaError("Luna returned no parsed output");
+      throw new ClassificationSchemaError("Luna returned no parsed output", undefined, response.id);
     }
 
-    const parsed = LunaFirstPassSchema.safeParse(response.output_parsed);
+    const parsed = LunaFirstPassApiSchema.safeParse(response.output_parsed);
 
     if (!parsed.success) {
       throw new ClassificationSchemaError(
         "Luna output did not match the first pass schema",
-        { cause: parsed.error },
+        { cause: parsed.error }, response.id,
       );
+    }
+
+    try {
+      validateAssessment(parsed.data, input.sourceText);
+    } catch (cause) {
+      throw new ClassificationSchemaError("Invalid classification evidence", { cause }, response.id);
     }
 
     return {

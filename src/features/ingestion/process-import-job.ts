@@ -171,9 +171,6 @@ export const processImportJob = async (jobId: string) => {
   const configurationKey = createClassificationConfigurationKey({
     policyVersion: currentPolicy?.version ?? 1,
     providerMode: environment.EXTERNAL_PROVIDER_MODE,
-    moderationModel: environment.OPENAI_MODERATION_MODEL,
-    lunaModel: environment.OPENAI_LUNA_MODEL,
-    terraModel: environment.OPENAI_TERRA_MODEL,
   });
 
   const repository: CommentImportRepository = {

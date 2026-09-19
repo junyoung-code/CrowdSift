@@ -157,6 +157,32 @@ describe("Comment Inbox feed", () => {
     expect(screen.queryByRole("button", { name: "원문 보기" })).not.toBeInTheDocument();
     expect(screen.queryByAltText("시프티가 표현을 정리했어요")).not.toBeInTheDocument();
   });
+  it("explains why a safe comment with non-creator harm stays protected", () => {
+    renderInbox({
+      reviewLevel: "safe",
+      safeSourceText: null,
+      classificationTrace: {
+        ...certaintyTrace,
+        semantic: {
+          version: "semantic-v1",
+          meaningClear: true,
+          target: "general",
+          feedbackClaimCount: 0,
+          remainingClaimCount: 0,
+          harms: [{ type: "mockery", target: "general", severity: "low", criticalHarm: false }],
+          confidence: 0.91,
+          criticalHarm: false,
+          harmSeverity: "low",
+          otherTargetHarm: true,
+          spamSignals: [],
+          rewriteStatus: "not_required",
+        },
+      },
+      replies: [],
+      replyCount: 0,
+    });
+    expect(screen.getByText("크리에이터 대상 공격은 없지만 공격 표현이 있어 원문을 보호합니다.")).toBeVisible();
+  });
   it("shows a risk author's profile while protecting the source and keeping its warning", () => {
     renderInbox({ reviewLevel: "risk", authorDisplayName: "위험 작성자", authorAvatarUrl: "https://example.com/risk.jpg", safeSourceText: "유해 원문" });
     expect(screen.getByText("위험 작성자")).toBeVisible();

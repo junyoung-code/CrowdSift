@@ -41,14 +41,14 @@ describe("parsePublicYouTubeVideoUrl", () => {
 
 describe("publicCommentCountSchema", () => {
   it("supports exactly the approved total-comment choices", () => {
-    expect(PUBLIC_COMMENT_COUNTS).toEqual([20, 50, 100, 1000]);
+    expect(PUBLIC_COMMENT_COUNTS).toEqual([20, 50, 100, 1000, 0]);
 
     for (const count of PUBLIC_COMMENT_COUNTS) {
       expect(publicCommentCountSchema.parse(count)).toBe(count);
     }
   });
 
-  it.each([0, 19, 21, 999, 1001])("rejects an unsupported count: %s", (count) => {
+  it.each([-1, 19, 21, 999, 1001])("rejects an unsupported count: %s", (count) => {
     expect(() => publicCommentCountSchema.parse(count)).toThrow();
   });
 });

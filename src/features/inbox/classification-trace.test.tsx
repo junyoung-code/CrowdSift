@@ -130,4 +130,24 @@ describe("ClassificationTrace", () => {
       screen.getByText("위험 · 두 판단이 갈려 높은 쪽을 택함"),
     ).toBeInTheDocument();
   });
+
+  it("explains a hold caused by an unclear harm target", () => {
+    render(
+      <ClassificationTrace
+        trace={{
+          ...trace,
+          final: {
+            ...trace.final!,
+            status: "review_queue",
+            level: null,
+            basis: "semantic_harm_target_unclear",
+          },
+        }}
+      />,
+    );
+
+    expect(
+      screen.getByText("판단 보류 · 공격 대상을 확인할 수 없음"),
+    ).toBeInTheDocument();
+  });
 });

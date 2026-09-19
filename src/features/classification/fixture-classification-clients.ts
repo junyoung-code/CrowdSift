@@ -200,7 +200,16 @@ const outputFor = (stage: FixtureStage, request: Record<string, unknown>) => {
   }
 
   const sourceText = sourceTextFromRequest(request);
-  return stage === "luna" ? lunaOutputFor(sourceText) : terraOutputFor(sourceText);
+  const result = stage === "luna" ? lunaOutputFor(sourceText) : terraOutputFor(sourceText);
+  return {
+    ...result,
+    assessment: {
+      excerpt: sourceText.slice(0, 500) || null,
+      explanation: "TEST FIXTURE: deterministic classification for integration tests.",
+      contextResolution: "resolved",
+      missingContext: null,
+    },
+  };
 };
 
 const createFixtureResponsesClient = (stage: FixtureStage): ResponsesClient => ({

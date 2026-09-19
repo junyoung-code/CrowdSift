@@ -31,7 +31,7 @@ export const createOpenAIEmbedding = ({
     throw new Error("embedding_configuration_required");
   }
 
-  const client = new OpenAI({ apiKey });
+  const client = new OpenAI({ apiKey, timeout: 30_000, maxRetries: 1 });
 
   return {
     model,

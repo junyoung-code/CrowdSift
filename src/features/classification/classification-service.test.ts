@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { ClassificationSchemaError } from "./luna-first-pass";
 
 import type { FirstPassResult, ModelRun } from "./contracts";
 import {
@@ -174,6 +175,7 @@ const createMemoryRepository = (initial?: StoredClassificationState) => {
     completeItem: vi.fn(async () => {
       completed = true;
     }),
+    recordReview: vi.fn(async () => undefined),
     failItem: vi.fn(async (_itemId, errorCode) => {
       failed = errorCode;
     }),
@@ -201,6 +203,47 @@ const createMemoryRepository = (initial?: StoredClassificationState) => {
 };
 
 describe("classification job service", () => {
+  it("logs the precise failing stage and resumes from the stored first pass", async () => {
+    const memory = createMemoryRepository();
+    const firstPass = { run: vi.fn(async () => firstPassResult("danger")) };
+    const secondPass = { verify: vi.fn().mockRejectedValueOnce(new Error("classification_evidence_not_in_source")).mockResolvedValueOnce({ result: terraResult, run: terraRun }) };
+    const service = createClassificationService({ firstPass, secondPass, repository: memory.repository, rewrite: rewriteRunner() });
+    await service.processChunk("job", 1);
+    expect(memory.repository.failItem).toHaveBeenCalledWith(item.id, "classification_failed", expect.objectContaining({ stage: "terra", error: expect.objectContaining({ message: "classification_evidence_not_in_source" }) }));
+    await service.processChunk("job", 1);
+    expect(firstPass.run).toHaveBeenCalledTimes(1);
+    expect(secondPass.verify).toHaveBeenCalledTimes(2);
+    expect(memory.repository.completeItem).toHaveBeenCalledWith(item.id);
+  });
+
+  it.each(["luna", "terra"])("completes an invalid %s result as review without retry or automatic action", async stage => {
+    const memory = createMemoryRepository();
+    const error = new ClassificationSchemaError("Invalid classification evidence", { cause: new Error("classification_context_inconsistent") });
+    const firstPass = { run: stage === "luna" ? vi.fn().mockRejectedValue(error) : vi.fn(async () => firstPassResult("danger")) };
+    const secondPass = { verify: vi.fn().mockRejectedValue(error) };
+    const rewrite = rewriteRunner();
+    await createClassificationService({ firstPass, secondPass, rewrite, repository: memory.repository }).processChunk("job", 1);
+    expect(memory.state.verdict?.verdict).toMatchObject({ status: "review_queue", level: null, hideSource: true, allowRewrite: false, recommendedActions: [] });
+    expect(memory.repository.failItem).not.toHaveBeenCalled();
+    expect(memory.repository.recordReview).toHaveBeenCalledWith(item, expect.objectContaining({ stage }));
+    expect(memory.completed).toBe(true);
+    expect(rewrite.rewrite).not.toHaveBeenCalled();
+    // Resuming a saved review must not invoke either model again.
+    await createClassificationService({ firstPass, secondPass, rewrite, repository: memory.repository }).processChunk("job", 1);
+    expect(firstPass.run).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps a failed review write as an execution failure", async () => {
+    const memory = createMemoryRepository();
+    vi.mocked(memory.repository.saveVerdict).mockRejectedValue({ code: "08006" });
+    await createClassificationService({
+      firstPass: { run: vi.fn().mockRejectedValue(new ClassificationSchemaError("Luna returned no parsed output")) },
+      secondPass: { verify: vi.fn() }, rewrite: rewriteRunner(), repository: memory.repository,
+    }).processChunk("job", 1);
+    expect(memory.completed).toBe(false);
+    expect(memory.repository.failItem).toHaveBeenCalledWith(item.id, "classification_failed", expect.objectContaining({ stage: "save_review_queue" }));
+  });
+
   it("stores an explicit safe verdict without calling Terra", async () => {
     const memory = createMemoryRepository();
     const firstPass = { run: vi.fn(async () => firstPassResult("safe")) };

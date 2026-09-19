@@ -27,6 +27,8 @@ describe("creator correction form", () => {
       correctedReviewLevel: "caution",
       correctedRecommendedAction: "review",
       editedSanitizedFeedback: "자막을 더 크게 해 주세요.",
+      correctionReason: null,
+      applicationContext: null,
       useForPersonalization: false,
       useForTraining: true,
     });

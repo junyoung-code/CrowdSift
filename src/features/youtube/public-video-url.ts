@@ -1,12 +1,16 @@
 import { z } from "zod";
 
-export const PUBLIC_COMMENT_COUNTS = [20, 50, 100, 1000] as const;
+// Persisted as 0 to distinguish an unbounded request from a numeric limit.
+// Completion is determined by YouTube pagination, never by video statistics.
+export const ALL_PUBLIC_COMMENTS = 0;
+export const PUBLIC_COMMENT_COUNTS = [20, 50, 100, 1000, ALL_PUBLIC_COMMENTS] as const;
 
 export const publicCommentCountSchema = z.union([
   z.literal(20),
   z.literal(50),
   z.literal(100),
   z.literal(1000),
+  z.literal(ALL_PUBLIC_COMMENTS),
 ]);
 
 export type PublicCommentCount = z.infer<typeof publicCommentCountSchema>;

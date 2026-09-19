@@ -19,23 +19,17 @@ describe("classification evaluation export", () => {
         sourceText: "개맛있게 먹는다",
         videoTitle: "요리 영상",
         parentText: null,
-        capturedAt: "2026-08-20T00:00:00.000Z",
-        current: {
-          status: "decided",
-          level: "caution",
-          basis: "both_agreed",
-          luna: null,
-          terra: null,
-        },
-        expectedStatus: null,
-        expectedLevel: null,
-        reviewReason: null,
+        group: "thread-1",
+        split: "holdout",
+        expected: null,
+        review: null,
+        goldAnalysis: null,
         tags: [],
       },
     ]);
 
     expect(html).toContain("실제 댓글 분류 검수");
-    expect(html).toContain("review_queue");
-    expect(html).toContain("classification-real-50-reviewed.json");
+    expect(html).toContain("hold");
+    expect(html).toContain("semantic-reviewed.json");
   });
 });

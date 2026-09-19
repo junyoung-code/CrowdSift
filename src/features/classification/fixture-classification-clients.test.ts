@@ -89,7 +89,8 @@ describe("Classification V1 fixture clients", () => {
         savedRewrites.set(target.id, result);
       }),
       completeItem: vi.fn(async () => undefined),
-      failItem: vi.fn(async () => undefined),
+      recordReview: vi.fn(async () => undefined),
+    failItem: vi.fn(async () => undefined),
       refreshJobProgress: vi.fn(async () => ({
         status: "succeeded" as const,
         total: 3,
@@ -117,6 +118,8 @@ describe("Classification V1 fixture clients", () => {
     expect(safeFirst).toBeDefined();
     expect(dangerFirst).toBeDefined();
     expect(dangerTerra).toBeDefined();
+    expect(safeFirst!.luna.result.assessment?.contextResolution).toBe("resolved");
+    expect(dangerTerra!.result.assessment?.explanation).toContain("TEST FIXTURE");
     expect(savedTerra.has("safe")).toBe(false);
     expect(routeFirstPass(safeFirst!)).toMatchObject({
       kind: "instant_safe",

@@ -1,3 +1,4 @@
+import type { ClassificationReviewBasis } from "./analysis-review";
 import type { BranchOutcome } from "./branch";
 import type { FirstPassResult } from "./contracts";
 import type { RecommendedAction, RiskLevel, TerraVerdict } from "./schemas";
@@ -7,7 +8,7 @@ import { decideVerdict, type VerdictBasis } from "./verdict";
 export type FinalClassificationVerdict = {
   status: "decided" | "review_queue";
   level: RiskLevel | null;
-  basis: VerdictBasis | "instant_safe";
+  basis: VerdictBasis | "instant_safe" | ClassificationReviewBasis;
   agreedWithFirstPass: boolean | null;
   allowRewrite: boolean;
   hideSource: boolean;

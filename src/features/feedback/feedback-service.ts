@@ -16,6 +16,8 @@ export type CreatorCorrection = {
   correctedReviewLevel: ReviewLevel | null;
   correctedRecommendedAction: RecommendedAction | null;
   editedSanitizedFeedback: string | null;
+  correctionReason?: string | null;
+  applicationContext?: string | null;
   useForPersonalization: boolean;
   useForTraining: boolean;
 };

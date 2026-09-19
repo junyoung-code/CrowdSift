@@ -1,6 +1,6 @@
 import {
   publicCommentCountSchema,
-  type PublicCommentCount,
+  ALL_PUBLIC_COMMENTS,
 } from "@/features/youtube/public-video-url";
 import type { PublicYouTubeReadProvider } from "@/features/youtube/public-read-contracts";
 
@@ -93,8 +93,8 @@ export async function collectPublicComments({
   videoId: string;
   requestedTotalCount: number;
 }): Promise<PublicCommentCollection> {
-  const limit: PublicCommentCount =
-    publicCommentCountSchema.parse(requestedTotalCount);
+  const selection = publicCommentCountSchema.parse(requestedTotalCount);
+  const limit = selection === ALL_PUBLIC_COMMENTS ? Infinity : selection;
   const comments: SourceComment[] = [];
   const selectedCommentIds = new Set<string>();
   const selectedParentIds = new Set<string>();

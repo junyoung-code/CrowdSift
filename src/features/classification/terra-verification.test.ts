@@ -16,6 +16,7 @@ const clientReturning = (parsed: unknown) => {
 };
 
 const validOutput = {
+  assessment: { excerpt: "개느리네", explanation: "편집 속도를 거칠게 비판한다.", contextResolution: "resolved", missingContext: null },
   verdictLevel: "caution",
   certainty: "clear",
   intent: "criticism",
@@ -75,7 +76,7 @@ describe("terra verification", () => {
 
   /** 모델이 이 댓글에 대해 받는 자료. 프롬프트나 출력 스키마는 제외한다. */
   const materialSentFor = async (payload: SecondPassInput) => {
-    const { client, parse } = clientReturning(validOutput);
+    const { client, parse } = clientReturning({ ...validOutput, assessment: { ...validOutput.assessment, excerpt: payload.sourceText } });
 
     await createTerraVerification({
       client,
@@ -163,6 +164,12 @@ describe("terra verification", () => {
     expect(parse.mock.calls[0]![0]).toMatchObject({
       reasoning: { effort: "low" },
     });
+  });
+
+  it("uses xhigh when Luna is selected as the verifier", async () => {
+    const { client, parse } = clientReturning(validOutput);
+    await createTerraVerification({ client, model: "gpt-5.6-luna" }).verify(input);
+    expect(parse.mock.calls[0]![0]).toMatchObject({ model: "gpt-5.6-luna", reasoning: { effort: "xhigh" } });
   });
 
   it("says so when the answer does not match the contract", async () => {

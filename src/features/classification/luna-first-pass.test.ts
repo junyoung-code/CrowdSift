@@ -32,6 +32,7 @@ const clientReturning = (parsed: unknown) =>
   }) as unknown as ResponsesClient;
 
 const validOutput = {
+  assessment: { excerpt: "개느리네", explanation: "편집 속도를 거칠게 비판한다.", contextResolution: "resolved", missingContext: null },
   candidateLevel: "caution",
   certainty: "borderline",
   intent: "criticism",
@@ -72,6 +73,7 @@ describe("luna first pass", () => {
         // "집 근처에서 봤어요" reads as friendly on its own, so the level stays
         // safe while the hint keeps it out of the instant-pass lane.
         locationOrScheduleMention: true,
+        assessment: { excerpt: "집 근처에서 봤어요", explanation: "위치 언급을 검증한다.", contextResolution: "resolved", missingContext: null },
       }),
       model: "gpt-5.6-luna",
     });

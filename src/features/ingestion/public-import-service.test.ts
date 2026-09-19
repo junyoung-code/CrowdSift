@@ -74,6 +74,14 @@ const previewProvider = (): PublicYouTubeReadProvider => ({
 });
 
 describe("createPublicImportJob", () => {
+  it("persists all-comments mode instead of converting it to a metadata count", async () => {
+    const provider = previewProvider();
+    const repository = baseRepository();
+    const job = await createPublicImportJob({ workspaceId: "workspace-1", url: VIDEO_URL, requestedTotalCount: "0" }, { provider, repository });
+    expect(job.requestedTotalCount).toBe(0);
+    expect(repository.createJob).toHaveBeenCalledWith(expect.objectContaining({ requestedTotalCount: 0 }));
+  });
+
   it("revalidates the public video and creates a pending source-labelled job", async () => {
     const provider = previewProvider();
     const repository = baseRepository();
