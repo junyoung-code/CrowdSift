@@ -171,11 +171,14 @@ export const createSupabaseInboxRepository = ({
     }
 
     const items = (data ?? []).map((row) => {
-      const aiClassificationStatus = classificationStatus(
+      const effectiveClassificationStatus = classificationStatus(
         row.classification_status,
       );
+      const trace = classificationTrace(row.classification_trace);
+      const aiClassificationStatus = classificationStatus(trace?.final?.status);
       const resolvedByUser =
-        aiClassificationStatus === "review_queue" && row.review_level !== null;
+        aiClassificationStatus === "review_queue" &&
+        effectiveClassificationStatus === "decided";
 
       return {
         rawCommentId: row.raw_comment_id,
@@ -191,10 +194,10 @@ export const createSupabaseInboxRepository = ({
         sourceAvailable: row.source_available,
         safeSourceText: row.safe_source_text,
         analysisId: row.analysis_id,
-        classificationStatus: resolvedByUser ? "decided" : aiClassificationStatus,
+        classificationStatus: effectiveClassificationStatus,
         aiClassificationStatus,
         resolvedByUser,
-        classificationTrace: classificationTrace(row.classification_trace),
+        classificationTrace: trace,
         category: row.category,
         reviewLevel: row.review_level,
         aiReviewLevel: row.ai_review_level ?? null,

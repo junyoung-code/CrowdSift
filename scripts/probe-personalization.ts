@@ -109,6 +109,7 @@ const main = async () => {
         sourceImportJobId: importJobId,
         decision: "corrected",
         correctedCategory: null,
+        correctedClassificationStatus: "decided",
         correctedReviewLevel: "safe",
         correctedRecommendedAction: null,
         editedSanitizedFeedback: null,

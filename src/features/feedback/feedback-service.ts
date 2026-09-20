@@ -13,6 +13,7 @@ export type CreatorCorrection = {
   sourceImportJobId: string;
   decision: "approved" | "rejected" | "corrected";
   correctedCategory: CommentCategory | null;
+  correctedClassificationStatus: "decided" | "review_queue";
   correctedReviewLevel: ReviewLevel | null;
   correctedRecommendedAction: RecommendedAction | null;
   editedSanitizedFeedback: string | null;
@@ -94,8 +95,14 @@ export const saveCreatorCorrection = async (
     throw new PublicSourceReadOnlyError();
   }
 
-  if (!input.useForPersonalization) {
-    return repository.insertFeedback(input);
+  if (
+    !input.useForPersonalization ||
+    input.correctedClassificationStatus === "review_queue"
+  ) {
+    return repository.insertFeedback({
+      ...input,
+      useForPersonalization: false,
+    });
   }
 
   const embedding = await embeddingProvider.embed(

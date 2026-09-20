@@ -111,7 +111,7 @@ values
     true
   );
 
-select plan(61);
+select plan(64);
 
 set local role authenticated;
 select set_config(
@@ -1387,6 +1387,89 @@ select ok(
     'execute'
   ),
   'authenticated clients cannot bypass channel worker fencing or recovery scope'
+);
+
+set local role authenticated;
+select set_config(
+  'request.jwt.claim.sub',
+  'dddddddd-dddd-dddd-dddd-dddddddddddd',
+  true
+);
+select set_config('request.jwt.claim.role', 'authenticated', true);
+
+do $$
+begin
+  perform public.configure_channel_comment_sync_cycle(
+    '44444444-4444-4444-4444-444444444444'::uuid,
+    date '2026-08-01'
+  );
+end;
+$$;
+
+set local role service_role;
+select set_config('request.jwt.claim.role', 'service_role', true);
+select set_config('request.jwt.claim.sub', '', true);
+
+insert into public.channel_comment_sync_runs (
+  id,
+  setting_id,
+  workspace_id,
+  kind,
+  status,
+  claim_token,
+  attempt_count,
+  started_at
+)
+select
+  'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee'::uuid,
+  sync_setting.id,
+  sync_setting.workspace_id,
+  'sync_cycle',
+  'running',
+  'ffffffff-ffff-ffff-ffff-ffffffffffff'::uuid,
+  3,
+  now() - interval '30 minutes'
+from public.channel_comment_sync_settings as sync_setting
+where sync_setting.workspace_id = '44444444-4444-4444-4444-444444444444';
+
+update public.channel_comment_sync_settings
+set
+  lease_until = now() - interval '1 minute',
+  next_sync_at = now() - interval '1 minute',
+  last_error_code = 'provider_error',
+  retry_blocked = false
+where workspace_id = '44444444-4444-4444-4444-444444444444';
+
+select lives_ok(
+  $$
+    select count(*)
+    from public.claim_channel_comment_sync_cycle_for_workspace(
+      '44444444-4444-4444-4444-444444444444'::uuid,
+      'dddddddd-dddd-dddd-dddd-dddddddddddd'::uuid,
+      240
+    )
+  $$,
+  'an expired third-attempt cycle is retired without violating the active-run constraint'
+);
+
+select results_eq(
+  $$
+    select status::text, error_code, finished_at is not null
+    from public.channel_comment_sync_runs
+    where id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee'
+  $$,
+  $$ values ('failed'::text, 'provider_error'::text, true) $$,
+  'the exhausted cycle keeps the latest stable error and becomes terminal'
+);
+
+select results_eq(
+  $$
+    select retry_blocked, lease_until, last_error_code, backfill_status
+    from public.channel_comment_sync_settings
+    where workspace_id = '44444444-4444-4444-4444-444444444444'
+  $$,
+  $$ values (true, null::timestamptz, 'provider_error'::text, 'failed'::text) $$,
+  'the exhausted cycle releases its lease and requires an explicit retry'
 );
 
 select * from finish();

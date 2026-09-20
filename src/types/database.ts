@@ -705,6 +705,7 @@ export type Database = {
           corrected_category:
             | Database["public"]["Enums"]["comment_category"]
             | null
+          corrected_status: string | null
           corrected_level: Database["public"]["Enums"]["review_level"] | null
           corrected_recommended_action:
             | Database["public"]["Enums"]["recommended_action"]
@@ -727,6 +728,7 @@ export type Database = {
           corrected_category?:
             | Database["public"]["Enums"]["comment_category"]
             | null
+          corrected_status?: string | null
           corrected_level?: Database["public"]["Enums"]["review_level"] | null
           corrected_recommended_action?:
             | Database["public"]["Enums"]["recommended_action"]
@@ -749,6 +751,7 @@ export type Database = {
           corrected_category?:
             | Database["public"]["Enums"]["comment_category"]
             | null
+          corrected_status?: string | null
           corrected_level?: Database["public"]["Enums"]["review_level"] | null
           corrected_recommended_action?:
             | Database["public"]["Enums"]["recommended_action"]

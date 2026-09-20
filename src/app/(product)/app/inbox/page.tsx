@@ -21,10 +21,7 @@ import { createSupabaseQuotaRepository } from "@/features/youtube/supabase-quota
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
-import {
-  allowChannelExpressionAction,
-  saveCreatorCorrectionAction,
-} from "./actions";
+import { saveCreatorCorrectionAction } from "./actions";
 import {
   confirmYouTubeModerationAction,
   requestYouTubeModerationAction,
@@ -140,7 +137,7 @@ export default async function InboxPage({ searchParams }: InboxPageProps) {
       {parameters.feedback === "saved" ? (
         <p className="form-message form-message-success" role="status">
           <CheckCircle aria-hidden="true" weight="fill" />
-          수정한 판단과 동의 설정을 별도 피드백으로 저장했습니다.
+          수정한 판단과 이유를 별도 피드백으로 저장했습니다.
         </p>
       ) : null}
 
@@ -189,7 +186,6 @@ export default async function InboxPage({ searchParams }: InboxPageProps) {
       ) : null}
 
       <CommentInbox
-        allowExpressionAction={allowChannelExpressionAction}
         correctionAction={saveCreatorCorrectionAction}
         rewriteRetryAction={retrySemanticRewriteAction}
         data={{ items: inbox.items, total: inbox.total }}

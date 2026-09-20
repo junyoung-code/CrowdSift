@@ -12,7 +12,10 @@ const CreatorCorrectionFormSchema = z.object({
   sourceImportJobId: z.string().uuid(),
   decision: z.enum(["approved", "rejected", "corrected"]),
   correctedCategory: CommentCategorySchema,
-  correctedReviewLevel: ReviewLevelSchema,
+  correctedOutcome: z.union([
+    ReviewLevelSchema,
+    z.literal("review_queue"),
+  ]),
   correctedRecommendedAction: RecommendedActionSchema,
   editedSanitizedFeedback: z.string().trim().max(2_000).nullable(),
   correctionReason: z.string().trim().max(2000).nullable(),
@@ -21,14 +24,14 @@ const CreatorCorrectionFormSchema = z.object({
   useForTraining: z.boolean(),
 });
 
-export const parseCreatorCorrectionForm = (formData: FormData) =>
-  CreatorCorrectionFormSchema.parse({
+export const parseCreatorCorrectionForm = (formData: FormData) => {
+  const parsed = CreatorCorrectionFormSchema.parse({
     rawCommentId: formData.get("rawCommentId"),
     analysisId: formData.get("analysisId"),
     sourceImportJobId: formData.get("sourceImportJobId"),
     decision: formData.get("decision"),
     correctedCategory: formData.get("correctedCategory"),
-    correctedReviewLevel: formData.get("correctedReviewLevel"),
+    correctedOutcome: formData.get("correctedOutcome"),
     correctedRecommendedAction: formData.get(
       "correctedRecommendedAction",
     ),
@@ -39,3 +42,13 @@ export const parseCreatorCorrectionForm = (formData: FormData) =>
     useForPersonalization: formData.get("useForPersonalization") === "true",
     useForTraining: formData.get("useForTraining") === "true",
   });
+
+  const { correctedOutcome, ...correction } = parsed;
+  return {
+    ...correction,
+    correctedClassificationStatus:
+      correctedOutcome === "review_queue" ? "review_queue" : "decided",
+    correctedReviewLevel:
+      correctedOutcome === "review_queue" ? null : correctedOutcome,
+  } as const;
+};

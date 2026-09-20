@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { CommentInbox } from "./comment-inbox";
@@ -127,7 +127,7 @@ const item: InboxItem = {
 
 const renderInbox = (overrides: Partial<InboxItem> = {}, selected = false) => render(
   <CommentInbox
-    allowExpressionAction={vi.fn()} correctionAction={vi.fn()} moderationAction={vi.fn()}
+    correctionAction={vi.fn()} moderationAction={vi.fn()}
     data={{ items: [{ ...item, ...overrides }], total: 1 }}
     filters={{ reviewLevels: ["safe", "caution", "risk"] }}
     selectedCommentId={selected ? item.rawCommentId : null}
@@ -234,15 +234,28 @@ describe("Comment Inbox feed", () => {
     renderInbox({ classificationTrace: certaintyTrace }, true);
     expect(screen.getByText("댓글 검토")).toBeVisible();
     expect(screen.getByText("높음 · clear")).toBeVisible();
-    expect(screen.getByText("AI 판단 수정 및 개인화")).toBeVisible();
+    expect(screen.getByText("시프티와 다르게 분류하기")).toBeVisible();
     expect(screen.getByRole("button", { name: "검토 대기로 이동" })).toBeVisible();
   });
-  it("allows an unresolved classification to be explicitly corrected", () => {
-    renderInbox({ reviewLevel: null, classificationStatus: "review_queue", classificationTrace: certaintyTrace }, true);
+  it("offers the four compact correction outcomes beside the video", () => {
+    renderInbox({ classificationTrace: certaintyTrace });
+    const form = screen.getByRole("form", { name: "시프티와 다르게 분류하기" });
+    const controls = within(form);
+    expect(controls.getByRole("button", { name: "안전" })).toBeVisible();
+    expect(controls.getByRole("button", { name: "주의" })).toBeVisible();
+    expect(controls.getByRole("button", { name: "위험" })).toBeVisible();
+    expect(controls.getByRole("button", { name: "판단 보류" })).toBeVisible();
+    expect(controls.getByText("이유 적기")).toBeVisible();
+    expect(controls.queryByText("댓글 유형", { selector: "label span" })).not.toBeInTheDocument();
+  });
+  it("allows an unresolved classification to stay explicitly on hold", () => {
+    renderInbox({ reviewLevel: null, classificationStatus: "review_queue", classificationTrace: certaintyTrace });
     expect(screen.getByText("판단 보류 · 내용 보호됨")).toBeVisible();
-    const select = screen.getByLabelText("검토 등급", { selector: "select" });
-    expect(select).toBeRequired();
-    expect(select).toHaveValue("");
+    const form = screen.getByRole("form", { name: "시프티와 다르게 분류하기" });
+    expect(within(form).getByRole("button", { name: "판단 보류" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
   });
   it("retains the warning when AI finds new risk after a creator correction", () => {
     renderInbox({ reviewLevel: "caution", aiReviewLevel: "risk" }, true);
@@ -274,10 +287,13 @@ describe("Comment Inbox feed", () => {
     expect(screen.queryByRole("button", { name: "내 댓글 영구 삭제" })).not.toBeInTheDocument();
     expect(screen.queryByLabelText("YouTube 댓글 조치")).not.toBeInTheDocument();
     expect(screen.queryByText("내 기준 개인화에 사용")).not.toBeInTheDocument();
-    expect(screen.getByText("AI 판단 수정")).toBeVisible();
+    expect(screen.getByText("시프티와 다르게 분류하기")).toBeVisible();
+    expect(screen.getByRole("form", { name: "시프티와 다르게 분류하기" })).toHaveFormValues({
+      useForPersonalization: "false",
+    });
   });
   it("keeps filters and sorting in pagination links", () => {
-    render(<CommentInbox allowExpressionAction={vi.fn()} correctionAction={vi.fn()} moderationAction={vi.fn()} data={{ items: [item], total: 70 }} filters={{ reviewLevels: ["risk"], videoIds: ["one", "two"], period: "30d", sort: "likes", search: "편집", limit: 25, offset: 25 }} videos={[]} />);
+    render(<CommentInbox correctionAction={vi.fn()} moderationAction={vi.fn()} data={{ items: [item], total: 70 }} filters={{ reviewLevels: ["risk"], videoIds: ["one", "two"], period: "30d", sort: "likes", search: "편집", limit: 25, offset: 25 }} videos={[]} />);
     const href = screen.getByRole("link", { name: "다음 페이지" }).getAttribute("href")!;
     const params = new URL(href, "http://localhost").searchParams;
     expect(params.getAll("video")).toEqual(["one", "two"]);
@@ -287,7 +303,7 @@ describe("Comment Inbox feed", () => {
     expect(params.get("levels")).toBe("risk");
   });
   it("shows a real empty state instead of mock metrics", () => {
-    render(<CommentInbox allowExpressionAction={vi.fn()} correctionAction={vi.fn()} moderationAction={vi.fn()} data={{ items: [], total: 0 }} filters={{ reviewLevels: ["safe", "caution", "risk"] }} videos={[]} />);
+    render(<CommentInbox correctionAction={vi.fn()} moderationAction={vi.fn()} data={{ items: [], total: 0 }} filters={{ reviewLevels: ["safe", "caution", "risk"] }} videos={[]} />);
     expect(screen.getByRole("heading", { name: "현재 조건에 맞는 댓글이 없습니다" })).toBeVisible();
     expect(screen.queryByRole("article")).not.toBeInTheDocument();
   });

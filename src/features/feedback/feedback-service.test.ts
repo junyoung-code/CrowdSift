@@ -13,6 +13,7 @@ const correction = {
   sourceImportJobId: "import-job-1",
   decision: "corrected" as const,
   correctedCategory: "constructive_feedback" as const,
+  correctedClassificationStatus: "decided" as const,
   correctedReviewLevel: "caution" as const,
   correctedRecommendedAction: "review" as const,
   editedSanitizedFeedback: "자막을 더 크게 해 달라는 요청",
@@ -82,6 +83,34 @@ describe("creator feedback service", () => {
         useForPersonalization: false,
         useForTraining: true,
       }),
+    );
+  });
+
+  it("does not personalize a creator hold because it is not a reusable level", async () => {
+    const repository: FeedbackRepository = {
+      loadOwnedContext: vi.fn().mockResolvedValue({
+        sourceText: "맥락이 부족한 원본 댓글",
+        sourceKind: "owned_oauth",
+        sourceImportJobId: "import-job-1",
+      }),
+      insertFeedback: vi.fn().mockResolvedValue("feedback-hold"),
+      insertEmbedding: vi.fn(),
+    };
+    const embed = vi.fn();
+
+    await saveCreatorCorrection(
+      {
+        ...correction,
+        correctedClassificationStatus: "review_queue",
+        correctedReviewLevel: null,
+      },
+      { repository, embeddingProvider: { embed } },
+    );
+
+    expect(embed).not.toHaveBeenCalled();
+    expect(repository.insertEmbedding).not.toHaveBeenCalled();
+    expect(repository.insertFeedback).toHaveBeenCalledWith(
+      expect.objectContaining({ useForPersonalization: false }),
     );
   });
 

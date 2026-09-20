@@ -90,6 +90,7 @@ export const createSupabaseFeedbackRepository = ({
         classification_verdict_id: input.analysisId,
         actor_user_id: input.actorUserId,
         decision: input.decision,
+        corrected_status: input.correctedClassificationStatus,
         corrected_level: input.correctedReviewLevel,
         corrected_category: input.correctedCategory,
         corrected_recommended_action: input.correctedRecommendedAction,

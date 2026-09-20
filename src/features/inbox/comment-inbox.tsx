@@ -8,6 +8,7 @@ import {
   ThumbsUp,
   DotsThreeVertical,
   Info,
+  PencilSimple,
   User,
   ShieldWarning,
   WarningCircle,
@@ -26,7 +27,6 @@ import type {
 
 import type { ModerationAction } from "@/features/moderation/contracts";
 
-import { canAllowChannelExpression } from "./allow-expression-eligibility";
 import type {
   InboxActionState,
   InboxAnalysisState,
@@ -319,7 +319,19 @@ function SupersededRiskNotice({ item }: { item: InboxItem }) {
   );
 }
 
-function CorrectionForm({
+type CorrectionOutcome = ReviewLevel | "review_queue";
+
+const CORRECTION_OUTCOMES: Array<{
+  label: string;
+  value: CorrectionOutcome;
+}> = [
+  { label: "안전", value: "safe" },
+  { label: "주의", value: "caution" },
+  { label: "위험", value: "risk" },
+  { label: "판단 보류", value: "review_queue" },
+];
+
+function CompactCorrectionForm({
   correctionAction,
   item,
 }: {
@@ -335,115 +347,72 @@ function CorrectionForm({
     return null;
   }
 
-  return (
-    <details className="feedback-correction">
-      <summary>
-        {isPublicSource ? "AI 판단 수정" : "AI 판단 수정 및 개인화"}
-        <CaretDown aria-hidden="true" weight="bold" />
-      </summary>
-      <form action={correctionAction}>
-        <input name="rawCommentId" type="hidden" value={item.rawCommentId} />
-        <input name="analysisId" type="hidden" value={item.analysisId} />
-        <input
-          name="sourceImportJobId"
-          type="hidden"
-          value={item.sourceImportJobId}
-        />
-        <input name="decision" type="hidden" value="corrected" />
+  const isCurrent = (outcome: CorrectionOutcome) =>
+    outcome === "review_queue"
+      ? item.classificationStatus === "review_queue" && item.reviewLevel === null
+      : item.classificationStatus !== "review_queue" && item.reviewLevel === outcome;
 
-        <label>
-          <span>댓글 유형</span>
-          <select defaultValue={item.category} name="correctedCategory">
-            {(Object.keys(CATEGORY_LABELS) as CommentCategory[]).map(
-              (category) => (
-                <option key={category} value={category}>
-                  {CATEGORY_LABELS[category]}
-                </option>
-              ),
-            )}
-          </select>
-        </label>
-        <label>
-          <span>검토 등급</span>
-          <select
-            defaultValue={item.reviewLevel ?? ""}
-            name="correctedReviewLevel"
-            required
+  return (
+    <form
+      action={correctionAction}
+      aria-label="시프티와 다르게 분류하기"
+      className={styles.correctionForm}
+    >
+      <input name="rawCommentId" type="hidden" value={item.rawCommentId} />
+      <input name="analysisId" type="hidden" value={item.analysisId} />
+      <input
+        name="sourceImportJobId"
+        type="hidden"
+        value={item.sourceImportJobId}
+      />
+      <input name="decision" type="hidden" value="corrected" />
+      <input name="correctedCategory" type="hidden" value={item.category} />
+      <input
+        name="correctedRecommendedAction"
+        type="hidden"
+        value={item.recommendedAction ?? "review"}
+      />
+      <input name="editedSanitizedFeedback" type="hidden" value="" />
+      <input name="applicationContext" type="hidden" value="" />
+      <input name="useForTraining" type="hidden" value="false" />
+      <input
+        name="useForPersonalization"
+        type="hidden"
+        value={isPublicSource ? "false" : "true"}
+      />
+
+      <strong>시프티와 다르게 분류하기</strong>
+      <div className={styles.correctionOptions}>
+        {CORRECTION_OUTCOMES.map((outcome) => (
+          <button
+            aria-pressed={isCurrent(outcome.value)}
+            className={styles[outcome.value]}
+            key={outcome.value}
+            name="correctedOutcome"
+            type="submit"
+            value={outcome.value}
           >
-            {item.reviewLevel ? null : (
-              <option disabled value="">
-                등급을 선택해 주세요
-              </option>
-            )}
-            {(Object.keys(LEVEL_DETAILS) as ReviewLevel[]).map((level) => (
-              <option key={level} value={level}>
-                {LEVEL_DETAILS[level].label}
-              </option>
-            ))}
-          </select>
-        </label>
+            <span aria-hidden="true" />
+            {outcome.label}
+          </button>
+        ))}
+      </div>
+      <details className={styles.correctionReason}>
+        <summary>
+          <PencilSimple aria-hidden="true" />
+          이유 적기
+        </summary>
         <label>
-          <span>추천 조치</span>
-          <select
-            defaultValue={item.recommendedAction ?? "review"}
-            name="correctedRecommendedAction"
-          >
-            {(
-              Object.keys(RECOMMENDED_ACTION_LABELS) as RecommendedAction[]
-            ).map((action) => (
-              <option key={action} value={action}>
-                {RECOMMENDED_ACTION_LABELS[action]}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          <span>순화된 피드백</span>
+          <span className="sr-only">분류 이유</span>
           <textarea
-            defaultValue={item.neutralText ?? item.normalizedQuestion ?? ""}
-            name="editedSanitizedFeedback"
-            rows={3}
+            maxLength={2000}
+            name="correctionReason"
+            placeholder="이 분류가 더 맞는 이유"
+            rows={2}
           />
         </label>
-
-        <label><span>수정 이유</span><textarea name="correctionReason" rows={2} maxLength={2000} placeholder="예: 체중 비하가 아니라 칭찬으로 읽히는 이유" /></label>
-        <label><span>적용 맥락</span><textarea name="applicationContext" rows={2} maxLength={2000} placeholder="이 판단이 적용되는 상황" /></label>
-        {isPublicSource ? (
-          <p className="public-feedback-policy">
-            공개 URL에서 수집한 판단 수정은 감사 기록으로만 저장하며 개인화에
-            사용하지 않습니다.
-          </p>
-        ) : (
-          <>
-            <label className="feedback-consent">
-              <input
-                defaultChecked
-                name="useForPersonalization"
-                type="checkbox"
-                value="true"
-              />
-              <span>
-                <strong>내 기준 개인화에 사용</strong>
-                <small>
-                  비슷한 새 댓글을 분류할 때 이 판단을 참고합니다. 원하지
-                  않으면 선택을 해제할 수 있습니다.
-                </small>
-              </span>
-            </label>
-            <label className="feedback-consent">
-              <input name="useForTraining" type="checkbox" value="true" />
-              <span>
-                <strong>향후 공통 모델 학습 후보로 표시</strong>
-                <small>표시만 저장하며 지금 학습 API를 호출하지 않습니다.</small>
-              </span>
-            </label>
-          </>
-        )}
-        <button className="button button-primary" type="submit">
-          수정 내용 저장
-        </button>
-      </form>
-    </details>
+      </details>
+    </form>
   );
 }
 
@@ -545,7 +514,6 @@ function ModerationActions({
 }
 
 export function CommentInbox({
-  allowExpressionAction,
   correctionAction,
   rewriteRetryAction,
   data,
@@ -561,7 +529,6 @@ export function CommentInbox({
   correctionAction: (formData: FormData) => void | Promise<void>;
   rewriteRetryAction?: (formData: FormData) => void | Promise<void>;
   moderationAction: (formData: FormData) => void | Promise<void>;
-  allowExpressionAction: (formData: FormData) => void | Promise<void>;
 }) {
   const limit = filters.limit ?? 25;
   const offset = filters.offset ?? 0;
@@ -610,7 +577,6 @@ export function CommentInbox({
                           commentId={item.rawCommentId}
                           label="원문 보기"
                           compact
-                          allowExpressionAction={canAllowChannelExpression(item) ? allowExpressionAction : undefined}
                         />
                       ) : <span>원문을 더 이상 불러올 수 없습니다.</span>}
                       <span className={`${styles.warning} ${item.reviewLevel === "risk" ? styles.risk : ""}`}>
@@ -651,10 +617,13 @@ export function CommentInbox({
                     </details>
                   ) : null}
                 </div>
-                <a className={styles.video} href={`https://www.youtube.com/watch?v=${encodeURIComponent(item.youtubeVideoId)}`} target="_blank" rel="noreferrer" aria-label={`${title} YouTube에서 보기`}>
-                  {item.videoThumbnailUrl ? <Image alt={`${title} 썸네일`} width={110} height={67} src={item.videoThumbnailUrl} unoptimized /> : null}
-                  <span>{title}</span>
-                </a>
+                <aside className={styles.side}>
+                  <a className={styles.video} href={`https://www.youtube.com/watch?v=${encodeURIComponent(item.youtubeVideoId)}`} target="_blank" rel="noreferrer" aria-label={`${title} YouTube에서 보기`}>
+                    {item.videoThumbnailUrl ? <Image alt={`${title} 썸네일`} width={110} height={67} src={item.videoThumbnailUrl} unoptimized /> : null}
+                    <span>{title}</span>
+                  </a>
+                  <CompactCorrectionForm correctionAction={correctionAction} item={item} />
+                </aside>
                 <details className={styles.review} open={selectedCommentId === item.rawCommentId || undefined}>
                   <summary aria-label="댓글 검토 및 조치"><DotsThreeVertical aria-hidden="true" weight="bold" /><span className="sr-only">댓글 검토 및 조치</span></summary>
                   <div className={styles.reviewContent}>
@@ -668,7 +637,6 @@ export function CommentInbox({
                       <div><dt>조치 상태</dt><dd>{item.actionState ? ACTION_STATE_LABELS[item.actionState] : "아직 요청 없음"}</dd></div>
                     </dl>
                     {item.classificationTrace ? <ClassificationTrace trace={item.classificationTrace} /> : null}
-                    <CorrectionForm correctionAction={correctionAction} item={item} />
                     <ModerationActions item={item} moderationAction={moderationAction} />
                   </div>
                 </details>

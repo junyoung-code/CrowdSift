@@ -222,7 +222,7 @@ values
     null
   );
 
-select plan(15);
+select plan(18);
 
 set local role authenticated;
 select set_config(
@@ -297,6 +297,71 @@ select is(
   ),
   '0.82',
   'classification trace preserves the moderation score'
+);
+
+reset role;
+insert into public.classification_feedback (
+  workspace_id,
+  raw_comment_id,
+  classification_verdict_id,
+  actor_user_id,
+  decision,
+  corrected_status,
+  corrected_level,
+  corrected_category,
+  corrected_recommended_action,
+  source_import_job_id,
+  correction_reason,
+  use_for_personalization,
+  use_for_training
+)
+select
+  'a0300000-0000-4000-8000-000000000002',
+  'a0300000-0000-4000-8000-000000000004',
+  cv.id,
+  'a0300000-0000-4000-8000-000000000001',
+  'corrected',
+  'review_queue',
+  null,
+  'uncertain',
+  'review',
+  'a0300000-0000-4000-8000-000000000003',
+  '맥락이 부족해 직접 확인이 필요함',
+  false,
+  false
+from public.classification_verdicts cv
+where cv.raw_comment_id = 'a0300000-0000-4000-8000-000000000004';
+
+set local role authenticated;
+select is(
+  (
+    select classification_status
+    from public.get_inbox_feed_page(
+      target_workspace_id => 'a0300000-0000-4000-8000-000000000002'
+    )
+  ),
+  'review_queue',
+  'a creator can move a decided comment to the review queue'
+);
+select is(
+  (
+    select review_level::text
+    from public.get_inbox_feed_page(
+      target_workspace_id => 'a0300000-0000-4000-8000-000000000002'
+    )
+  ),
+  null,
+  'a creator hold does not masquerade as a concrete review level'
+);
+select is(
+  (
+    select classification_trace -> 'final' ->> 'status'
+    from public.get_inbox_feed_page(
+      target_workspace_id => 'a0300000-0000-4000-8000-000000000002'
+    )
+  ),
+  'decided',
+  'the original AI verdict remains available for audit'
 );
 
 reset role;

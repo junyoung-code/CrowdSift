@@ -164,8 +164,22 @@ describe("Supabase Inbox repository", () => {
           source_available: true,
           safe_source_text: "사람이 안전으로 확정한 댓글",
           analysis_id: "analysis-1",
-          classification_status: "review_queue",
-          classification_trace: null,
+          classification_status: "decided",
+          classification_trace: {
+            moderation: null,
+            luna: null,
+            branch: null,
+            terra: null,
+            final: {
+              status: "review_queue",
+              level: null,
+              basis: "missing_context",
+              hideSource: true,
+              raisedByModeration: false,
+              reasonCodes: [],
+              recommendedActions: [],
+            },
+          },
           category: "positive",
           review_level: "safe",
           ai_review_level: null,
@@ -208,5 +222,82 @@ describe("Supabase Inbox repository", () => {
     );
     expect(result.items[0]).toMatchObject({ classificationStatus: "decided", aiClassificationStatus: "review_queue", resolvedByUser: true });
     expect(result.total).toBe(1);
+  });
+
+  it("maps a creator hold without converting it to a review level", async () => {
+    const rpc = vi.fn().mockResolvedValue({
+      data: [
+        {
+          raw_comment_id: "comment-1",
+          source_import_job_id: "import-1",
+          source_kind: "owned_oauth",
+          youtube_video_id: "video-1",
+          video_title: "새 영상",
+          video_thumbnail_url: null,
+          author_display_name: "시청자",
+          author_avatar_url: null,
+          published_at: null,
+          like_count: 0,
+          source_available: true,
+          safe_source_text: null,
+          analysis_id: "analysis-1",
+          classification_status: "review_queue",
+          classification_trace: {
+            moderation: null,
+            luna: null,
+            branch: null,
+            terra: null,
+            final: {
+              status: "decided",
+              level: "caution",
+              basis: "both_agreed",
+              hideSource: true,
+              raisedByModeration: false,
+              reasonCodes: [],
+              recommendedActions: [],
+            },
+          },
+          category: "uncertain",
+          review_level: null,
+          ai_review_level: "caution",
+          confidence: null,
+          recommended_action: "review",
+          manual_review: true,
+          neutral_text: null,
+          normalized_question: null,
+          analysis_state: "analyzed",
+          action_state: null,
+          source_moderation_status: "published",
+          delete_eligible: false,
+          reply_count: 0,
+          replies: [],
+          total_count: 1,
+        },
+      ],
+      error: null,
+    });
+    const repository = createSupabaseInboxRepository({ rpc });
+
+    const result = await repository.query({
+      workspaceId: "workspace-1",
+      reviewLevels: ["safe", "caution", "risk"],
+      classificationStatus: null,
+      category: null,
+      videoIds: [],
+      analysisState: null,
+      actionState: null,
+      minConfidence: null,
+      maxConfidence: null,
+      search: null,
+      limit: 25,
+      offset: 0,
+    });
+
+    expect(result.items[0]).toMatchObject({
+      classificationStatus: "review_queue",
+      aiClassificationStatus: "decided",
+      reviewLevel: null,
+      resolvedByUser: false,
+    });
   });
 });
