@@ -17,6 +17,7 @@
 - `OPENAI_SEMANTIC_MODEL`, `OPENAI_SEMANTIC_REASONING_EFFORT`
 - `OPENAI_FEEDBACK_REWRITE_MODEL`, `OPENAI_FEEDBACK_REWRITE_REASONING_EFFORT`
 - `OPENAI_REWRITE_VALIDATION_MODEL`, `OPENAI_REWRITE_VALIDATION_REASONING_EFFORT`
+- `SEMANTIC_INTERPRETATION_PROFILE` (`context-v1|context-v2|context-v3`)
 
 추론 설정은 미지정하거나 해당 모델이 지원하는 `none|minimal|low|medium|high|xhigh`를 쓴다. SDK/API가 지원하지 않는 조합은 오류로 기록한다. 모델·추론·pipeline·프롬프트·스키마·정책 버전과 workspace 정책 버전으로 설정 키를 계산한다. 계약/프롬프트를 변경할 때 버전 상수도 올려야 한다.
 
@@ -110,9 +111,9 @@ npm run build
 
 운영 기본값과 과거 설정 식별자는 `context-v1`을 유지한다. `context-v2`는 사용자가 선택한 새 경계로, 단순 불만은 허용하면서 거친 콘텐츠 비하도 harm으로 추출한다. `target`은 주된 평가 대상, 각 `harms.target`은 실제 공격 대상이며 연결 이유는 `harms.content`에 남긴다. 새 필드나 추가 분석 호출은 없다.
 
-### 의미 해석 상세 실험: context-v3
+### 의미 해석 상세 프로필: context-v3
 
-로컬 Luna 비교에서만 선택한다. 운영 provider와 Claude 실험에서는 아직 허용하지 않는다. `--profile context-v3`와 기존 Luna 역할 설정(분석 medium / 재작성 low / 검증 medium)을 사용한다.
+2026-09-20 운영 선택은 Luna 역할 설정(분석 medium / 재작성 low / 검증 medium)과 `context-v3`다. production에서는 이 설정의 정확한 `configurationKey`가 `SEMANTIC_APPROVED_CONFIGURATION`과 일치할 때만 실행한다.
 
 - 분석 호출 하나에서 `interpretation`을 먼저 출력한다: `addressees`, `speechActs`, `literalMeaning`, `impliedMeaning`, `missingContext`. 각 결론은 짧게 작성하며 긴 사고 과정은 요구하지 않는다.
 - 대화 상대는 creator / parent_author / viewers / other / unknown. 평가 대상 `target`, 실제 공격 대상 `harms.target`과 독립적이다. 명시적인 상대 근거가 없으면 unknown을 허용한다.

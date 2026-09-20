@@ -23,7 +23,13 @@ export function semanticSettingsFromEnv(env: Record<string, string | undefined> 
     model: fixture ? "fixture-semantic-v1" : env[`OPENAI_${name}_MODEL`] || "unconfigured",
     effort: env[`OPENAI_${name}_REASONING_EFFORT`] || null,
   });
-  return SemanticSettingsSchema.parse({ provider: fixture ? "fixture" : "live", analysis: role("SEMANTIC"), rewrite: role("FEEDBACK_REWRITE"), validation: role("REWRITE_VALIDATION") });
+  return SemanticSettingsSchema.parse({
+    provider: fixture ? "fixture" : "live",
+    analysis: role("SEMANTIC"),
+    rewrite: role("FEEDBACK_REWRITE"),
+    validation: role("REWRITE_VALIDATION"),
+    interpretationProfile: env.SEMANTIC_INTERPRETATION_PROFILE || undefined,
+  });
 }
 export function semanticConfigurationKey(settings: SemanticSettings, policyVersion: number) {
   const normalized = SemanticSettingsSchema.parse(settings);

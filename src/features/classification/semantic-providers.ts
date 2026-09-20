@@ -6,7 +6,6 @@ import { createFixtureSemanticProviders } from "./semantic-fixtures";
 import { semanticConfigurationKey, type SemanticSettings } from "./semantic-settings";
 
 export function createSemanticProviders(settings: SemanticSettings, apiKey: string, allowFixture: boolean) {
-  if (settings.interpretationProfile === "context-v3") throw new Error("context_v3_comparison_only");
   if (settings.provider === "fixture") {
     if (process.env.NODE_ENV === "production" || !allowFixture) throw new Error("fixture_disabled");
     return createFixtureSemanticProviders();

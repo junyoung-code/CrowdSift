@@ -21,4 +21,9 @@ describe("semantic activation",()=>{
   vi.stubEnv("NODE_ENV","development");vi.stubEnv("SEMANTIC_APPROVED_CONFIGURATION","");
   expect(createSemanticProviders(live,"test",false)).toHaveProperty("validator");
  });
+ it("permits an explicitly approved context-v3 production configuration",()=>{
+  const v3={...live,interpretationProfile:"context-v3" as const};
+  vi.stubEnv("NODE_ENV","production");vi.stubEnv("SEMANTIC_APPROVED_CONFIGURATION",semanticConfigurationKey(v3,1));
+  expect(createSemanticProviders(v3,"test",false)).toHaveProperty("analyzer");
+ });
 });
